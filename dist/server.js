@@ -129,7 +129,7 @@ const startServer = async () => {
         // Swagger API Documentation
         app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
             customCss: '.swagger-ui .topbar { display: none }',
-            customSiteTitle: "ClickUp Clone API Documentation"
+            customSiteTitle: "Workspace App API Documentation"
         }));
         // 7. Routes
         app.use("/api/auth", authRoutes);

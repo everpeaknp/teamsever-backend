@@ -23,7 +23,9 @@ class EmailService {
                     },
                     tls: {
                         rejectUnauthorized: false // Don't fail on invalid certs in local dev
-                    }
+                    },
+                    // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
+                    family: 4
                 });
                 console.log('🔧 Email service initializing...');
                 console.log(`   Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
@@ -76,7 +78,7 @@ class EmailService {
         }
         try {
             const mailOptions = {
-                from: `"${process.env.APP_NAME || 'ClickUp Clone'}" <${process.env.SMTP_USER}>`,
+                from: `"${process.env.APP_NAME || 'Workspace App'}" <${process.env.SMTP_USER}>`,
                 to: options.to,
                 subject: options.subject,
                 html: options.html,
@@ -164,7 +166,7 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">${process.env.APP_NAME || 'ClickUp Clone'}</div>
+              <div class="logo">${process.env.APP_NAME || 'Workspace App'}</div>
             </div>
             
             <div class="content">

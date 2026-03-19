@@ -32,7 +32,7 @@ class EmailService {
     if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
       try {
         // Create transporter with Gmail or custom SMTP
-        this.transporter = nodemailer.createTransport({
+        const transportOptions: any = {
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: parseInt(process.env.SMTP_PORT || '587'),
           secure: false, // false for 587, true for 465
@@ -45,7 +45,8 @@ class EmailService {
           },
           // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
           family: 4
-        });
+        };
+        this.transporter = nodemailer.createTransport(transportOptions);
 
         console.log('🔧 Email service initializing...');
         console.log(`   Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);

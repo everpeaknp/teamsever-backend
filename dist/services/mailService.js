@@ -14,7 +14,7 @@ class MailService {
         this.fromEmail = "onboarding@resend.dev";
     }
     /**
-     * Generate ClickUp-style HTML email template
+     * Generate Workspace-style HTML email template
      */
     generateInvitationTemplate(workspaceName, inviterName, inviteUrl) {
         return `
