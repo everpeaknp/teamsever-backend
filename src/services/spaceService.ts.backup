@@ -1,0 +1,681 @@
+const Space = require("../models/Space");
+const Workspace = require("../models/Workspace");
+const AppError = require("../utils/AppError");
+const softDelete = require("../utils/softDelete");
+const logger = require("../utils/logger");
+
+interface CreateSpaceData {
+  name: string;
+  description?: string;
+  workspace: string;
+  owner: string;
+}
+
+interface UpdateSpaceData {
+  name?: string;
+  description?: string;
+  status?: "active" | "inactive";
+}
+
+class SpaceService {
+      const space = await Space.findOne({
+        _id: spaceId,
+        isDeleted: false
+      });
+
+      if (!space) {
+        throw new AppError("Space not found", 404);
+      }
+
+      // Check if requester has permission (workspace owner/admin)
+      const workspace = await Workspace.findOne({
+        _id: space.workspace,
+        isDeleted: false
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const isWorkspaceOwner = workspace.owner.toString() === userId;
+      const workspaceMember = workspace.members.find(
+        (m: any) => m.user.toString() === userId
+      );
+      const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+      if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+        throw new AppError("Only workspace owner or admin can add members", 403);
+      }
+
+      // Check if member already exists in space
+      const existingMember = space.members.find(
+        (m: any) => m.user.toString() === memberId
+      );
+
+      if (existingMember) {
+        throw new AppError("User is already a member of this space", 400);
+      }
+
+      // Add member to space
+      space.members.push({
+        user: memberId,
+        role
+      });
+
+      await space.save();
+
+      // Log activity
+      await logger.logActivity({
+        userId,
+        workspaceId: space.workspace.toString(),
+        action: "ADD_MEMBER",
+        resourceType: "Space",
+        resourceId: space._id.toString(),
+        metadata: { memberId, role }
+      });
+
+      return space;
+    }
+
+    async removeMemberFromSpace(spaceId: string, userId: string, memberId: string) {
+      const space = await Space.findOne({
+        _id: spaceId,
+        isDeleted: false
+      });
+
+      if (!space) {
+        throw new AppError("Space not found", 404);
+      }
+
+      // Check if requester has permission (workspace owner/admin)
+      const workspace = await Workspace.findOne({
+        _id: space.workspace,
+        isDeleted: false
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const isWorkspaceOwner = workspace.owner.toString() === userId;
+      const workspaceMember = workspace.members.find(
+        (m: any) => m.user.toString() === userId
+      );
+      const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+      if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+        throw new AppError("Only workspace owner or admin can remove members", 403);
+      }
+
+      // Cannot remove space owner
+      if (space.owner.toString() === memberId) {
+        throw new AppError("Cannot remove space owner", 400);
+      }
+
+      // Remove member from space
+      space.members = space.members.filter(
+        (m: any) => m.user.toString() !== memberId
+      );
+
+      await space.save();
+
+      // Log activity
+      await logger.logActivity({
+        userId,
+        workspaceId: space.workspace.toString(),
+        action: "REMOVE_MEMBER",
+        resourceType: "Space",
+        resourceId: space._id.toString(),
+        metadata: { memberId }
+      });
+
+      return space;
+    }
+
+    async inviteExternalUsers(spaceId: string, userId: string, invites: Array<{ email: string; role: 'admin' | 'member' }>) {
+      const space = await Space.findOne({
+        _id: spaceId,
+        isDeleted: false
+      });
+
+      if (!space) {
+        throw new AppError("Space not found", 404);
+      }
+
+      // Check if requester has permission (workspace owner/admin)
+      const workspace = await Workspace.findOne({
+        _id: space.workspace,
+        isDeleted: false
+      });
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const isWorkspaceOwner = workspace.owner.toString() === userId;
+      const workspaceMember = workspace.members.find(
+        (m: any) => m.user.toString() === userId
+      );
+      const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+      if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+        throw new AppError("Only workspace owner or admin can invite external users", 403);
+      }
+
+      // Send invitation emails
+      const mailService = require("./mailService");
+      const User = require("../models/User");
+
+      const results = [];
+      for (const invite of invites) {
+        try {
+          // Check if user already exists
+          const existingUser = await User.findOne({ email: invite.email });
+
+          if (existingUser) {
+            // Check if already in space
+            const isInSpace = space.members.some(
+              (m: any) => m.user.toString() === existingUser._id.toString()
+            );
+
+            if (isInSpace) {
+              results.push({ email: invite.email, status: 'already_member' });
+              continue;
+            }
+
+            // Add to space directly
+            space.members.push({
+              user: existingUser._id,
+              role: invite.role
+            });
+            results.push({ email: invite.email, status: 'added' });
+          } else {
+            // Send invitation email
+            await mailService.sendSpaceInvitation({
+              email: invite.email,
+              spaceName: space.name,
+              workspaceName: workspace.name,
+              inviterName: workspaceMember?.user?.name || 'Team member',
+              role: invite.role
+            });
+            results.push({ email: invite.email, status: 'invited' });
+          }
+        } catch (error) {
+          console.error(`Failed to process invite for ${invite.email}:`, error);
+          results.push({ email: invite.email, status: 'failed' });
+        }
+      }
+
+      await space.save();
+
+      // Log activity
+      await logger.logActivity({
+        userId,
+        workspaceId: space.workspace.toString(),
+        action: "INVITE_EXTERNAL",
+        resourceType: "Space",
+        resourceId: space._id.toString(),
+        metadata: { inviteCount: invites.length }
+      });
+
+      return { results };
+    }
+
+}
+
+interface UpdateSpaceData {
+  name?: string;
+  description?: string;
+  status?: "active" | "inactive";
+}
+
+class SpaceService {
+  async createSpace(data: CreateSpaceData) {
+    const { name, description, workspace, owner } = data;
+
+    // Verify workspace exists
+    const workspaceDoc = await Workspace.findOne({
+      _id: workspace,
+      isDeleted: false
+    });
+
+    if (!workspaceDoc) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    // Verify user is workspace member
+    const isMember = workspaceDoc.members.some(
+      (member: any) => member.user.toString() === owner
+    );
+
+    if (!isMember) {
+      throw new AppError("You must be a workspace member to create a space", 403);
+    }
+
+    // Create space with owner as member
+    const space = await Space.create({
+      name,
+      description,
+      workspace,
+      owner,
+      members: [
+        {
+          user: owner,
+          role: "owner"
+        }
+      ]
+    });
+
+    // Log activity
+    await logger.logActivity({
+      userId: owner,
+      workspaceId: workspace,
+      action: "CREATE",
+      resourceType: "Space",
+      resourceId: space._id.toString(),
+      metadata: { name: space.name }
+    });
+
+    return space;
+  }
+
+  async getWorkspaceSpaces(workspaceId: string, userId: string) {
+    // Verify user is workspace member
+    const workspace = await Workspace.findOne({
+      _id: workspaceId,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    const isMember = workspace.members.some(
+      (member: any) => member.user.toString() === userId
+    );
+
+    if (!isMember) {
+      throw new AppError("You do not have access to this workspace", 403);
+    }
+
+    const spaces = await Space.find({
+      workspace: workspaceId,
+      isDeleted: false
+    })
+      .populate("owner", "name email")
+      .populate("members.user", "name email")
+      .sort("-createdAt")
+      .lean();
+
+    return spaces;
+  }
+
+  async getSpaceById(spaceId: string, userId: string) {
+    console.log(`[SpaceService] getSpaceById called with spaceId: ${spaceId}, userId: ${userId}`);
+    
+    // Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(spaceId)) {
+      console.error(`[SpaceService] Invalid space ID format: ${spaceId}`);
+      throw new AppError("Invalid space ID format", 400);
+    }
+    
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    })
+      .populate("owner", "name email")
+      .populate("members.user", "name email")
+      .lean();
+
+    if (!space) {
+      console.error(`[SpaceService] Space not found with ID: ${spaceId}`);
+      throw new AppError("Space not found", 404);
+    }
+
+    console.log(`[SpaceService] Found space: ${space.name}, workspace: ${space.workspace}`);
+
+    // Check if user has access (workspace member or space member)
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      console.error(`[SpaceService] Workspace not found with ID: ${space.workspace}`);
+      throw new AppError("Workspace not found", 404);
+    }
+
+    console.log(`[SpaceService] Found workspace: ${workspace.name}`);
+
+    const isWorkspaceMember = workspace.members.some(
+      (member: any) => member.user.toString() === userId
+    );
+
+    if (!isWorkspaceMember) {
+      console.error(`[SpaceService] User ${userId} is not a member of workspace ${workspace._id}`);
+      throw new AppError("You do not have access to this space", 403);
+    }
+
+    console.log(`[SpaceService] User ${userId} has access to space ${spaceId}`);
+    return space;
+  }
+
+  async updateSpace(spaceId: string, userId: string, updateData: UpdateSpaceData) {
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    });
+
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    // Get workspace to check user role
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    // Check if user is workspace member
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
+    const workspaceMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceMember = isWorkspaceOwner || workspaceMember;
+
+    if (!isWorkspaceMember) {
+      throw new AppError("You do not have access to this space", 403);
+    }
+
+    // Permission checks for different update types
+    if (updateData.name || updateData.description !== undefined) {
+      // Only owner/admin can update name/description
+      if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+        throw new AppError("Only workspace owner or admin can update space details", 403);
+      }
+    }
+
+    if (updateData.status) {
+      // Only owner/admin can change status
+      if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+        throw new AppError("Only workspace owner or admin can change space status", 403);
+      }
+    }
+
+    // Capture old state for audit
+    const oldValue = space.toObject();
+
+    if (updateData.name) space.name = updateData.name;
+    if (updateData.description !== undefined) space.description = updateData.description;
+    if (updateData.status) space.status = updateData.status;
+
+    await space.save();
+
+    // Log audit
+    await logger.logAudit({
+      userId,
+      workspaceId: space.workspace.toString(),
+      resourceType: "Space",
+      resourceId: space._id.toString(),
+      oldValue,
+      newValue: space.toObject()
+    });
+
+    // Log activity
+    await logger.logActivity({
+      userId,
+      workspaceId: space.workspace.toString(),
+      action: "UPDATE",
+      resourceType: "Space",
+      resourceId: space._id.toString()
+    });
+
+    return space;
+  }
+
+  async deleteSpace(spaceId: string, userId: string) {
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    });
+
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    // Check if user is space owner or admin
+    const member = space.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+
+    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+      throw new AppError("Only space owner or admin can delete this space", 403);
+    }
+
+    await softDelete(Space, spaceId);
+
+    // Log activity
+    await logger.logActivity({
+      userId,
+      workspaceId: space.workspace.toString(),
+      action: "DELETE",
+      resourceType: "Space",
+      resourceId: space._id.toString()
+    });
+
+    return { message: "Space deleted successfully" };
+  }
+
+  async addMemberToSpace(spaceId: string, userId: string, memberId: string, role: 'admin' | 'member' = 'member') {
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    });
+
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    // Check if requester has permission (workspace owner/admin)
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
+    const workspaceMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+    if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+      throw new AppError("Only workspace owner or admin can add members", 403);
+    }
+
+    // Check if member already exists in space
+    const existingMember = space.members.find(
+      (m: any) => m.user.toString() === memberId
+    );
+
+    if (existingMember) {
+      throw new AppError("User is already a member of this space", 400);
+    }
+
+    // Add member to space
+    space.members.push({
+      user: memberId,
+      role
+    });
+
+    await space.save();
+
+    // Log activity
+    await logger.logActivity({
+      userId,
+      workspaceId: space.workspace.toString(),
+      action: "ADD_MEMBER",
+      resourceType: "Space",
+      resourceId: space._id.toString(),
+      metadata: { memberId, role }
+    });
+
+    return space;
+  }
+
+  async removeMemberFromSpace(spaceId: string, userId: string, memberId: string) {
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    });
+
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    // Check if requester has permission (workspace owner/admin)
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
+    const workspaceMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+    if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+      throw new AppError("Only workspace owner or admin can remove members", 403);
+    }
+
+    // Cannot remove space owner
+    if (space.owner.toString() === memberId) {
+      throw new AppError("Cannot remove space owner", 400);
+    }
+
+    // Remove member from space
+    space.members = space.members.filter(
+      (m: any) => m.user.toString() !== memberId
+    );
+
+    await space.save();
+
+    // Log activity
+    await logger.logActivity({
+      userId,
+      workspaceId: space.workspace.toString(),
+      action: "REMOVE_MEMBER",
+      resourceType: "Space",
+      resourceId: space._id.toString(),
+      metadata: { memberId }
+    });
+
+    return space;
+  }
+
+  async inviteExternalUsers(spaceId: string, userId: string, invites: Array<{ email: string; role: 'admin' | 'member' }>) {
+    const space = await Space.findOne({
+      _id: spaceId,
+      isDeleted: false
+    }).populate("owner", "name email");
+
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    // Check if requester has permission (workspace owner/admin)
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    }).populate("owner", "name email");
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    const isWorkspaceOwner = workspace.owner._id.toString() === userId;
+    const workspaceMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId || m.user._id?.toString() === userId
+    );
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+
+    if (!isWorkspaceOwner && !isWorkspaceAdmin) {
+      throw new AppError("Only workspace owner or admin can invite external users", 403);
+    }
+
+    // Send invitation emails
+    const mailService = require("./mailService");
+    const User = require("../models/User");
+
+    const results = [];
+    for (const invite of invites) {
+      try {
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: invite.email });
+        
+        if (existingUser) {
+          // Check if already in space
+          const isInSpace = space.members.some(
+            (m: any) => m.user.toString() === existingUser._id.toString()
+          );
+          
+          if (isInSpace) {
+            results.push({ email: invite.email, status: 'already_member' });
+            continue;
+          }
+          
+          // Add to space directly
+          space.members.push({
+            user: existingUser._id,
+            role: invite.role
+          });
+          results.push({ email: invite.email, status: 'added' });
+        } else {
+          // Send invitation email
+          await mailService.sendSpaceInvitation({
+            email: invite.email,
+            spaceName: space.name,
+            workspaceName: workspace.name,
+            inviterName: workspace.owner.name || 'Team member',
+            role: invite.role
+          });
+          results.push({ email: invite.email, status: 'invited' });
+        }
+      } catch (error) {
+        console.error(`Failed to process invite for ${invite.email}:`, error);
+        results.push({ email: invite.email, status: 'failed' });
+      }
+    }
+
+    await space.save();
+
+    // Log activity
+    await logger.logActivity({
+      userId,
+      workspaceId: space.workspace.toString(),
+      action: "INVITE_EXTERNAL",
+      resourceType: "Space",
+      resourceId: space._id.toString(),
+      metadata: { inviteCount: invites.length }
+    });
+
+    return { results };
+  }
+}
+
+module.exports = new SpaceService();
+export {};

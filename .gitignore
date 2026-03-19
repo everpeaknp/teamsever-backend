@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build output
+build/
+*.js.map
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+**/tests/
+**/test/
+**/__tests__/
+coverage/
+.nyc_output/
+test-*.js
+test-*.ts
+
+# Seed files
+**/seeds/
+**/seed/
+**/*seed*.js
+**/*seed*.ts
+**/seeders/
+seed-*.js
+seed-*.ts
+
+# Documentation (except README.md)
+*.md
+!README.md
+
+# Utility and helper scripts
+checkWorkspaces.js
+get-workspace-id.js
+validate-implementation.js
+create-search-indexes.js
+migrate-*.js
+testDocumentAPI.js
+
+# PowerShell scripts
+*.ps1
+
+# Uploads and temporary files
+uploads/
+temp/
+tmp/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Cache
+.cache/
+.eslintcache
