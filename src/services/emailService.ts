@@ -42,7 +42,9 @@ class EmailService {
           },
           tls: {
             rejectUnauthorized: false // Don't fail on invalid certs in local dev
-          }
+          },
+          // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
+          family: 4
         });
 
         console.log('🔧 Email service initializing...');
