@@ -80,6 +80,7 @@ const startServer = async () => {
     const performanceRoutes = require("./routes/performanceRoutes");
     const planRoutes = require("./routes/planRoutes");
     const superAdminRoutes = require("./routes/superAdminRoutes");
+    const userRoutes = require("./routes/userRoutes");
     const subscriptionRoutes = require("./routes/subscriptionRoutes");
     const feedbackRoutes = require("./routes/feedbackRoutes");
     const { workspaceFileRouter, fileRouter } = require("./routes/workspaceFileRoutes");
@@ -203,6 +204,7 @@ const startServer = async () => {
     app.use("/api/performance", performanceRoutes);
     app.use("/api/plans", planRoutes);
     app.use("/api/super-admin", superAdminRoutes);
+    app.use("/api/users", userRoutes);
     app.use("/api/subscription", subscriptionRoutes);
     app.use("/api/feedback", feedbackRoutes);
     app.use("/api/workspaces/:workspaceId/files", workspaceFileRouter);

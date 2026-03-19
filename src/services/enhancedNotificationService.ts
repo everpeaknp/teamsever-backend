@@ -23,6 +23,7 @@ type NotificationType =
   | "DM_NEW"
   | "FILE_UPLOAD"
   | "INVITE_ACCEPTED"
+  | "ANNOUNCEMENT_NEW"
   | "SYSTEM";
 
 interface NotificationData {
@@ -134,6 +135,47 @@ class EnhancedNotificationService {
     } catch (error) {
       console.error("[Notification] Failed to create notification:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Notify new announcement to all workspace members
+   */
+  async notifyAnnouncementCreated(
+    announcementId: string,
+    workspaceId: string,
+    authorId: string,
+    content: string
+  ): Promise<void> {
+    try {
+      const workspace = await Workspace.findById(workspaceId).lean();
+      if (!workspace) return;
+
+      const author = await User.findById(authorId).select("name").lean();
+      const authorName = author?.name || "Someone";
+      const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+
+      // Notify all members except author
+      const recipients = workspace.members
+        .map((m: any) => m.user.toString())
+        .filter((id: string) => id !== authorId);
+
+      for (const recipientId of recipients) {
+        await this.createNotification({
+          recipientId,
+          type: "ANNOUNCEMENT_NEW",
+          title: `New Announcement in ${workspace.name}`,
+          body: `${authorName}: ${contentPreview}`,
+          data: {
+            resourceId: announcementId,
+            resourceType: "Announcement",
+            workspaceId,
+            announcementId,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("[Notification] Failed to notify announcement created:", error);
     }
   }
 

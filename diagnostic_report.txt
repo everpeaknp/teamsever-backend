@@ -1,0 +1,153 @@
+API Response count: 1
+API Response data: [
+  {
+    "_id": "69bbf827a96fe78f716752bb",
+    "name": "Everacy",
+    "logo": "https://res.cloudinary.com/dpl1j1eoo/image/upload/v1773926480/workspaces/69bbf827a96fe78f716752bb/zxvwumfbhjec1tlrmr7l.jpg",
+    "owner": {
+      "subscription": {
+        "isPaid": true,
+        "status": "active",
+        "billingCycle": "monthly",
+        "memberCount": 1,
+        "pricePerSeat": 0,
+        "planId": {
+          "features": {
+            "maxWorkspaces": -1,
+            "maxAdmins": -1,
+            "maxSpaces": -1,
+            "maxLists": -1,
+            "maxFolders": -1,
+            "maxTasks": -1,
+            "hasAccessControl": false,
+            "hasGroupChat": true,
+            "messageLimit": 1000,
+            "announcementCooldown": 1,
+            "accessControlTier": "advanced",
+            "canUseCustomRoles": true,
+            "maxCustomRoles": -1,
+            "canCreateTables": true,
+            "maxTablesCount": -1,
+            "maxRowsLimit": -1,
+            "maxColumnsLimit": -1,
+            "maxFiles": -1,
+            "maxDocuments": -1,
+            "maxDirectMessagesPerUser": -1
+          },
+          "_id": "69bc24fb5f337c767091d8e3",
+          "name": "PRO",
+          "price": 0,
+          "baseCurrency": "NPR",
+          "basePrice": 0,
+          "pricePerMemberMonthly": 100,
+          "pricePerMemberAnnual": 1000,
+          "discountPercentage": 0,
+          "description": "dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda",
+          "parentPlanId": null,
+          "isActive": true,
+          "createdAt": "2026-03-19T16:31:56.007Z",
+          "updatedAt": "2026-03-19T16:31:56.007Z",
+          "__v": 0
+        },
+        "expiresAt": "2026-04-18T16:39:46.138Z",
+        "paidAt": "2026-03-19T16:39:46.138Z"
+      },
+      "_id": "69bbf815a96fe78f716752a6",
+      "name": "EverPeak",
+      "email": "everpeak.np@gmail.com"
+    },
+    "members": [
+      {
+        "user": {
+          "_id": "69bbf815a96fe78f716752a6",
+          "name": "EverPeak",
+          "email": "everpeak.np@gmail.com"
+        },
+        "role": "owner",
+        "status": "inactive",
+        "customRoleTitle": null,
+        "_id": "69bbf827a96fe78f716752bc"
+      },
+      {
+        "user": {
+          "_id": "69bbf78ca96fe78f7167528f",
+          "name": "Ramon “R.A.MON”",
+          "email": "ramontiwari086@gmail.com"
+        },
+        "role": "admin",
+        "status": "inactive",
+        "customRoleTitle": null,
+        "_id": "69bc20a7621ab7de461061ae"
+      }
+    ],
+    "isDeleted": false,
+    "lastAnnouncementTime": null,
+    "createdAt": "2026-03-19T13:20:39.681Z",
+    "updatedAt": "2026-03-19T16:13:27.146Z",
+    "__v": 0,
+    "subscription": {
+      "isPaid": true,
+      "status": "active",
+      "plan": {
+        "features": {
+          "maxWorkspaces": -1,
+          "maxAdmins": -1,
+          "maxSpaces": -1,
+          "maxLists": -1,
+          "maxFolders": -1,
+          "maxTasks": -1,
+          "hasAccessControl": false,
+          "hasGroupChat": true,
+          "messageLimit": 1000,
+          "announcementCooldown": 1,
+          "accessControlTier": "advanced",
+          "canUseCustomRoles": true,
+          "maxCustomRoles": -1,
+          "canCreateTables": true,
+          "maxTablesCount": -1,
+          "maxRowsLimit": -1,
+          "maxColumnsLimit": -1,
+          "maxFiles": -1,
+          "maxDocuments": -1,
+          "maxDirectMessagesPerUser": -1
+        },
+        "_id": "69bc24fb5f337c767091d8e3",
+        "name": "PRO",
+        "price": 0,
+        "baseCurrency": "NPR",
+        "basePrice": 0,
+        "pricePerMemberMonthly": 100,
+        "pricePerMemberAnnual": 1000,
+        "discountPercentage": 0,
+        "description": "dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda dsadsa dasdasda",
+        "parentPlanId": null,
+        "isActive": true,
+        "createdAt": "2026-03-19T16:31:56.007Z",
+        "updatedAt": "2026-03-19T16:31:56.007Z",
+        "__v": 0
+      },
+      "resolvedFeatures": {
+        "maxWorkspaces": -1,
+        "maxAdmins": -1,
+        "maxSpaces": -1,
+        "maxLists": -1,
+        "maxFolders": -1,
+        "maxTasks": -1,
+        "hasAccessControl": false,
+        "hasGroupChat": true,
+        "messageLimit": 1000,
+        "announcementCooldown": 1,
+        "accessControlTier": "advanced",
+        "canUseCustomRoles": true,
+        "maxCustomRoles": -1,
+        "canCreateTables": true,
+        "maxTablesCount": -1,
+        "maxRowsLimit": -1,
+        "maxColumnsLimit": -1,
+        "maxFiles": -1,
+        "maxDocuments": -1,
+        "maxDirectMessagesPerUser": -1
+      }
+    }
+  }
+]

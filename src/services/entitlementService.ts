@@ -35,6 +35,52 @@ interface EntitlementCacheEntry {
 const usageCache = new Map<string, CacheEntry>();
 const entitlementCache = new Map<string, EntitlementCacheEntry>();
 
+const SUPER_PLAN_FEATURES = {
+    maxWorkspaces: -1,
+    maxAdmins: -1,
+    maxSpaces: -1,
+    maxLists: -1,
+    maxFolders: -1,
+    maxTasks: -1,
+    hasAccessControl: true,
+    hasGroupChat: true,
+    messageLimit: -1,
+    announcementCooldown: 0,
+    accessControlTier: 'advanced',
+    canUseCustomRoles: true,
+    maxCustomRoles: -1,
+    canCreateTables: true,
+    maxTablesCount: -1,
+    maxRowsLimit: -1,
+    maxColumnsLimit: -1,
+    maxFiles: -1,
+    maxDocuments: -1,
+    maxDirectMessagesPerUser: -1
+};
+
+const DEFAULT_FREE_FEATURES = {
+    maxWorkspaces: 1,
+    maxAdmins: 1,
+    maxSpaces: 10,
+    maxLists: 50,
+    maxFolders: 20,
+    maxTasks: 100,
+    hasAccessControl: false,
+    hasGroupChat: false,
+    messageLimit: 100,
+    announcementCooldown: 24,
+    accessControlTier: 'basic',
+    canUseCustomRoles: false,
+    maxCustomRoles: 0,
+    canCreateTables: false,
+    maxTablesCount: 0,
+    maxRowsLimit: 0,
+    maxColumnsLimit: 0,
+    maxFiles: 5,
+    maxDocuments: 5,
+    maxDirectMessagesPerUser: 50
+};
+
 /**
  * EntitlementService
  * Calculates global usage across all workspaces owned by a user
@@ -338,18 +384,62 @@ class EntitlementService {
      * @param userId - The user's ID
      * @returns Resolved plan features or null if no plan
      */
-    private async getUserPlan(userId: string): Promise<any> {
+    async getUserPlan(userId: string): Promise<any> {
         try {
             const user = await User.findById(userId).populate('subscription.planId');
-            if (!user || !user.subscription?.planId) {
-                // Return free plan
-                const freePlan = await Plan.findOne({ name: 'Free' });
-                return freePlan;
+            
+            // SUPER ADMIN BYPASS: Grant unlimited access
+            if (user && user.isSuperUser) {
+                console.log(`[EntitlementService] Super Admin bypass for user: ${userId}`);
+                return {
+                    name: 'Super Admin Unlimited',
+                    features: SUPER_PLAN_FEATURES
+                };
             }
-            return user.subscription.planId;
+
+            if (!user || !user.subscription?.planId) {
+                // Try to find a FREE plan
+                const freePlan = await Plan.findOne({ 
+                    $or: [{ name: /Free/i }, { name: 'Basic' }, { isActive: true }] 
+                }).sort({ pricePerMemberMonthly: 1 });
+                
+                if (freePlan) {
+                    return freePlan;
+                }
+
+                // If absolutely no plan found in DB, return a virtual free plan
+                console.warn(`[EntitlementService] No Free plan found in database, using hardcoded defaults for user: ${userId}`);
+                return {
+                    name: 'Default Free',
+                    features: DEFAULT_FREE_FEATURES
+                };
+            }
+
+            const plan = JSON.parse(JSON.stringify(user.subscription.planId));
+            
+            // Merge feature overrides if they exist
+            if (user.subscription.featureOverrides) {
+                const overrides = user.subscription.featureOverrides.toObject ? user.subscription.featureOverrides.toObject() : user.subscription.featureOverrides;
+                if (!plan.features) plan.features = {};
+                
+                Object.keys(overrides).forEach(key => {
+                    const value = overrides[key];
+                    if (value !== undefined && value !== null) {
+                        plan.features[key] = value;
+                    }
+                });
+                
+                console.log(`[EntitlementService] Applied feature overrides for user: ${userId}`);
+            }
+
+            return plan;
         } catch (error) {
             console.error(`[EntitlementService] Error getting user plan:`, error);
-            throw error;
+            // Defensive fallback
+            return {
+                name: 'Error Fallback',
+                features: DEFAULT_FREE_FEATURES
+            };
         }
     }
 

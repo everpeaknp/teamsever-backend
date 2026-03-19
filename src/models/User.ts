@@ -18,6 +18,21 @@ interface IUser extends Document {
     billingCycle?: 'monthly' | 'annual'; // New: Billing cycle
     memberCount?: number; // New: Number of seats purchased
     pricePerSeat?: number; // New: Price per seat at time of purchase
+    featureOverrides?: {
+      maxWorkspaces?: number;
+      maxMembers?: number;
+      maxAdmins?: number;
+      maxSpaces?: number;
+      maxLists?: number;
+      maxFolders?: number;
+      maxTasks?: number;
+      maxTablesCount?: number;
+      maxRowsLimit?: number;
+      maxColumnsLimit?: number;
+      maxFiles?: number;
+      maxDocuments?: number;
+      maxDirectMessagesPerUser?: number;
+    };
   };
 }
 
@@ -72,6 +87,21 @@ const userSchema = new mongoose.Schema(
         type: Number,
         min: 0,
         default: 0
+      },
+      featureOverrides: {
+        maxWorkspaces: { type: Number },
+        maxMembers: { type: Number },
+        maxAdmins: { type: Number },
+        maxSpaces: { type: Number },
+        maxLists: { type: Number },
+        maxFolders: { type: Number },
+        maxTasks: { type: Number },
+        maxTablesCount: { type: Number },
+        maxRowsLimit: { type: Number },
+        maxColumnsLimit: { type: Number },
+        maxFiles: { type: Number },
+        maxDocuments: { type: Number },
+        maxDirectMessagesPerUser: { type: Number }
       }
     }
   },

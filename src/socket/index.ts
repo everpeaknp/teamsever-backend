@@ -8,10 +8,18 @@ const { initializeSocket } = require("./events");
  * Initialize Socket.io server
  */
 const initializeSocketIO = (httpServer: any) => {
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:3000",
+    "https://teamsever.vercel.app",
+    "https://teamsever-frontend.vercel.app",
+    "https://teamsever-frontend-d22u.vercel.app"
+  ].filter(Boolean) as string[];
+
   // Socket.io configuration
   const socketOptions = {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: allowedOrigins,
       credentials: true,
       methods: ["GET", "POST"]
     },

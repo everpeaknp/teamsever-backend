@@ -40,7 +40,6 @@ const getListMembers = asyncHandler(
     // Format response with override info
     // Filter out admins and owners as they have full access by default
     const members = workspace.members
-      .filter((member: any) => member.role === 'member') // Only include regular members
       .map((member: any) => {
         const override = listMembers.find(
           (lm: any) => lm.user._id.toString() === member.user._id.toString()
@@ -144,11 +143,7 @@ const addListMember = asyncHandler(
       (m: any) => m.user.toString() === userId
     );
 
-    if (workspaceMember && (workspaceMember.role === 'admin' || workspaceMember.role === 'owner')) {
-      return next(
-        new AppError("Admins and owners have full access by default and cannot be added to list members", 400)
-      );
-    }
+    // Removed: Admins and owners can now be explicitly added to list members for visibility
 
     // DO NOT auto-add user to space
     // Users can be list members without being space members
@@ -189,8 +184,8 @@ const addListMember = asyncHandler(
       };
       
       // Only add folder if it exists
-      if (list.folder) {
-        const folderId = typeof list.folder === 'object' ? list.folder._id : list.folder;
+      if (list.folderId) {
+        const folderId = typeof list.folderId === 'object' ? list.folderId._id : list.folderId;
         (createData as any).folder = folderId;
       }
       

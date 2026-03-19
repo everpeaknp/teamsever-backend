@@ -114,12 +114,7 @@ export const getUsage = async (req: Request, res: Response) => {
         // Get total usage
         const usage = await EntitlementService.getTotalUsage(userId);
 
-        // Get user's plan to retrieve limits
-        const User = require('../models/User');
-        const Plan = require('../models/Plan');
-        const PlanInheritanceService = require('../services/planInheritanceService').default;
-
-        const user = await User.findById(userId).populate('subscription.planId');
+        const plan = await EntitlementService.getUserPlan(userId);
         let limits = {
             maxWorkspaces: 0,
             maxSpaces: 0,
@@ -131,8 +126,8 @@ export const getUsage = async (req: Request, res: Response) => {
             maxColumnsLimit: 0
         };
 
-        if (user && user.subscription?.planId) {
-            const plan = user.subscription.planId;
+        if (plan) {
+            const PlanInheritanceService = require('../services/planInheritanceService').default;
             const resolvedFeatures = await PlanInheritanceService.resolveFeatures(plan);
             
             limits = {
@@ -145,22 +140,6 @@ export const getUsage = async (req: Request, res: Response) => {
                 maxRowsLimit: resolvedFeatures.maxRowsLimit || 0,
                 maxColumnsLimit: resolvedFeatures.maxColumnsLimit || 0
             };
-        } else {
-            // Get free plan limits
-            const freePlan = await Plan.findOne({ name: 'Free' });
-            if (freePlan) {
-                const resolvedFeatures = await PlanInheritanceService.resolveFeatures(freePlan);
-                limits = {
-                    maxWorkspaces: resolvedFeatures.maxWorkspaces || 0,
-                    maxSpaces: resolvedFeatures.maxSpaces || 0,
-                    maxLists: resolvedFeatures.maxLists || 0,
-                    maxFolders: resolvedFeatures.maxFolders || 0,
-                    maxTasks: resolvedFeatures.maxTasks || 0,
-                    maxTablesCount: resolvedFeatures.maxTablesCount || 0,
-                    maxRowsLimit: resolvedFeatures.maxRowsLimit || 0,
-                    maxColumnsLimit: resolvedFeatures.maxColumnsLimit || 0
-                };
-            }
         }
 
         return res.status(200).json({

@@ -193,7 +193,8 @@ const googleAuth = async (req: any, res: any) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        isSuperUser: user.isSuperUser || false
       }
     });
   } catch (error: any) {

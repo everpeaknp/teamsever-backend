@@ -119,9 +119,11 @@ class WorkspaceService {
   }
 
   async getUserWorkspaces(userId: string) {
+    const mongoose = require("mongoose");
+    const userObjId = new mongoose.Types.ObjectId(userId);
     const workspaces = await Workspace.find({
       isDeleted: false,
-      $or: [{ owner: userId }, { "members.user": userId }]
+      $or: [{ owner: userObjId }, { "members.user": userObjId }]
     })
       .populate({
         path: "owner",

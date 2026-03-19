@@ -1,0 +1,5 @@
+User found: new ObjectId('69bbf815a96fe78f716752a6')
+Workspaces owned by ObjectId: [ 'Everacy' ]
+Workspaces owned by String: []
+Workspaces member by ObjectId: [ 'Everacy' ]
+Workspaces member by String: []

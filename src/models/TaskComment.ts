@@ -9,6 +9,8 @@ export interface ITaskComment extends Document {
   editedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  isDeleted: boolean;
+  deletedAt?: Date;
 }
 
 const taskCommentSchema = new Schema<ITaskComment>(
@@ -39,6 +41,14 @@ const taskCommentSchema = new Schema<ITaskComment>(
       default: false,
     },
     editedAt: {
+      type: Date,
+      default: null,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
       type: Date,
       default: null,
     },

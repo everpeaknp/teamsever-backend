@@ -70,7 +70,7 @@ class ChatService {
     });
 
     // Populate sender info
-    await message.populate("sender", "name email");
+    await message.populate("sender", "name email profilePicture");
 
     // Log activity (non-blocking)
     try {
@@ -144,8 +144,8 @@ class ChatService {
 
     // Get messages sorted by newest first
     const messages = await ChatMessage.find(query)
-      .populate("sender", "name email")
-      .populate("mentions", "name email")
+      .populate("sender", "name email profilePicture")
+      .populate("mentions", "name email profilePicture")
       .sort({ createdAt: -1 }) // Newest first
       .skip(skip)
       .limit(limit)
@@ -214,8 +214,8 @@ class ChatService {
       _id: messageId,
       isDeleted: false,
     })
-      .populate("sender", "name email")
-      .populate("mentions", "name email")
+      .populate("sender", "name email profilePicture")
+      .populate("mentions", "name email profilePicture")
       .lean();
 
     if (!message) {

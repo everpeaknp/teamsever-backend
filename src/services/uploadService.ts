@@ -571,6 +571,36 @@ class UploadService {
       }
     }
   }
+
+  /**
+   * Upload profile picture for user
+   */
+  async uploadProfilePicture(file: any, userId: string): Promise<any> {
+    const streamUpload = (fileBuffer: Buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: `users/${userId}/profile`,
+            resource_type: "image",
+          },
+          (error, result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(error);
+            }
+          }
+        );
+        stream.end(fileBuffer);
+      });
+    };
+
+    const cloudinaryResult = (await streamUpload(file.buffer)) as any;
+    return {
+      url: cloudinaryResult.secure_url,
+      publicId: cloudinaryResult.public_id,
+    };
+  }
 }
 
 module.exports = new UploadService();
