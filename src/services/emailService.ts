@@ -291,8 +291,8 @@ class EmailService {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">TaskHub</div>
-                    <div style="font-size: 32px; margin: 16px 0;">✉️</div>
+                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">Teamsever</div>
+                    <div style="color: #A0AEC0; font-size: 14px;">Better team collaboration</div>
                     <h1 style="margin: 0; color: white; font-size: 28px; font-weight: bold;">You're Invited!</h1>
                     <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Join your team workspace</p>
                   </td>
@@ -384,7 +384,7 @@ class EmailService {
                 <strong>Note:</strong> This invitation will expire in 7 days.
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                © ${new Date().getFullYear()} TaskHub. All rights reserved.
+                © ${new Date().getFullYear()} Teamsever. All rights reserved.
               </p>
             </td>
           </tr>
@@ -428,7 +428,7 @@ If you weren't expecting this invitation, you can safely ignore this email.
       throw new Error("Email service not configured");
     }
 
-    const subject = `Reset your password - ${process.env.APP_NAME || 'TaskHub'}`;
+    const subject = `Reset your password - ${process.env.APP_NAME || 'Teamsever'}`;
 
     const html = `
 <!DOCTYPE html>
@@ -445,7 +445,7 @@ If you weren't expecting this invitation, you can safely ignore this email.
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:600px;">
             <tr>
               <td style="padding:28px 28px 8px;text-align:center;">
-                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'TaskHub'}</div>
+                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'Teamsever'}</div>
                 <div style="font-size:28px;margin:12px 0;">🔐</div>
                 <h1 style="margin:0;color:#0f172a;font-size:20px;">Reset your password</h1>
               </td>
