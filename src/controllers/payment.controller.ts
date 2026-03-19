@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 const Transaction = require('../models/Transaction');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
@@ -95,7 +95,7 @@ const initiatePayment = async (req: Request, res: Response): Promise<void> => {
     const totalAmount = Math.round(discountedPricePerSeat * memberCount);
 
     // Generate unique transaction UUID with billing cycle and member count
-    const transactionUuid = `${userId}-${planId}-${billingCycle.toUpperCase()}-${memberCount}M-${uuidv4()}`;
+    const transactionUuid = `${userId}-${planId}-${billingCycle.toUpperCase()}-${memberCount}M-${crypto.randomUUID()}`;
 
     // Create transaction record with all details
     const transaction = await Transaction.create({
