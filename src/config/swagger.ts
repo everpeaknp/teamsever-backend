@@ -4,7 +4,7 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "ClickUp Clone API",
+      title: "Workspace App API",
       version: "1.0.0",
       description: `
         A comprehensive project management API with features including:
@@ -26,7 +26,7 @@ const options: swaggerJsdoc.Options = {
       `,
       contact: {
         name: "API Support",
-        email: "support@clickupclone.com"
+        email: "support@example.com"
       },
       license: {
         name: "MIT",
@@ -39,7 +39,7 @@ const options: swaggerJsdoc.Options = {
         description: "Development server"
       },
       {
-        url: "https://api.clickupclone.com",
+        url: "https://api.example.com",
         description: "Production server"
       }
     ],

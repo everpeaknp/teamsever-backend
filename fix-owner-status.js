@@ -10,7 +10,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/clickup-clone';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/workspace-app';
 
 async function fixOwnerStatus() {
   try {

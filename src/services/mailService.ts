@@ -43,7 +43,7 @@ class MailService {
   }
 
   /**
-   * Generate ClickUp-style HTML email template
+   * Generate Workspace-style HTML email template
    */
   private generateInvitationTemplate(
     workspaceName: string,

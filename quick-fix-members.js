@@ -6,7 +6,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/clickup-clone';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/workspace-app';
 
 async function quickFix() {
   try {

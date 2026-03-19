@@ -1,12 +1,14 @@
-# ClickUp Clone - Backend API
+# Workspace App - Backend API
 
 A production-ready multi-tenant task management system with subscription management, custom tables, document collaboration, and real-time features. Built with Node.js, Express, TypeScript, and MongoDB.
 
 ## 🔑 Super Admin Credentials
 
 ```
-Email: ashisacharya@gmail.com
-Password: ashisacharya@123
+```
+Email: admin@example.com
+Password: password123
+```
 ```
 
 **Super Admin Capabilities:**
@@ -144,7 +146,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-APP_NAME=ClickUp Clone
+APP_NAME=Workspace App
 
 # Email (Resend - Optional Alternative)
 RESEND_API_KEY=re_your_api_key

@@ -11,7 +11,7 @@ const fixSuperAdmin = async () => {
     await mongoose.connect(process.env.MONGODB_URI!);
     console.log("✅ Connected to MongoDB");
 
-    const email = process.env.SUPER_USER_EMAIL || "superadmin@clickupclone.com";
+    const email = process.env.SUPER_USER_EMAIL || "superadmin@example.com";
     const password = process.env.SUPER_USER_PASSWORD || "SuperAdmin123!";
 
     console.log(`Checking for user: ${email}`);

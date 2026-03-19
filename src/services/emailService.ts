@@ -98,7 +98,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"${process.env.APP_NAME || 'ClickUp Clone'}" <${process.env.SMTP_USER}>`,
+        from: `"${process.env.APP_NAME || 'Workspace App'}" <${process.env.SMTP_USER}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -188,7 +188,7 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">${process.env.APP_NAME || 'ClickUp Clone'}</div>
+              <div class="logo">${process.env.APP_NAME || 'Workspace App'}</div>
             </div>
             
             <div class="content">
