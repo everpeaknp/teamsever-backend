@@ -23,44 +23,51 @@ interface PasswordResetEmailData {
 }
 
 class EmailService {
+  private resendApiKey: string | null = null;
+  private fromAddress: string = '';
   private transporter: nodemailer.Transporter | null = null;
   private isConfigured: boolean = false;
   private verificationPromise: Promise<void> | null = null;
 
   constructor() {
-    // Only initialize if SMTP credentials are provided
+    // Prefer Resend API (works on Render / cloud hosts that block SMTP)
+    if (process.env.RESEND_API_KEY) {
+      this.resendApiKey = process.env.RESEND_API_KEY;
+      this.fromAddress = process.env.MAIL_FROM || process.env.SMTP_USER || 'noreply@teamsever.app';
+      this.isConfigured = true;
+      console.log('✅ Email service configured via Resend API');
+      console.log(`   From: ${this.fromAddress}`);
+      this.verificationPromise = Promise.resolve();
+      return;
+    }
+
+    // Fallback: nodemailer/SMTP (local dev only)
     if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
       try {
-        // Create transporter with Gmail or custom SMTP
-        // Use port 465 (SSL) for better compatibility with hosting platforms like Render
-        const smtpPort = parseInt(process.env.SMTP_PORT || '465');
+        const smtpPort = parseInt(process.env.SMTP_PORT || '587');
         const transportOptions: any = {
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: smtpPort,
-          secure: smtpPort === 465, // true for 465, false for 587
+          secure: smtpPort === 465,
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
           },
-          tls: {
-            rejectUnauthorized: false
-          },
-          // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
+          tls: { rejectUnauthorized: false },
           family: 4
         };
         this.transporter = nodemailer.createTransport(transportOptions);
+        this.fromAddress = process.env.SMTP_USER;
 
-        console.log('🔧 Email service initializing...');
+        console.log('🔧 Email service initializing via SMTP...');
         console.log(`   Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
-        console.log(`   Port: ${process.env.SMTP_PORT || '587'}`);
+        console.log(`   Port: ${smtpPort}`);
         console.log(`   User: ${process.env.SMTP_USER}`);
 
-        // Verify connection configuration on startup (async)
         this.verificationPromise = new Promise((resolve) => {
-          this.transporter!.verify((error, success) => {
+          this.transporter!.verify((error) => {
             if (error) {
               console.error('❌ Email service connection failed:', error.message);
-              console.error('   Please check your SMTP credentials in .env file');
               this.isConfigured = false;
             } else {
               console.log('✅ Email service is ready to send messages');
@@ -74,15 +81,11 @@ class EmailService {
         this.isConfigured = false;
       }
     } else {
-      console.log('ℹ️  Email service not configured (SMTP credentials missing).');
-      console.log('   Add SMTP_USER and SMTP_PASS to .env to enable email notifications.');
+      console.log('ℹ️  Email service not configured (neither RESEND_API_KEY nor SMTP credentials found).');
       this.isConfigured = false;
     }
   }
 
-  /**
-   * Wait for verification to complete
-   */
   async waitForVerification(): Promise<void> {
     if (this.verificationPromise) {
       await this.verificationPromise;
@@ -90,13 +93,47 @@ class EmailService {
   }
 
   /**
-   * Send a generic email
+   * Send a generic email (tries Resend first, falls back to SMTP)
    */
   async sendEmail(options: EmailOptions): Promise<void> {
-    // Wait for verification to complete (but don't block forever)
+    // --- Resend API path ---
+    if (this.resendApiKey) {
+      const appName = process.env.APP_NAME || process.env.MAIL_FROM_NAME || 'Teamsever';
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `${appName} <${this.fromAddress}>`,
+            to: [options.to],
+            subject: options.subject,
+            html: options.html,
+            text: options.text,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          console.error('❌ Resend API error:', err);
+          throw new Error(`Resend API error: ${err}`);
+        }
+
+        const data = await res.json() as any;
+        console.log('✅ Email sent via Resend! ID:', data?.id);
+        return;
+      } catch (error: any) {
+        console.error('❌ Failed to send email via Resend:', error.message);
+        throw new Error('Failed to send email');
+      }
+    }
+
+    // --- SMTP fallback path ---
     await Promise.race([
       this.waitForVerification(),
-      new Promise(resolve => setTimeout(resolve, 5000)) // 5s max wait
+      new Promise(resolve => setTimeout(resolve, 5000))
     ]);
 
     if (!this.transporter) {
@@ -104,8 +141,6 @@ class EmailService {
       return;
     }
 
-    // Even if verification failed at startup, still attempt to send
-    // (verification timeout on Render should not block email delivery)
     if (!this.isConfigured) {
       console.warn('⚠️  Email service verification failed at startup, attempting send anyway...');
     }
