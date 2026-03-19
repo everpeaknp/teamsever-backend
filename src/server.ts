@@ -103,8 +103,23 @@ const startServer = async () => {
     app.set("io", io);
 
     // 5. CORS configuration
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      "http://localhost:3000",
+      "https://teamsever-frontend.vercel.app",
+      "https://teamsever-frontend-d22u.vercel.app"
+    ].filter(Boolean);
+
     const corsOptions = {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
       optionsSuccessStatus: 200
     };
