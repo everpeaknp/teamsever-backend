@@ -106,6 +106,7 @@ const startServer = async () => {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       "http://localhost:3000",
+      "https://teamsever.vercel.app",
       "https://teamsever-frontend.vercel.app",
       "https://teamsever-frontend-d22u.vercel.app"
     ].filter(Boolean);
