@@ -283,13 +283,22 @@ class NotificationService {
       const messaging = getMessaging();
       const tokens = deviceTokens.map((dt: any) => dt.token);
 
+      const rawData = options.data || {};
+      // Firebase Admin SDK requires all data values to be strings
+      const stringData: Record<string, string> = {};
+      for (const [key, value] of Object.entries(rawData)) {
+        if (value !== null && value !== undefined) {
+          stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+        }
+      }
+
       const message = {
         notification: {
           title: options.title,
           body: options.body,
           ...(options.imageUrl && { imageUrl: options.imageUrl }),
         },
-        data: options.data || {},
+        data: stringData,
       };
 
       // Send to all tokens

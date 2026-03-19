@@ -32,16 +32,18 @@ class EmailService {
     if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
       try {
         // Create transporter with Gmail or custom SMTP
+        // Use port 465 (SSL) for better compatibility with hosting platforms like Render
+        const smtpPort = parseInt(process.env.SMTP_PORT || '465');
         const transportOptions: any = {
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: false, // false for 587, true for 465
+          port: smtpPort,
+          secure: smtpPort === 465, // true for 465, false for 587
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
           },
           tls: {
-            rejectUnauthorized: false // Don't fail on invalid certs in local dev
+            rejectUnauthorized: false
           },
           // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
           family: 4
@@ -91,12 +93,21 @@ class EmailService {
    * Send a generic email
    */
   async sendEmail(options: EmailOptions): Promise<void> {
-    // Wait for verification to complete
-    await this.waitForVerification();
+    // Wait for verification to complete (but don't block forever)
+    await Promise.race([
+      this.waitForVerification(),
+      new Promise(resolve => setTimeout(resolve, 5000)) // 5s max wait
+    ]);
 
-    if (!this.isConfigured || !this.transporter) {
-      console.log('ℹ️  Email service not configured. Skipping email to:', options.to);
+    if (!this.transporter) {
+      console.log('ℹ️  Email transporter not initialized. Skipping email to:', options.to);
       return;
+    }
+
+    // Even if verification failed at startup, still attempt to send
+    // (verification timeout on Render should not block email delivery)
+    if (!this.isConfigured) {
+      console.warn('⚠️  Email service verification failed at startup, attempting send anyway...');
     }
 
     try {
