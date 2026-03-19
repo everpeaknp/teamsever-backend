@@ -153,30 +153,29 @@ class InvitationService {
       console.error("Failed to create invitation notification:", error);
     }
 
-    // Send invitation email (non-blocking)
-    // If email fails, we log it but don't throw an error
-    try {
-      const inviter = await User.findById(invitedBy);
-      if (inviter) {
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-        const inviteUrl = `${frontendUrl}/join?token=${token}`;
-        
-        await emailService.sendWorkspaceInvitation({
-          recipientEmail: email,
-          recipientName: email.split('@')[0], // Use email prefix as name if user doesn't exist yet
-          inviterName: inviter.name,
-          workspaceName: workspace.name,
-          role: role,
-          workspaceLink: inviteUrl
-        });
-        console.log(`Invitation email sent to ${email} for workspace ${workspace.name}`);
+    // Send invitation email in the background (truly non-blocking)
+    // We do NOT await this — the invitation response returns immediately
+    setImmediate(async () => {
+      try {
+        const inviter = await User.findById(invitedBy);
+        if (inviter) {
+          const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+          const inviteUrl = `${frontendUrl}/join?token=${token}`;
+          
+          await emailService.sendWorkspaceInvitation({
+            recipientEmail: email,
+            recipientName: email.split('@')[0],
+            inviterName: inviter.name,
+            workspaceName: workspace.name,
+            role: role,
+            workspaceLink: inviteUrl
+          });
+          console.log(`Invitation email sent to ${email} for workspace ${workspace.name}`);
+        }
+      } catch (emailError) {
+        console.error("Failed to send invitation email:", emailError);
       }
-    } catch (emailError) {
-      // Log the error but don't fail the invitation creation
-      console.error("Failed to send invitation email:", emailError);
-      // You could also log this to your logging service
-      // logger.error("Email sending failed", { error: emailError, invitationId: invitation._id });
-    }
+    });
 
     return invitation;
   }
