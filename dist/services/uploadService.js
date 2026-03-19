@@ -250,6 +250,66 @@ class UploadService {
         return attachment;
     }
     /**
+     * Upload logo for workspace
+     */
+    async uploadWorkspaceLogo(data) {
+        const { file, workspaceId, uploadedBy } = data;
+        // Verify workspace exists and user is owner
+        const workspace = await Workspace.findOne({
+            _id: workspaceId,
+            isDeleted: false,
+        });
+        if (!workspace) {
+            throw new AppError("Workspace not found", 404);
+        }
+        if (workspace.owner.toString() !== uploadedBy) {
+            throw new AppError("Only workspace owner can upload logo", 403);
+        }
+        // Cloudinary upload logic
+        const streamUpload = (fileBuffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary_1.cloudinary.uploader.upload_stream({
+                    folder: `workspaces/${workspaceId}`,
+                    resource_type: "image",
+                }, (error, result) => {
+                    if (result) {
+                        resolve(result);
+                    }
+                    else {
+                        reject(error);
+                    }
+                });
+                stream.end(fileBuffer);
+            });
+        };
+        const cloudinaryResult = (await streamUpload(file.buffer));
+        const fileUrl = cloudinaryResult.secure_url;
+        // Update workspace logo
+        workspace.logo = fileUrl;
+        await workspace.save();
+        // Log activity
+        try {
+            await logger.logActivity({
+                userId: uploadedBy,
+                workspaceId,
+                action: "UPDATE",
+                resourceType: "Workspace",
+                resourceId: workspaceId,
+                metadata: {
+                    field: "logo",
+                    filename: file.originalname,
+                },
+            });
+        }
+        catch (error) {
+            console.error("[Upload] Failed to log activity:", error);
+        }
+        return {
+            message: "Logo uploaded successfully",
+            logo: fileUrl,
+        };
+    }
+    /**
      * Get attachments for task
      */
     async getTaskAttachments(taskId, userId) {

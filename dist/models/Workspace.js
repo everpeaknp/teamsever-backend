@@ -17,6 +17,10 @@ const workspaceSchema = new mongoose.Schema({
         trim: true,
         maxlength: [100, "Workspace name cannot exceed 100 characters"]
     },
+    logo: {
+        type: String,
+        default: null
+    },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

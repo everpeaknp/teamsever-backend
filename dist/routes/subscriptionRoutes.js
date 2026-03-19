@@ -79,21 +79,16 @@ router.get("/next-plan", protect, async (req, res) => {
             });
         }
         const Plan = require("../models/Plan");
-        const Workspace = require("../models/Workspace");
-        // Get user's current workspace
-        const workspace = await Workspace.findOne({
-            'members.user': req.user.id
-        }).populate('subscription.plan');
-        if (!workspace) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    hasNextPlan: false,
-                    nextPlan: null
-                }
+        const User = require("../models/User");
+        // Determine current plan from the authenticated user subscription
+        const user = await User.findById(req.user.id).populate("subscription.planId");
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
             });
         }
-        const currentPlan = workspace.subscription?.plan;
+        const currentPlan = user.subscription?.planId;
         const currentPrice = currentPlan?.price || 0;
         // Find the next higher-priced plan
         const nextPlan = await Plan.findOne({

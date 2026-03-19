@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
-const { registerUser, loginUser, googleAuth } = require("../controllers/authController");
+const { registerUser, loginUser, googleAuth, requestPasswordReset, resetPassword } = require("../controllers/authController");
 const router = express.Router();
 /**
  * @swagger
@@ -100,4 +100,64 @@ router.post("/login", loginUser);
  *         description: Invalid token
  */
 router.post("/google", googleAuth);
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     description: Sends a password reset email if the account exists (always returns 200 on success to prevent enumeration)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *     responses:
+ *       200:
+ *         description: Reset email request accepted
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Email send failed (development only)
+ */
+router.post("/forgot-password", requestPasswordReset);
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     description: Resets the password using a valid reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Reset token from email link
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: "newSecurePassword123"
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid/expired token or validation error
+ */
+router.post("/reset-password", resetPassword);
 module.exports = router;

@@ -10,7 +10,7 @@ class EmailService {
         this.isConfigured = false;
         this.verificationPromise = null;
         // Only initialize if SMTP credentials are provided
-        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
             try {
                 // Create transporter with Gmail or custom SMTP
                 this.transporter = nodemailer_1.default.createTransport({
@@ -19,7 +19,7 @@ class EmailService {
                     secure: false, // false for 587, true for 465
                     auth: {
                         user: process.env.SMTP_USER,
-                        pass: process.env.SMTP_PASS,
+                        pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
                     },
                     tls: {
                         rejectUnauthorized: false // Don't fail on invalid certs in local dev
@@ -361,6 +361,84 @@ ${data.workspaceLink}
 This invitation will expire in 7 days.
 If you weren't expecting this invitation, you can safely ignore this email.
       `;
+        await this.sendEmail({
+            to: data.recipientEmail,
+            subject,
+            html,
+            text,
+        });
+    }
+    /**
+     * Send password reset email
+     */
+    async sendPasswordResetEmail(data) {
+        // Password reset should never be "silently skipped" — surface config issues.
+        await this.waitForVerification();
+        if (!this.isConfigured || !this.transporter) {
+            throw new Error("Email service not configured");
+        }
+        const subject = `Reset your password - ${process.env.APP_NAME || 'TaskHub'}`;
+        const html = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset</title>
+  </head>
+  <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background-color:#f5f5f5;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;">
+      <tr>
+        <td align="center" style="padding:40px 20px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:600px;">
+            <tr>
+              <td style="padding:28px 28px 8px;text-align:center;">
+                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'TaskHub'}</div>
+                <div style="font-size:28px;margin:12px 0;">🔐</div>
+                <h1 style="margin:0;color:#0f172a;font-size:20px;">Reset your password</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 28px 28px;">
+                <p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.6;">
+                  Hi${data.recipientName ? ` ${data.recipientName}` : ''},
+                </p>
+                <p style="margin:0 0 18px;color:#334155;font-size:14px;line-height:1.6;">
+                  We received a request to reset your password. Click the button below to set a new password.
+                </p>
+                <div style="text-align:center;margin:22px 0;">
+                  <a href="${data.resetLink}" style="display:inline-block;padding:12px 22px;background:#135bec;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;">
+                    Reset Password
+                  </a>
+                </div>
+                <p style="margin:0 0 8px;color:#64748b;font-size:12px;line-height:1.6;">
+                  If the button doesn’t work, copy and paste this link:
+                </p>
+                <p style="margin:0;color:#135bec;font-size:12px;word-break:break-all;background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:8px;">
+                  ${data.resetLink}
+                </p>
+                <p style="margin:18px 0 0;color:#94a3b8;font-size:12px;line-height:1.6;">
+                  If you didn’t request a password reset, you can ignore this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+    `.trim();
+        const text = `
+Reset your password
+
+Hi${data.recipientName ? ` ${data.recipientName}` : ''},
+
+We received a request to reset your password. Open this link to set a new password:
+${data.resetLink}
+
+If you didn’t request a password reset, you can ignore this email.
+    `.trim();
         await this.sendEmail({
             to: data.recipientEmail,
             subject,

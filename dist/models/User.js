@@ -14,6 +14,12 @@ const userSchema = new mongoose_1.default.Schema({
         type: Boolean,
         default: false
     },
+    passwordResetToken: {
+        type: String
+    },
+    passwordResetTokenExpires: {
+        type: Date
+    },
     subscription: {
         planId: {
             type: mongoose_1.default.Schema.Types.ObjectId,

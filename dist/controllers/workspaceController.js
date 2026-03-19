@@ -52,8 +52,8 @@ const getWorkspace = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/workspaces/:id
 // @access  Private
 const updateWorkspace = asyncHandler(async (req, res, next) => {
-    const { name } = req.body;
-    const workspace = await workspaceService.updateWorkspace(req.params.id, req.user.id, { name });
+    const { name, logo } = req.body;
+    const workspace = await workspaceService.updateWorkspace(req.params.id, req.user.id, { name, logo });
     res.status(200).json({
         success: true,
         data: workspace
@@ -193,6 +193,26 @@ const getWorkspaceHierarchy = asyncHandler(async (req, res, next) => {
         data: hierarchy
     });
 });
+// @desc    Upload workspace logo
+// @route   PATCH /api/workspaces/:id/logo
+// @access  Private (Workspace Owner Only)
+const uploadLogo = asyncHandler(async (req, res, next) => {
+    const { workspaceId } = req.params;
+    const file = req.file;
+    if (!file) {
+        throw new AppError("No file uploaded", 400);
+    }
+    const uploadService = require("../services/uploadService");
+    const result = await uploadService.uploadWorkspaceLogo({
+        file,
+        workspaceId: workspaceId,
+        uploadedBy: req.user.id
+    });
+    res.status(200).json({
+        success: true,
+        data: result
+    });
+});
 module.exports = {
     createWorkspace,
     getMyWorkspaces,
@@ -201,5 +221,6 @@ module.exports = {
     deleteWorkspace,
     getWorkspaceAnalytics,
     updateMemberCustomRole,
-    getWorkspaceHierarchy
+    getWorkspaceHierarchy,
+    uploadLogo
 };

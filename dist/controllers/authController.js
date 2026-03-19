@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const generateToken = require("../utils/generateToken");
 const admin = require("firebase-admin");
 const User_1 = __importDefault(require("../models/User"));
+const emailService = require("../services/emailService");
 // Don't initialize here - use the existing initialization from config/firebase.ts
 // Firebase Admin is already initialized in server.ts
 const registerUser = async (req, res) => {
@@ -182,4 +183,91 @@ const googleAuth = async (req, res) => {
         });
     }
 };
-module.exports = { registerUser, loginUser, googleAuth };
+const requestPasswordReset = async (req, res) => {
+    try {
+        const rawEmail = String(req.body?.email || '').trim();
+        const email = rawEmail.toLowerCase();
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+        console.log(`[Auth] Password reset requested for: ${email}`);
+        const user = await User_1.default.findOne({ email });
+        // Always respond 200 to avoid account enumeration
+        if (!user) {
+            console.log(`[Auth] Password reset: no user found for ${email} (returning generic success)`);
+            return res.json({
+                success: true,
+                message: "If an account exists for this email, a reset link has been sent."
+            });
+        }
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+        user.passwordResetToken = resetTokenHash;
+        user.passwordResetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await user.save();
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+        const resetLink = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
+        try {
+            console.log(`[Auth] Sending password reset email to: ${user.email}`);
+            await emailService.sendPasswordResetEmail({
+                recipientEmail: user.email,
+                recipientName: user.name,
+                resetLink
+            });
+            console.log(`[Auth] Password reset email sent to: ${user.email}`);
+        }
+        catch (error) {
+            console.error("[Auth] Failed to send password reset email:", error?.message || error);
+            // In development, surface the failure so the UI doesn't claim "sent" when it wasn't.
+            if (process.env.NODE_ENV !== "production") {
+                return res.status(500).json({
+                    message: "Failed to send reset email. Check SMTP credentials / Gmail app password and server logs."
+                });
+            }
+            // In production, still return generic success to prevent enumeration.
+            return res.json({
+                success: true,
+                message: "If an account exists for this email, a reset link has been sent."
+            });
+        }
+        res.json({
+            success: true,
+            message: "If an account exists for this email, a reset link has been sent.",
+            ...(process.env.NODE_ENV !== "production" ? { debug: { resetLink } } : {})
+        });
+    }
+    catch (error) {
+        console.error("[Auth] requestPasswordReset error:", error?.message || error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+const resetPassword = async (req, res) => {
+    try {
+        const token = String(req.body?.token || '').trim();
+        const newPassword = String(req.body?.password || '').trim();
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: "Token and password are required" });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const user = await User_1.default.findOne({
+            passwordResetToken: tokenHash,
+            passwordResetTokenExpires: { $gt: new Date() }
+        });
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired reset token" });
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.passwordResetToken = undefined;
+        user.passwordResetTokenExpires = undefined;
+        await user.save();
+        res.json({ success: true, message: "Password reset successfully" });
+    }
+    catch (error) {
+        console.error("[Auth] resetPassword error:", error?.message || error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+module.exports = { registerUser, loginUser, googleAuth, requestPasswordReset, resetPassword };

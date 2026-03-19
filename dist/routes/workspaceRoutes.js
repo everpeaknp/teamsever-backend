@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { createWorkspace, getMyWorkspaces, getWorkspace, updateWorkspace, deleteWorkspace, getWorkspaceAnalytics, updateMemberCustomRole, getWorkspaceHierarchy } = require("../controllers/workspaceController");
+const { createWorkspace, getMyWorkspaces, getWorkspace, updateWorkspace, deleteWorkspace, getWorkspaceAnalytics, updateMemberCustomRole, getWorkspaceHierarchy, uploadLogo } = require("../controllers/workspaceController");
 const { getAnnouncements, createAnnouncement, deleteAnnouncement } = require("../controllers/announcementController");
 const { toggleWorkspaceClock } = require("../controllers/workspaceMemberController");
 const { protect } = require("../middlewares/authMiddleware");
@@ -380,4 +380,40 @@ router.post("/:workspaceId/clock/toggle", protect, requirePermission("VIEW_WORKS
  *         description: Rate limit exceeded
  */
 router.patch("/:workspaceId/members/:memberId/custom-role", protect, requireWorkspaceOwner, customRoleRateLimiter, updateMemberCustomRole);
+const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddleware");
+/**
+ * @swagger
+ * /api/workspaces/{id}/logo:
+ *   patch:
+ *     summary: Upload workspace logo
+ *     description: Upload a new logo for the workspace (Owner only)
+ *     tags: [Workspaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Logo uploaded successfully
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Owner privileges required
+ */
+router.patch("/:workspaceId/logo", protect, requireWorkspaceOwner, uploadSingle, handleUploadError, uploadLogo);
 module.exports = router;

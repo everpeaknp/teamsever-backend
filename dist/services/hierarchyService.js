@@ -245,6 +245,7 @@ class HierarchyService {
                 $project: {
                     _id: 1,
                     name: 1,
+                    logo: 1,
                     spaces: 1
                 }
             }
@@ -261,6 +262,7 @@ class HierarchyService {
         return {
             workspaceId: hierarchy._id,
             workspaceName: hierarchy.name,
+            logo: hierarchy.logo,
             spaces: hierarchy.spaces || []
         };
     }

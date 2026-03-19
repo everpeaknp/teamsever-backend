@@ -300,7 +300,7 @@ class WorkspaceService {
     return { message: "Workspace deleted successfully" };
   }
 
-  async updateWorkspace(workspaceId: string, userId: string, updateData: { name?: string }) {
+  async updateWorkspace(workspaceId: string, userId: string, updateData: { name?: string; logo?: string }) {
     const workspace = await Workspace.findOne({
       _id: workspaceId,
       isDeleted: false

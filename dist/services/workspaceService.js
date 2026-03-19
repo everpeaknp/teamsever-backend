@@ -269,6 +269,9 @@ class WorkspaceService {
         if (updateData.name) {
             workspace.name = updateData.name;
         }
+        if (updateData.logo) {
+            workspace.logo = updateData.logo;
+        }
         await workspace.save();
         await logger.logAudit({
             userId,
