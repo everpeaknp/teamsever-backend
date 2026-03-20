@@ -44,7 +44,9 @@ class EmailService {
             pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
           },
           tls: {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            minVersion: 'TLSv1.2',
+            servername: process.env.SMTP_HOST || 'smtp.gmail.com'
           },
           // CRITICAL: Force IPv4 at the DNS level to avoid ENETUNREACH errors on hosts like Render
           lookup: (hostname: string, options: any, callback: any) => {
@@ -53,9 +55,11 @@ class EmailService {
           },
           family: 4,
           pool: true,
-          connectionTimeout: 20000,
-          greetingTimeout: 20000,
-          socketTimeout: 30000,
+          connectionTimeout: 30000, // Increased to 30s
+          greetingTimeout: 30000, // Increased to 30s
+          socketTimeout: 45000, // Increased to 45s
+          debug: true, // Enable debug output
+          logger: true // Log to console
         };
         this.transporter = nodemailer.createTransport(transportOptions);
 
