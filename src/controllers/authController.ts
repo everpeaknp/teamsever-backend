@@ -237,7 +237,7 @@ const requestPasswordReset = async (req: any, res: any) => {
     user.passwordResetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const frontendUrl = process.env.FRONTEND_URL || "https://teamsever.vercel.app";
     const resetLink = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
 
     try {

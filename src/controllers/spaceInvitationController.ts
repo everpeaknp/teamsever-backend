@@ -143,7 +143,8 @@ const sendSpaceInvitation = asyncHandler(
 
     // Send email notification
     try {
-      const invitationLink = `${process.env.FRONTEND_URL}/accept-space-invitation/${token}`;
+      const frontendUrl = process.env.FRONTEND_URL || "https://teamsever.vercel.app";
+      const invitationLink = `${frontendUrl}/accept-space-invitation/${token}`;
       
       await emailService.sendSpaceInvitation({
         recipientEmail: email.toLowerCase(),

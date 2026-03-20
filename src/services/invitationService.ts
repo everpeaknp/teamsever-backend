@@ -74,7 +74,7 @@ class InvitationService {
         try {
           const inviter = await User.findById(invitedBy);
           if (inviter) {
-            const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+          const frontendUrl = process.env.FRONTEND_URL || "https://teamsever.vercel.app";
             const inviteUrl = `${frontendUrl}/join?token=${existingInvite.token}`;
             
             await emailService.sendWorkspaceInvitation({

@@ -45,8 +45,12 @@ class EmailService {
           tls: {
             rejectUnauthorized: false
           },
-          // CRITICAL: Force IPv4 to avoid ENETUNREACH errors with IPv6 on hosts like Render
-          family: 4
+          // CRITICAL: Force IPv4 and increase timeouts to avoid timeouts on hosts like Render
+          family: 4,
+          pool: true, // Reuse connections
+          connectionTimeout: 20000, // 20s
+          greetingTimeout: 20000, // 20s
+          socketTimeout: 30000, // 30s
         };
         this.transporter = nodemailer.createTransport(transportOptions);
 
