@@ -48,11 +48,13 @@ const getAdminUsers = asyncHandler(async (req, res) => {
             workspaceCount,
             subscription: {
                 planId: user.subscription?.planId || null,
-                planName: planDetails?.name || "Free Plan",
-                planPrice: planDetails?.basePrice || planDetails?.price || 0,
-                planBaseCurrency: planDetails?.baseCurrency || 'NPR',
+                planName: (user.subscription?.isPaid && planDetails) ? planDetails.name : "Free Plan",
+                planPrice: (user.subscription?.isPaid && planDetails) ? (planDetails.pricePerMemberMonthly || planDetails.basePrice || planDetails.price || 0) : 0,
+                planBaseCurrency: planDetails ? planDetails.baseCurrency || 'NPR' : 'NPR',
                 isPaid: user.subscription?.isPaid || false,
                 status: user.subscription?.status || "free",
+                billingCycle: user.subscription?.billingCycle || "monthly",
+                memberCount: user.subscription?.memberCount || 1,
                 expiresAt: user.subscription?.expiresAt,
                 daysRemaining
             },
@@ -78,15 +80,16 @@ const updateUserSubscription = asyncHandler(async (req, res) => {
         });
     }
     const { userId } = req.params;
-    const { isPaid, planId, status } = req.body;
+    const { isPaid, planId, status, memberCount, billingCycle, featureOverrides } = req.body;
     const user = await User.findById(userId);
     if (!user) {
         res.status(404);
         throw new Error("User not found");
     }
     // Verify plan exists if planId is provided
+    let plan = null;
     if (planId) {
-        const plan = await Plan.findById(planId);
+        plan = await Plan.findById(planId);
         if (!plan) {
             res.status(404);
             throw new Error("Plan not found");
@@ -94,17 +97,28 @@ const updateUserSubscription = asyncHandler(async (req, res) => {
     }
     // Update subscription
     if (!user.subscription) {
-        user.subscription = {};
+        user.subscription = {
+            isPaid: false,
+            status: 'free'
+        };
     }
     if (isPaid !== undefined) {
         user.subscription.isPaid = isPaid;
         if (isPaid) {
             user.subscription.status = 'active';
-            // Set 30-day expiry from now
+            // Set 30-day expiry from now for monthly, 365 for annual
             const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 30);
+            const isAnnual = billingCycle === 'annual' || user.subscription.billingCycle === 'annual';
+            expiryDate.setDate(expiryDate.getDate() + (isAnnual ? 365 : 30));
             user.subscription.expiresAt = expiryDate;
             user.subscription.paidAt = new Date();
+            // Update plan details if plan was found
+            if (plan) {
+                user.subscription.planId = plan._id;
+                user.subscription.pricePerSeat = billingCycle === 'annual'
+                    ? (plan.pricePerMemberAnnual || 0)
+                    : (plan.pricePerMemberMonthly || 0);
+            }
         }
         else {
             user.subscription.status = 'free';
@@ -117,6 +131,24 @@ const updateUserSubscription = asyncHandler(async (req, res) => {
     }
     if (status !== undefined) {
         user.subscription.status = status;
+    }
+    if (memberCount !== undefined) {
+        user.subscription.memberCount = memberCount;
+    }
+    if (billingCycle !== undefined) {
+        user.subscription.billingCycle = billingCycle;
+        // Update price per seat if billing cycle changes and we have a plan
+        if (user.subscription.planId) {
+            const currentPlan = await Plan.findById(user.subscription.planId);
+            if (currentPlan) {
+                user.subscription.pricePerSeat = billingCycle === 'annual'
+                    ? (currentPlan.pricePerMemberAnnual || 0)
+                    : (currentPlan.pricePerMemberMonthly || 0);
+            }
+        }
+    }
+    if (featureOverrides !== undefined) {
+        user.subscription.featureOverrides = featureOverrides;
     }
     await user.save();
     // Invalidate entitlement cache when plan changes
@@ -219,17 +251,16 @@ const getSystemSettings = asyncHandler(async (req, res) => {
             message: "Not authenticated"
         });
     }
-    if (!req.user.isSuperUser) {
-        return res.status(403).json({
-            success: false,
-            message: "Access denied. Super user privileges required."
-        });
-    }
     try {
         let settings = await SystemSettings.findOne();
         if (!settings) {
+            // Create default settings if they don't exist
+            // Only super admin can trigger this if it's the first time
             settings = await SystemSettings.create({
                 whatsappContactNumber: "+1234567890",
+                systemName: "Teamsever",
+                accentColor: "mint",
+                themeMode: "light",
                 updatedBy: req.user._id
             });
         }
@@ -265,16 +296,29 @@ const updateSystemSettings = asyncHandler(async (req, res) => {
         });
     }
     try {
-        const { whatsappContactNumber } = req.body;
+        const { whatsappContactNumber, systemName, accentColor, themeMode, logoUrl } = req.body;
         let settings = await SystemSettings.findOne();
         if (!settings) {
             settings = await SystemSettings.create({
-                whatsappContactNumber,
+                whatsappContactNumber: whatsappContactNumber || "+1234567890",
+                systemName: systemName || "Teamsever",
+                accentColor: accentColor || "mint",
+                themeMode: themeMode || "light",
+                logoUrl: logoUrl || "/teamsever_logo.png",
                 updatedBy: req.user._id
             });
         }
         else {
-            settings.whatsappContactNumber = whatsappContactNumber;
+            if (whatsappContactNumber !== undefined)
+                settings.whatsappContactNumber = whatsappContactNumber;
+            if (systemName !== undefined)
+                settings.systemName = systemName;
+            if (accentColor !== undefined)
+                settings.accentColor = accentColor;
+            if (themeMode !== undefined)
+                settings.themeMode = themeMode;
+            if (logoUrl !== undefined)
+                settings.logoUrl = logoUrl;
             settings.updatedBy = req.user._id;
             await settings.save();
         }

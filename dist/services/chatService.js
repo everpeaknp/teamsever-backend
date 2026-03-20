@@ -47,7 +47,7 @@ class ChatService {
             mentions,
         });
         // Populate sender info
-        await message.populate("sender", "name email");
+        await message.populate("sender", "name email avatar profilePicture");
         // Log activity (non-blocking)
         try {
             await logger.logActivity({
@@ -110,8 +110,8 @@ class ChatService {
         const total = await ChatMessage.countDocuments(query);
         // Get messages sorted by newest first
         const messages = await ChatMessage.find(query)
-            .populate("sender", "name email")
-            .populate("mentions", "name email")
+            .populate("sender", "name email avatar profilePicture")
+            .populate("mentions", "name email avatar profilePicture")
             .sort({ createdAt: -1 }) // Newest first
             .skip(skip)
             .limit(limit)
@@ -171,8 +171,8 @@ class ChatService {
             _id: messageId,
             isDeleted: false,
         })
-            .populate("sender", "name email")
-            .populate("mentions", "name email")
+            .populate("sender", "name email avatar profilePicture")
+            .populate("mentions", "name email avatar profilePicture")
             .lean();
         if (!message) {
             throw new AppError("Message not found", 404);
@@ -180,6 +180,17 @@ class ChatService {
         // Validate workspace membership
         await this.validateWorkspaceMembership(message.workspace.toString(), userId);
         return message;
+    }
+    /**
+     * Get unread message count for a workspace by user
+     */
+    async getUnreadCount(workspaceId, userId) {
+        const unreadCount = await ChatMessage.countDocuments({
+            workspace: workspaceId,
+            isDeleted: false,
+            readBy: { $ne: userId },
+        });
+        return unreadCount || 0;
     }
 }
 module.exports = new ChatService();

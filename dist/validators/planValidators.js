@@ -6,9 +6,7 @@ const createPlanSchema = z.object({
         name: z.string({
             required_error: "Plan name is required"
         }).min(3, "Plan name must be at least 3 characters").max(50, "Plan name must not exceed 50 characters"),
-        price: z.number({
-            required_error: "Price is required"
-        }).min(0, "Price must be 0 or greater"),
+        price: z.number().min(0, "Price must be 0 or greater").optional(),
         description: z.string({
             required_error: "Description is required"
         }).min(10, "Description must be at least 10 characters").max(500, "Description must not exceed 500 characters"),

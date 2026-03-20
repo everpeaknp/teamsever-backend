@@ -20,7 +20,7 @@ const getWorkspaceMembers = asyncHandler(
 
     const workspace = await Workspace.findById(workspaceId).populate(
       "members.user",
-      "name email"
+      "name email avatar profilePicture"
     );
 
     if (!workspace) {
@@ -61,6 +61,8 @@ const getWorkspaceMembers = asyncHandler(
         status: member.status || 'inactive',
         isOwner: workspace.owner.toString() === member.user._id.toString(),
         customRoleTitle: member.customRoleTitle,
+        avatar: member.user.avatar,
+        profilePicture: member.user.profilePicture,
       }));
 
     console.log('[MemberController] Active members retrieved', { 
@@ -72,7 +74,7 @@ const getWorkspaceMembers = asyncHandler(
     // If no members found but workspace has an owner, include the owner
     if (members.length === 0 && workspace.owner) {
       console.log('[MemberController] No members found, fetching owner');
-      const owner = await User.findById(workspace.owner).select('name email');
+      const owner = await User.findById(workspace.owner).select('name email avatar profilePicture');
       if (owner) {
         members.push({
           _id: owner._id,
@@ -81,6 +83,8 @@ const getWorkspaceMembers = asyncHandler(
           role: 'owner',
           status: 'active',
           isOwner: true,
+          avatar: owner.avatar,
+          profilePicture: owner.profilePicture,
         });
         console.log('[MemberController] Added owner to members list');
       }

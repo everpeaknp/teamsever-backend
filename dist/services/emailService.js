@@ -13,30 +13,31 @@ class EmailService {
         if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
             try {
                 // Create transporter with Gmail or custom SMTP
-                this.transporter = nodemailer_1.default.createTransport({
+                const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+                const transportOptions = {
                     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                    port: parseInt(process.env.SMTP_PORT || '587'),
-                    secure: false, // false for 587, true for 465
+                    port: smtpPort,
+                    secure: smtpPort === 465, // true for 465, false for 587
                     auth: {
                         user: process.env.SMTP_USER,
                         pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
                     },
                     tls: {
-                        rejectUnauthorized: false // Don't fail on invalid certs in local dev
+                        rejectUnauthorized: false
                     },
-                    // Force IPv4 to avoid ENETUNREACH errors with IPv6 on some hosts (like Render)
+                    // CRITICAL: Force IPv4 to avoid ENETUNREACH errors with IPv6 on hosts like Render
                     family: 4
-                });
-                console.log('🔧 Email service initializing...');
+                };
+                this.transporter = nodemailer_1.default.createTransport(transportOptions);
+                console.log('🔧 Email service initializing via SMTP...');
                 console.log(`   Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
-                console.log(`   Port: ${process.env.SMTP_PORT || '587'}`);
+                console.log(`   Port: ${smtpPort}`);
                 console.log(`   User: ${process.env.SMTP_USER}`);
                 // Verify connection configuration on startup (async)
                 this.verificationPromise = new Promise((resolve) => {
-                    this.transporter.verify((error, success) => {
+                    this.transporter.verify((error) => {
                         if (error) {
                             console.error('❌ Email service connection failed:', error.message);
-                            console.error('   Please check your SMTP credentials in .env file');
                             this.isConfigured = false;
                         }
                         else {
@@ -54,7 +55,6 @@ class EmailService {
         }
         else {
             console.log('ℹ️  Email service not configured (SMTP credentials missing).');
-            console.log('   Add SMTP_USER and SMTP_PASS to .env to enable email notifications.');
             this.isConfigured = false;
         }
     }
@@ -70,11 +70,19 @@ class EmailService {
      * Send a generic email
      */
     async sendEmail(options) {
-        // Wait for verification to complete
-        await this.waitForVerification();
-        if (!this.isConfigured || !this.transporter) {
-            console.log('ℹ️  Email service not configured. Skipping email to:', options.to);
+        // Wait for verification to complete (but don't block forever)
+        await Promise.race([
+            this.waitForVerification(),
+            new Promise(resolve => setTimeout(resolve, 5000)) // 5s max wait
+        ]);
+        if (!this.transporter) {
+            console.log('ℹ️  Email transporter not initialized. Skipping email to:', options.to);
             return;
+        }
+        // Even if verification failed at startup, still attempt to send
+        // (verification timeout on Render should not block email delivery)
+        if (!this.isConfigured) {
+            console.warn('⚠️  Email service verification failed at startup, attempting send anyway...');
         }
         try {
             const mailOptions = {
@@ -246,8 +254,8 @@ class EmailService {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">TaskHub</div>
-                    <div style="font-size: 32px; margin: 16px 0;">✉️</div>
+                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">Teamsever</div>
+                    <div style="color: #A0AEC0; font-size: 14px;">Better team collaboration</div>
                     <h1 style="margin: 0; color: white; font-size: 28px; font-weight: bold;">You're Invited!</h1>
                     <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Join your team workspace</p>
                   </td>
@@ -339,7 +347,7 @@ class EmailService {
                 <strong>Note:</strong> This invitation will expire in 7 days.
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                © ${new Date().getFullYear()} TaskHub. All rights reserved.
+                © ${new Date().getFullYear()} Teamsever. All rights reserved.
               </p>
             </td>
           </tr>
@@ -379,7 +387,7 @@ If you weren't expecting this invitation, you can safely ignore this email.
         if (!this.isConfigured || !this.transporter) {
             throw new Error("Email service not configured");
         }
-        const subject = `Reset your password - ${process.env.APP_NAME || 'TaskHub'}`;
+        const subject = `Reset your password - ${process.env.APP_NAME || 'Teamsever'}`;
         const html = `
 <!DOCTYPE html>
 <html>
@@ -395,7 +403,7 @@ If you weren't expecting this invitation, you can safely ignore this email.
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:600px;">
             <tr>
               <td style="padding:28px 28px 8px;text-align:center;">
-                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'TaskHub'}</div>
+                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'Teamsever'}</div>
                 <div style="font-size:28px;margin:12px 0;">🔐</div>
                 <h1 style="margin:0;color:#0f172a;font-size:20px;">Reset your password</h1>
               </td>

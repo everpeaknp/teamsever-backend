@@ -86,6 +86,40 @@ class EnhancedNotificationService {
         }
     }
     /**
+     * Notify new announcement to all workspace members
+     */
+    async notifyAnnouncementCreated(announcementId, workspaceId, authorId, content) {
+        try {
+            const workspace = await Workspace.findById(workspaceId).lean();
+            if (!workspace)
+                return;
+            const author = await User.findById(authorId).select("name").lean();
+            const authorName = author?.name || "Someone";
+            const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+            // Notify all members except author
+            const recipients = workspace.members
+                .map((m) => m.user.toString())
+                .filter((id) => id !== authorId);
+            for (const recipientId of recipients) {
+                await this.createNotification({
+                    recipientId,
+                    type: "ANNOUNCEMENT_NEW",
+                    title: `New Announcement in ${workspace.name}`,
+                    body: `${authorName}: ${contentPreview}`,
+                    data: {
+                        resourceId: announcementId,
+                        resourceType: "Announcement",
+                        workspaceId,
+                        announcementId,
+                    },
+                });
+            }
+        }
+        catch (error) {
+            console.error("[Notification] Failed to notify announcement created:", error);
+        }
+    }
+    /**
      * Notify task update
      */
     async notifyTaskUpdate(taskId, updatedBy, updateType, oldValue, newValue) {

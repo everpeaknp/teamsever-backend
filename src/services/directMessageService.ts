@@ -43,10 +43,10 @@ class DirectMessageService {
     let conversation = await Conversation.findOne({
       participants: { $all: participants },
     })
-      .populate("participants", "name email profilePicture")
+      .populate("participants", "name email avatar profilePicture")
       .populate({
         path: "lastMessage",
-        populate: { path: "sender", select: "name email profilePicture" },
+        populate: { path: "sender", select: "name email avatar profilePicture" },
       });
 
     // Create if doesn't exist
@@ -56,7 +56,7 @@ class DirectMessageService {
         lastMessageAt: new Date(),
       });
 
-      await conversation.populate("participants", "name email profilePicture");
+      await conversation.populate("participants", "name email avatar profilePicture");
     }
 
     return conversation;
@@ -102,7 +102,7 @@ class DirectMessageService {
     await conversation.save();
 
     // Populate message
-    await message.populate("sender", "name email profilePicture");
+    await message.populate("sender", "name email avatar profilePicture");
 
     // Log activity (use first participant's workspace if available, or skip workspace)
     try {
@@ -175,10 +175,10 @@ class DirectMessageService {
     const conversations = await Conversation.find({
       participants: userId,
     })
-      .populate("participants", "name email profilePicture")
+      .populate("participants", "name email avatar profilePicture")
       .populate({
         path: "lastMessage",
-        populate: { path: "sender", select: "name email profilePicture" },
+        populate: { path: "sender", select: "name email avatar profilePicture" },
       })
       .sort({ lastMessageAt: -1 })
       .lean();
@@ -238,7 +238,7 @@ class DirectMessageService {
     const messages = await DirectMessage.find({
       conversation: conversationId,
     })
-      .populate("sender", "name email profilePicture")
+      .populate("sender", "name email avatar profilePicture")
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
@@ -277,10 +277,10 @@ class DirectMessageService {
    */
   async getConversationById(conversationId: string, userId: string): Promise<any> {
     const conversation = await Conversation.findById(conversationId)
-      .populate("participants", "name email profilePicture")
+      .populate("participants", "name email avatar profilePicture")
       .populate({
         path: "lastMessage",
-        populate: { path: "sender", select: "name email profilePicture" },
+        populate: { path: "sender", select: "name email avatar profilePicture" },
       })
       .lean();
 

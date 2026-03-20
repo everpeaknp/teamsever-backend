@@ -29,10 +29,10 @@ class DirectMessageService {
         let conversation = await Conversation.findOne({
             participants: { $all: participants },
         })
-            .populate("participants", "name email")
+            .populate("participants", "name email avatar profilePicture")
             .populate({
             path: "lastMessage",
-            populate: { path: "sender", select: "name email" },
+            populate: { path: "sender", select: "name email avatar profilePicture" },
         });
         // Create if doesn't exist
         if (!conversation) {
@@ -40,7 +40,7 @@ class DirectMessageService {
                 participants,
                 lastMessageAt: new Date(),
             });
-            await conversation.populate("participants", "name email");
+            await conversation.populate("participants", "name email avatar profilePicture");
         }
         return conversation;
     }
@@ -77,7 +77,7 @@ class DirectMessageService {
         conversation.lastMessageAt = new Date();
         await conversation.save();
         // Populate message
-        await message.populate("sender", "name email");
+        await message.populate("sender", "name email avatar profilePicture");
         // Log activity (use first participant's workspace if available, or skip workspace)
         try {
             await logger.logActivity({
@@ -141,10 +141,10 @@ class DirectMessageService {
         const conversations = await Conversation.find({
             participants: userId,
         })
-            .populate("participants", "name email")
+            .populate("participants", "name email avatar profilePicture")
             .populate({
             path: "lastMessage",
-            populate: { path: "sender", select: "name email" },
+            populate: { path: "sender", select: "name email avatar profilePicture" },
         })
             .sort({ lastMessageAt: -1 })
             .lean();
@@ -186,7 +186,7 @@ class DirectMessageService {
         const messages = await DirectMessage.find({
             conversation: conversationId,
         })
-            .populate("sender", "name email")
+            .populate("sender", "name email avatar profilePicture")
             .sort({ createdAt: 1 })
             .skip(skip)
             .limit(limit)
@@ -220,10 +220,10 @@ class DirectMessageService {
      */
     async getConversationById(conversationId, userId) {
         const conversation = await Conversation.findById(conversationId)
-            .populate("participants", "name email")
+            .populate("participants", "name email avatar profilePicture")
             .populate({
             path: "lastMessage",
-            populate: { path: "sender", select: "name email" },
+            populate: { path: "sender", select: "name email avatar profilePicture" },
         })
             .lean();
         if (!conversation) {

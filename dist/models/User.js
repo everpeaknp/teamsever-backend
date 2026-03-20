@@ -54,6 +54,21 @@ const userSchema = new mongoose_1.default.Schema({
             type: Number,
             min: 0,
             default: 0
+        },
+        featureOverrides: {
+            maxWorkspaces: { type: Number },
+            maxMembers: { type: Number },
+            maxAdmins: { type: Number },
+            maxSpaces: { type: Number },
+            maxLists: { type: Number },
+            maxFolders: { type: Number },
+            maxTasks: { type: Number },
+            maxTablesCount: { type: Number },
+            maxRowsLimit: { type: Number },
+            maxColumnsLimit: { type: Number },
+            maxFiles: { type: Number },
+            maxDocuments: { type: Number },
+            maxDirectMessagesPerUser: { type: Number }
         }
     }
 }, { timestamps: true });

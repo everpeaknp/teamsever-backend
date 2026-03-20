@@ -54,7 +54,7 @@ class NotificationService {
       });
 
       // Populate recipient for response
-      await notification.populate("recipient", "name email");
+      await notification.populate("recipient", "name email avatar profilePicture");
 
       // 2. Log notification creation
       try {

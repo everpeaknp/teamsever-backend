@@ -23,7 +23,7 @@ class NotificationService {
                 data,
             });
             // Populate recipient for response
-            await notification.populate("recipient", "name email");
+            await notification.populate("recipient", "name email avatar profilePicture");
             // 2. Log notification creation
             try {
                 if (data.workspaceId) {
@@ -43,10 +43,9 @@ class NotificationService {
             catch (error) {
                 console.error("[Notification] Failed to log activity:", error);
             }
-            // 3. Check if user is online
+            // 3. Emit socket event if online
             const isOnline = this.isUserOnline(recipientId, data.workspaceId);
             if (isOnline) {
-                // User is online - emit socket event
                 console.log(`[Notification] User ${recipientId} is online, emitting socket event`);
                 try {
                     emitToUser(recipientId, "notification:new", {
@@ -65,19 +64,19 @@ class NotificationService {
                     console.error("[Notification] Failed to emit socket event:", error);
                 }
             }
-            else {
-                // User is offline - send push notification
-                console.log(`[Notification] User ${recipientId} is offline, sending push`);
-                await this.sendPushNotification(recipientId, {
-                    title,
-                    body,
-                    data: {
-                        type,
-                        notificationId: notification._id.toString(),
-                        ...data,
-                    },
-                });
-            }
+            // 4. ALWAYS send push notification (FCM) to trigger OS browser alerts
+            // Even if they are online, the tab might be in the background.
+            // The frontend FCM listener handles deduplication/display.
+            console.log(`[Notification] Sending FCM push notification to user ${recipientId}`);
+            await this.sendPushNotification(recipientId, {
+                title,
+                body,
+                data: {
+                    type,
+                    notificationId: notification._id.toString(),
+                    ...data,
+                },
+            });
             return notification;
         }
         catch (error) {
@@ -221,13 +220,21 @@ class NotificationService {
             // Send push notification directly via FCM
             const messaging = getMessaging();
             const tokens = deviceTokens.map((dt) => dt.token);
+            const rawData = options.data || {};
+            // Firebase Admin SDK requires all data values to be strings
+            const stringData = {};
+            for (const [key, value] of Object.entries(rawData)) {
+                if (value !== null && value !== undefined) {
+                    stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                }
+            }
             const message = {
                 notification: {
                     title: options.title,
                     body: options.body,
                     ...(options.imageUrl && { imageUrl: options.imageUrl }),
                 },
-                data: options.data || {},
+                data: stringData,
             };
             // Send to all tokens
             const results = await Promise.allSettled(tokens.map((token) => messaging.send({

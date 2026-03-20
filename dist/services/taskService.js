@@ -187,8 +187,8 @@ class TaskService {
             }
         }
         const tasks = await Task.find(query)
-            .populate("assignee", "name email")
-            .populate("createdBy", "name email")
+            .populate("assignee", "name email profilePicture")
+            .populate("createdBy", "name email profilePicture")
             .populate("customFieldValues.field", "name type options")
             .sort("-createdAt")
             .lean();
@@ -199,8 +199,8 @@ class TaskService {
             _id: taskId,
             isDeleted: false
         })
-            .populate("assignee", "name email")
-            .populate("createdBy", "name email")
+            .populate("assignee", "name email profilePicture")
+            .populate("createdBy", "name email profilePicture")
             .populate("list", "name")
             .populate({
             path: "list",
@@ -231,7 +231,7 @@ class TaskService {
         }
         // Fetch comments and activity separately for better control
         const [comments, activity, attachments] = await Promise.all([
-            require("../models/Comment").find({ task: taskId, isDeleted: false })
+            require("../models/TaskComment").find({ task: taskId, isDeleted: false })
                 .populate("user", "name email")
                 .sort({ createdAt: -1 })
                 .lean(),
@@ -331,8 +331,8 @@ class TaskService {
         }
         await task.save();
         // Populate for response
-        await task.populate("assignee", "name email");
-        await task.populate("createdBy", "name email");
+        await task.populate("assignee", "name email profilePicture");
+        await task.populate("createdBy", "name email profilePicture");
         // Track important field changes as activities
         await this.trackFieldChanges(taskId, userId, task.workspace.toString(), oldValue, {
             status: task.status,
@@ -577,8 +577,8 @@ class TaskService {
             parentTask: parentTaskId,
             isDeleted: false
         })
-            .populate("assignee", "name email")
-            .populate("createdBy", "name email")
+            .populate("assignee", "name email profilePicture")
+            .populate("createdBy", "name email profilePicture")
             .sort("createdAt")
             .lean();
         return subtasks;

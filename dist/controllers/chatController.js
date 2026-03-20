@@ -62,8 +62,23 @@ const deleteMessage = asyncHandler(async (req, res) => {
         message: result.message,
     });
 });
+/**
+ * @desc    Get unread message count for workspace chat
+ * @route   GET /api/workspaces/:workspaceId/chat/unread
+ * @access  Private (workspace members only)
+ */
+const getUnreadCount = asyncHandler(async (req, res) => {
+    const { workspaceId } = req.params;
+    const userId = req.user.id;
+    const count = await chatService.getUnreadCount(workspaceId, userId);
+    res.status(200).json({
+        success: true,
+        data: { unreadCount: count },
+    });
+});
 module.exports = {
     sendMessage,
     getMessages,
     deleteMessage,
+    getUnreadCount,
 };

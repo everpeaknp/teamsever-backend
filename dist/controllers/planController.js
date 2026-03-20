@@ -33,7 +33,17 @@ const createPlan = asyncHandler(async (req, res) => {
         hasGroupChat: features?.hasGroupChat || false,
         messageLimit: features?.messageLimit || 100,
         announcementCooldown: features?.announcementCooldown || 24,
-        accessControlTier: features?.accessControlTier || 'none'
+        accessControlTier: features?.accessControlTier || 'none',
+        // Pro features
+        canUseCustomRoles: features?.canUseCustomRoles || false,
+        maxCustomRoles: features?.maxCustomRoles !== undefined ? features.maxCustomRoles : -1,
+        canCreateTables: features?.canCreateTables || false,
+        maxTablesCount: features?.maxTablesCount !== undefined ? features.maxTablesCount : -1,
+        maxRowsLimit: features?.maxRowsLimit !== undefined ? features.maxRowsLimit : -1,
+        maxColumnsLimit: features?.maxColumnsLimit !== undefined ? features.maxColumnsLimit : -1,
+        maxFiles: features?.maxFiles !== undefined ? features.maxFiles : -1,
+        maxDocuments: features?.maxDocuments !== undefined ? features.maxDocuments : -1,
+        maxDirectMessagesPerUser: features?.maxDirectMessagesPerUser !== undefined ? features.maxDirectMessagesPerUser : -1,
     };
     // If parentPlanId is provided, inherit features from parent plan
     if (parentPlanId) {
@@ -55,7 +65,16 @@ const createPlan = asyncHandler(async (req, res) => {
             hasGroupChat: features?.hasGroupChat !== undefined ? features.hasGroupChat : parentPlan.features.hasGroupChat,
             messageLimit: features?.messageLimit !== undefined ? features.messageLimit : parentPlan.features.messageLimit,
             announcementCooldown: features?.announcementCooldown !== undefined ? features.announcementCooldown : parentPlan.features.announcementCooldown,
-            accessControlTier: features?.accessControlTier !== undefined ? features.accessControlTier : parentPlan.features.accessControlTier
+            accessControlTier: features?.accessControlTier !== undefined ? features.accessControlTier : parentPlan.features.accessControlTier,
+            canUseCustomRoles: features?.canUseCustomRoles !== undefined ? features.canUseCustomRoles : parentPlan.features.canUseCustomRoles,
+            maxCustomRoles: features?.maxCustomRoles !== undefined ? features.maxCustomRoles : parentPlan.features.maxCustomRoles,
+            canCreateTables: features?.canCreateTables !== undefined ? features.canCreateTables : parentPlan.features.canCreateTables,
+            maxTablesCount: features?.maxTablesCount !== undefined ? features.maxTablesCount : parentPlan.features.maxTablesCount,
+            maxRowsLimit: features?.maxRowsLimit !== undefined ? features.maxRowsLimit : parentPlan.features.maxRowsLimit,
+            maxColumnsLimit: features?.maxColumnsLimit !== undefined ? features.maxColumnsLimit : parentPlan.features.maxColumnsLimit,
+            maxFiles: features?.maxFiles !== undefined ? features.maxFiles : parentPlan.features.maxFiles,
+            maxDocuments: features?.maxDocuments !== undefined ? features.maxDocuments : parentPlan.features.maxDocuments,
+            maxDirectMessagesPerUser: features?.maxDirectMessagesPerUser !== undefined ? features.maxDirectMessagesPerUser : parentPlan.features.maxDirectMessagesPerUser,
         };
     }
     // Prepare plan data with currency fields

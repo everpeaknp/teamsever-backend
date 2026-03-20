@@ -89,7 +89,7 @@ exports.getWorkspaceDocuments = async (req: any, res: any, next: any) => {
       workspace: workspaceId,
       isArchived: false
     })
-      .populate("owner", "name email")
+      .populate("owner", "name email avatar profilePicture")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -134,8 +134,8 @@ exports.getDocument = async (req: any, res: any, next: any) => {
     const userId = req.user.id;
 
     const document = await Document.findById(id)
-      .populate("owner", "name email")
-      .populate("collaborators.user", "name email");
+      .populate("owner", "name email avatar profilePicture")
+      .populate("collaborators.user", "name email avatar profilePicture");
 
     if (!document) {
       return next(new AppError("Document not found", 404));
@@ -277,7 +277,7 @@ exports.getDocumentHierarchy = async (req: any, res: any, next: any) => {
       workspace: workspaceId,
       isArchived: false
     })
-      .populate("owner", "name email")
+      .populate("owner", "name email avatar profilePicture")
       .sort({ createdAt: -1 });
 
     // Build hierarchy

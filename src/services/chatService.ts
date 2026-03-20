@@ -70,7 +70,7 @@ class ChatService {
     });
 
     // Populate sender info
-    await message.populate("sender", "name email profilePicture");
+    await message.populate("sender", "name email avatar profilePicture");
 
     // Log activity (non-blocking)
     try {
@@ -144,8 +144,8 @@ class ChatService {
 
     // Get messages sorted by newest first
     const messages = await ChatMessage.find(query)
-      .populate("sender", "name email profilePicture")
-      .populate("mentions", "name email profilePicture")
+      .populate("sender", "name email avatar profilePicture")
+      .populate("mentions", "name email avatar profilePicture")
       .sort({ createdAt: -1 }) // Newest first
       .skip(skip)
       .limit(limit)
@@ -214,8 +214,8 @@ class ChatService {
       _id: messageId,
       isDeleted: false,
     })
-      .populate("sender", "name email profilePicture")
-      .populate("mentions", "name email profilePicture")
+      .populate("sender", "name email avatar profilePicture")
+      .populate("mentions", "name email avatar profilePicture")
       .lean();
 
     if (!message) {
@@ -226,6 +226,19 @@ class ChatService {
     await this.validateWorkspaceMembership(message.workspace.toString(), userId);
 
     return message;
+  }
+
+  /**
+   * Get unread message count for a workspace by user
+   */
+  async getUnreadCount(workspaceId: string, userId: string): Promise<number> {
+    const unreadCount = await ChatMessage.countDocuments({
+      workspace: workspaceId,
+      isDeleted: false,
+      readBy: { $ne: userId },
+    });
+    
+    return unreadCount || 0;
   }
 }
 

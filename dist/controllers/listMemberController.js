@@ -21,15 +21,14 @@ const getListMembers = asyncHandler(async (req, res, next) => {
     }
     // Get all list members with overrides
     const listMembers = await ListMember.find({ list: listId })
-        .populate("user", "name email avatar")
+        .populate("user", "name email avatar profilePicture")
         .populate("addedBy", "name")
         .lean();
     // Get workspace to show all potential members
-    const workspace = await Workspace.findById(list.workspace).populate("members.user", "name email avatar");
+    const workspace = await Workspace.findById(list.workspace).populate("members.user", "name email avatar profilePicture");
     // Format response with override info
     // Filter out admins and owners as they have full access by default
     const members = workspace.members
-        .filter((member) => member.role === 'member') // Only include regular members
         .map((member) => {
         const override = listMembers.find((lm) => lm.user._id.toString() === member.user._id.toString());
         return {
@@ -37,6 +36,7 @@ const getListMembers = asyncHandler(async (req, res, next) => {
             name: member.user.name,
             email: member.user.email,
             avatar: member.user.avatar,
+            profilePicture: member.user.profilePicture,
             workspaceRole: member.role,
             customRoleTitle: member.customRoleTitle || null,
             listPermissionLevel: override?.permissionLevel || null,
@@ -102,9 +102,7 @@ const addListMember = asyncHandler(async (req, res, next) => {
     }
     // Check if user is admin or owner - they don't need list permissions
     const workspaceMember = workspace.members.find((m) => m.user.toString() === userId);
-    if (workspaceMember && (workspaceMember.role === 'admin' || workspaceMember.role === 'owner')) {
-        return next(new AppError("Admins and owners have full access by default and cannot be added to list members", 400));
-    }
+    // Removed: Admins and owners can now be explicitly added to list members for visibility
     // DO NOT auto-add user to space
     // Users can be list members without being space members
     // This allows granular access control at the list level
@@ -138,8 +136,8 @@ const addListMember = asyncHandler(async (req, res, next) => {
             addedBy: currentUserId,
         };
         // Only add folder if it exists
-        if (list.folder) {
-            const folderId = typeof list.folder === 'object' ? list.folder._id : list.folder;
+        if (list.folderId) {
+            const folderId = typeof list.folderId === 'object' ? list.folderId._id : list.folderId;
             createData.folder = folderId;
         }
         console.log('[addListMember] Creating with data:', createData);

@@ -461,5 +461,31 @@ class UploadService {
             }
         }
     }
+    /**
+     * Upload profile picture for user
+     */
+    async uploadProfilePicture(file, userId) {
+        const streamUpload = (fileBuffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary_1.cloudinary.uploader.upload_stream({
+                    folder: `users/${userId}/profile`,
+                    resource_type: "image",
+                }, (error, result) => {
+                    if (result) {
+                        resolve(result);
+                    }
+                    else {
+                        reject(error);
+                    }
+                });
+                stream.end(fileBuffer);
+            });
+        };
+        const cloudinaryResult = (await streamUpload(file.buffer));
+        return {
+            url: cloudinaryResult.secure_url,
+            publicId: cloudinaryResult.public_id,
+        };
+    }
 }
 module.exports = new UploadService();

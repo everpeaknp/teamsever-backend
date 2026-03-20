@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+const SystemSettings = require('../models/SystemSettings');
 
 interface EmailOptions {
   to: string;
@@ -108,8 +109,19 @@ class EmailService {
     }
 
     try {
+      // Fetch dynamic system name
+      let systemName = process.env.APP_NAME || 'Workspace App';
+      try {
+        const settings = await SystemSettings.findOne();
+        if (settings && settings.systemName) {
+          systemName = settings.systemName;
+        }
+      } catch (e) {
+        // Silently fallback if db error
+      }
+
       const mailOptions = {
-        from: `"${process.env.APP_NAME || 'Workspace App'}" <${process.env.SMTP_USER}>`,
+        from: `"${systemName}" <${process.env.SMTP_USER}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -130,6 +142,15 @@ class EmailService {
    * Send space invitation email
    */
   async sendSpaceInvitation(data: InvitationEmailData): Promise<void> {
+    // Fetch dynamic system name
+    let systemName = process.env.APP_NAME || 'Workspace App';
+    try {
+      const settings = await SystemSettings.findOne();
+      if (settings && settings.systemName) {
+        systemName = settings.systemName;
+      }
+    } catch (e) {}
+
     const subject = `${data.inviterName} invited you to join ${data.spaceName}`;
     
     const html = `
@@ -199,7 +220,7 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">${process.env.APP_NAME || 'Workspace App'}</div>
+              <div class="logo">${systemName}</div>
             </div>
             
             <div class="content">
@@ -266,6 +287,15 @@ class EmailService {
       role: string;
       workspaceLink: string;
     }): Promise<void> {
+      // Fetch dynamic system name
+      let systemName = process.env.APP_NAME || 'Teamsever';
+      try {
+        const settings = await SystemSettings.findOne();
+        if (settings && settings.systemName) {
+          systemName = settings.systemName;
+        }
+      } catch (e) {}
+
       const subject = `${data.inviterName} invited you to join ${data.workspaceName}`;
 
       const roleDisplay = data.role === 'admin' ? 'Admin' : data.role === 'guest' ? 'Guest' : 'Member';
@@ -291,7 +321,7 @@ class EmailService {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">Teamsever</div>
+                    <div style="font-size: 20px; font-weight: bold; color: white; margin-bottom: 8px;">${systemName}</div>
                     <div style="color: #A0AEC0; font-size: 14px;">Better team collaboration</div>
                     <h1 style="margin: 0; color: white; font-size: 28px; font-weight: bold;">You're Invited!</h1>
                     <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Join your team workspace</p>
@@ -384,7 +414,7 @@ class EmailService {
                 <strong>Note:</strong> This invitation will expire in 7 days.
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                © ${new Date().getFullYear()} Teamsever. All rights reserved.
+                © ${new Date().getFullYear()} ${systemName}. All rights reserved.
               </p>
             </td>
           </tr>
@@ -427,8 +457,16 @@ If you weren't expecting this invitation, you can safely ignore this email.
     if (!this.isConfigured || !this.transporter) {
       throw new Error("Email service not configured");
     }
+    // Fetch dynamic system name
+    let systemName = process.env.APP_NAME || 'Teamsever';
+    try {
+      const settings = await SystemSettings.findOne();
+      if (settings && settings.systemName) {
+        systemName = settings.systemName;
+      }
+    } catch (e) {}
 
-    const subject = `Reset your password - ${process.env.APP_NAME || 'Teamsever'}`;
+    const subject = `Reset your password - ${systemName}`;
 
     const html = `
 <!DOCTYPE html>
@@ -445,7 +483,7 @@ If you weren't expecting this invitation, you can safely ignore this email.
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:600px;">
             <tr>
               <td style="padding:28px 28px 8px;text-align:center;">
-                <div style="font-size:22px;font-weight:800;color:#135bec;">${process.env.APP_NAME || 'Teamsever'}</div>
+                <div style="font-size:22px;font-weight:800;color:#135bec;">${systemName}</div>
                 <div style="font-size:28px;margin:12px 0;">🔐</div>
                 <h1 style="margin:0;color:#0f172a;font-size:20px;">Reset your password</h1>
               </td>

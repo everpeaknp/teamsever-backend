@@ -1,6 +1,9 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuid_1 = require("uuid");
+const crypto_1 = __importDefault(require("crypto"));
 const Transaction = require('../models/Transaction');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
@@ -83,7 +86,7 @@ const initiatePayment = async (req, res) => {
         // Calculate total amount
         const totalAmount = Math.round(discountedPricePerSeat * memberCount);
         // Generate unique transaction UUID with billing cycle and member count
-        const transactionUuid = `${userId}-${planId}-${billingCycle.toUpperCase()}-${memberCount}M-${(0, uuid_1.v4)()}`;
+        const transactionUuid = `${userId}-${planId}-${billingCycle.toUpperCase()}-${memberCount}M-${crypto_1.default.randomUUID()}`;
         // Create transaction record with all details
         const transaction = await Transaction.create({
             userId,

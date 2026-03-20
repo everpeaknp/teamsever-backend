@@ -271,10 +271,12 @@ const registerHandlers = (io, socket) => {
                 mentions: mentions || [],
             });
             // Broadcast to workspace room
+            const workspace = await Workspace.findById(workspaceId).select('name').lean();
             io.to(`workspace:${workspaceId}`).emit("chat:new", {
                 message: {
                     _id: message._id,
                     workspace: message.workspace,
+                    workspaceName: workspace?.name,
                     sender: message.sender,
                     content: message.content,
                     type: message.type,

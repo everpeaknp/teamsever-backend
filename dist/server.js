@@ -78,6 +78,7 @@ const startServer = async () => {
         const performanceRoutes = require("./routes/performanceRoutes");
         const planRoutes = require("./routes/planRoutes");
         const superAdminRoutes = require("./routes/superAdminRoutes");
+        const userRoutes = require("./routes/userRoutes");
         const subscriptionRoutes = require("./routes/subscriptionRoutes");
         const feedbackRoutes = require("./routes/feedbackRoutes");
         const { workspaceFileRouter, fileRouter } = require("./routes/workspaceFileRoutes");
@@ -97,8 +98,25 @@ const startServer = async () => {
         const io = initializeSocketIO(httpServer);
         app.set("io", io);
         // 5. CORS configuration
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            "http://localhost:3000",
+            "https://teamsever.vercel.app",
+            "https://teamsever-frontend.vercel.app",
+            "https://teamsever-frontend-d22u.vercel.app"
+        ].filter(Boolean);
         const corsOptions = {
-            origin: process.env.FRONTEND_URL || "http://localhost:3000",
+            origin: function (origin, callback) {
+                // allow requests with no origin (like mobile apps or curl requests)
+                if (!origin)
+                    return callback(null, true);
+                if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                }
+                else {
+                    callback(new Error('Not allowed by CORS'));
+                }
+            },
             credentials: true,
             optionsSuccessStatus: 200
         };
@@ -175,6 +193,7 @@ const startServer = async () => {
         app.use("/api/performance", performanceRoutes);
         app.use("/api/plans", planRoutes);
         app.use("/api/super-admin", superAdminRoutes);
+        app.use("/api/users", userRoutes);
         app.use("/api/subscription", subscriptionRoutes);
         app.use("/api/feedback", feedbackRoutes);
         app.use("/api/workspaces/:workspaceId/files", workspaceFileRouter);

@@ -27,14 +27,14 @@ const getListMembers = asyncHandler(
 
     // Get all list members with overrides
     const listMembers = await ListMember.find({ list: listId })
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("addedBy", "name")
       .lean();
 
     // Get workspace to show all potential members
     const workspace = await Workspace.findById(list.workspace).populate(
       "members.user",
-      "name email avatar"
+      "name email avatar profilePicture"
     );
 
     // Format response with override info
@@ -50,6 +50,7 @@ const getListMembers = asyncHandler(
           name: member.user.name,
           email: member.user.email,
           avatar: member.user.avatar,
+          profilePicture: member.user.profilePicture,
           workspaceRole: member.role,
           customRoleTitle: member.customRoleTitle || null,
           listPermissionLevel: override?.permissionLevel || null,

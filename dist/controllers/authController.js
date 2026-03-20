@@ -151,8 +151,9 @@ const googleAuth = async (req, res) => {
             if (picture && !user.profilePicture) {
                 user.profilePicture = picture;
             }
-            // Update name if user's name is just email prefix and Google provides a better name
-            if (name && user.name === user.email.split('@')[0]) {
+            // Only update name if user currently has no name or their name is just their email prefix
+            // Do NOT overwrite if they've set a custom name in their profile
+            if (name && (!user.name || user.name === user.email.split('@')[0])) {
                 user.name = name;
             }
             await user.save();
@@ -170,7 +171,8 @@ const googleAuth = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                profilePicture: user.profilePicture
+                profilePicture: user.profilePicture,
+                isSuperUser: user.isSuperUser || false
             }
         });
     }

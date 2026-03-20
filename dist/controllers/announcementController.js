@@ -1,5 +1,6 @@
 const Announcement = require('../models/Announcement');
 const Workspace = require('../models/Workspace');
+const enhancedNotificationService = require('../services/enhancedNotificationService').default || require('../services/enhancedNotificationService');
 // @desc    Get all announcements for a workspace
 // @route   GET /api/workspaces/:id/announcements
 // @access  Private (Workspace members)
@@ -119,6 +120,10 @@ exports.createAnnouncement = async (req, res) => {
         const populatedAnnouncement = await Announcement.findById(announcement._id)
             .populate('author', 'name email avatar')
             .lean();
+        // Notify all workspace members (non-blocking)
+        enhancedNotificationService.notifyAnnouncementCreated(announcement._id.toString(), workspaceId, userId, content).catch(err => {
+            console.error('[Announcement] Notification failed:', err);
+        });
         res.status(201).json({
             success: true,
             data: populatedAnnouncement,

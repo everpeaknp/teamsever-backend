@@ -97,6 +97,10 @@ workspaceChatRouter
   .post(protect, checkMessageLimit, validate(sendMessageSchema), chatController.sendMessage)
   .get(protect, chatController.getMessages);
 
+workspaceChatRouter
+  .route("/unread")
+  .get(protect, chatController.getUnreadCount);
+
 // Individual message routes
 const chatRouter = express.Router();
 

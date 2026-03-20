@@ -117,7 +117,7 @@ class WorkspaceFileService {
     });
 
     // Populate uploader info
-    await file.populate("uploadedBy", "name email avatar");
+    await file.populate("uploadedBy", "name email avatar profilePicture");
 
     // Log activity
     try {
@@ -174,7 +174,7 @@ class WorkspaceFileService {
 
     // Get files
     const files = await WorkspaceFile.find(query)
-      .populate("uploadedBy", "name email avatar")
+      .populate("uploadedBy", "name email avatar profilePicture")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -200,7 +200,7 @@ class WorkspaceFileService {
       _id: fileId,
       isDeleted: false,
     })
-      .populate("uploadedBy", "name email avatar")
+      .populate("uploadedBy", "name email avatar profilePicture")
       .lean();
 
     if (!file) {

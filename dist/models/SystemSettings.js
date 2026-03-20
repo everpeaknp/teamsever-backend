@@ -11,6 +11,29 @@ const systemSettingsSchema = new mongoose_1.default.Schema({
         trim: true,
         default: "+1234567890"
     },
+    systemName: {
+        type: String,
+        required: true,
+        trim: true,
+        default: "Teamsever"
+    },
+    accentColor: {
+        type: String,
+        required: true,
+        trim: true,
+        default: "mint"
+    },
+    themeMode: {
+        type: String,
+        required: true,
+        enum: ['light', 'dark', 'auto'],
+        default: "light"
+    },
+    logoUrl: {
+        type: String,
+        trim: true,
+        default: "/teamsever_logo.png"
+    },
     updatedBy: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
