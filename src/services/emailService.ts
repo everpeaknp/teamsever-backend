@@ -34,6 +34,7 @@ class EmailService {
       try {
         // Create transporter with Gmail or custom SMTP
         const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+        const dns = require('dns');
         const transportOptions: any = {
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: smtpPort,
@@ -45,12 +46,16 @@ class EmailService {
           tls: {
             rejectUnauthorized: false
           },
-          // CRITICAL: Force IPv4 and increase timeouts to avoid timeouts on hosts like Render
+          // CRITICAL: Force IPv4 at the DNS level to avoid ENETUNREACH errors on hosts like Render
+          lookup: (hostname: string, options: any, callback: any) => {
+            console.log(`🔍 [EmailService] DNS Lookup for ${hostname} (forcing IPv4)`);
+            dns.lookup(hostname, { family: 4 }, callback);
+          },
           family: 4,
-          pool: true, // Reuse connections
-          connectionTimeout: 20000, // 20s
-          greetingTimeout: 20000, // 20s
-          socketTimeout: 30000, // 30s
+          pool: true,
+          connectionTimeout: 20000,
+          greetingTimeout: 20000,
+          socketTimeout: 30000,
         };
         this.transporter = nodemailer.createTransport(transportOptions);
 
