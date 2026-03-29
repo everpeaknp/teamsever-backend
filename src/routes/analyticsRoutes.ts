@@ -156,13 +156,30 @@ router.get("/workspaces/:workspaceId/workload", requirePermission("VIEW_ANALYTIC
  * /api/analytics/velocity:
  *   get:
  *     summary: Get velocity metrics
- *     description: Tasks completed per day for trend analysis
+ *     description: Tasks completed per day for trend analysis. Optionally scoped to a workspace.
  *     tags: [Analytics]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         description: Workspace ID to scope the velocity data
  *     responses:
  *       200:
  *         description: Velocity data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                   completed:
+ *                     type: number
  *       401:
  *         description: Unauthorized
  */
@@ -173,13 +190,27 @@ router.get("/velocity", requirePermission("VIEW_ANALYTICS"), analyticsController
  * /api/analytics/lead-time:
  *   get:
  *     summary: Get lead time metrics
- *     description: Average time from task creation to completion
+ *     description: Average time from task creation to completion. Optionally scoped to a workspace.
  *     tags: [Analytics]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         description: Workspace ID to scope the lead time calculation
  *     responses:
  *       200:
  *         description: Lead time data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 averageDays:
+ *                   type: number
+ *                   description: Average days from creation to completion
  *       401:
  *         description: Unauthorized
  */
@@ -190,13 +221,32 @@ router.get("/lead-time", requirePermission("VIEW_ANALYTICS"), analyticsControlle
  * /api/analytics/burn-down:
  *   get:
  *     summary: Get burn-down chart data
- *     description: Open vs completed tasks over time
+ *     description: Open vs completed tasks over time. Optionally scoped to a workspace.
  *     tags: [Analytics]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         description: Workspace ID to scope the burn-down chart
  *     responses:
  *       200:
  *         description: Burn-down data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                   open:
+ *                     type: number
+ *                   completed:
+ *                     type: number
  *       401:
  *         description: Unauthorized
  */

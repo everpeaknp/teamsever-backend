@@ -25,8 +25,8 @@ const options: swaggerJsdoc.Options = {
         - Super admin dashboard
       `,
       contact: {
-        name: "API Support",
-        email: "support@example.com"
+        name: "Teamsever API Support",
+        email: "teamsever@gmail.com"
       },
       license: {
         name: "MIT",
@@ -36,11 +36,11 @@ const options: swaggerJsdoc.Options = {
     servers: [
       {
         url: "http://localhost:5000",
-        description: "Development server"
+        description: "Local Development"
       },
       {
-        url: "https://api.example.com",
-        description: "Production server"
+        url: "https://teamsever-backend.vercel.app",
+        description: "Production"
       }
     ],
     components: {
@@ -944,19 +944,19 @@ const options: swaggerJsdoc.Options = {
     tags: [
       {
         name: "Auth",
-        description: "Authentication and user management"
+        description: "Authentication — register, login, Google OAuth, password reset"
       },
       {
         name: "Workspaces",
-        description: "Workspace management and member operations"
+        description: "Workspace CRUD, hierarchy, analytics, announcements, logo upload"
       },
       {
         name: "Invitations",
-        description: "Workspace invitation system"
+        description: "Workspace invitation system — send, accept, revoke, verify"
       },
       {
         name: "Spaces",
-        description: "Space/Project management within workspaces"
+        description: "Space/Project management within workspaces — CRUD and member operations"
       },
       {
         name: "Space Invitations",
@@ -967,14 +967,6 @@ const options: swaggerJsdoc.Options = {
         description: "Space-level member permission management"
       },
       {
-        name: "Lists",
-        description: "List management within spaces"
-      },
-      {
-        name: "List Members",
-        description: "List-level member permission management"
-      },
-      {
         name: "Folders",
         description: "Folder management within spaces"
       },
@@ -983,104 +975,104 @@ const options: swaggerJsdoc.Options = {
         description: "Folder-level member permission management"
       },
       {
+        name: "Lists",
+        description: "List management within spaces"
+      },
+      {
+        name: "List Members",
+        description: "List-level member permission management"
+      },
+      {
         name: "Tasks",
-        description: "Task CRUD operations and management"
+        description: "Task CRUD, subtasks, and inline dependency management"
       },
       {
         name: "Task Dependencies",
-        description: "Task dependencies with cascading logic"
+        description: "Standalone task dependency endpoints — FS/SS/FF/SF with cascading Gantt logic"
       },
       {
         name: "Recurring Tasks",
-        description: "Recurring task automation with cron"
-      },
-      {
-        name: "Activities",
-        description: "Task comments and activity tracking"
+        description: "Recurring task automation — cron-based processing every hour"
       },
       {
         name: "Activity",
-        description: "Activity tracking and comments management"
-      },
-      {
-        name: "Comments",
-        description: "Task comments management"
+        description: "Task activity feed, comments, reactions — the unified comment/update system"
       },
       {
         name: "Attachments",
-        description: "File uploads via Cloudinary"
-      },
-      {
-        name: "Upload",
-        description: "File upload management"
+        description: "File uploads for tasks and workspace-wide storage via Cloudinary"
       },
       {
         name: "Workspace Files",
-        description: "Workspace-wide file management"
+        description: "Workspace-wide shared file management (not task-specific)"
       },
       {
         name: "Analytics",
-        description: "Workspace analytics and reporting"
+        description: "Workspace analytics — summary, workload, velocity, lead time, burn-down"
       },
       {
         name: "Dashboard",
-        description: "Dashboard statistics and summaries"
+        description: "Dashboard statistics and summaries for the logged-in user"
       },
       {
         name: "Custom Fields",
-        description: "Custom field definitions and values"
+        description: "Custom field definitions and values on tasks"
       },
       {
         name: "Custom Tables",
-        description: "Custom table management within spaces"
+        description: "Excel-like custom tables within spaces — columns, rows, colours"
       },
       {
         name: "Time Tracking",
-        description: "Time entry management"
-      },
-      {
-        name: "Time Entries",
-        description: "Time tracking and time entry management"
+        description: "Time entries and time tracking — start/stop timers, log hours"
       },
       {
         name: "Notifications",
-        description: "Push notifications and notification center"
+        description: "Push notification device registration (FCM)"
       },
       {
         name: "Notification Center",
-        description: "User notification center management"
+        description: "In-app notification center — list, mark read, clear"
       },
       {
         name: "Chat",
-        description: "Real-time workspace chat"
+        description: "Real-time workspace group chat via WebSocket"
       },
       {
         name: "Direct Messages",
-        description: "Private messaging between users"
+        description: "Private 1-to-1 messaging between workspace members"
       },
       {
         name: "Documents",
-        description: "Document management and collaboration"
-      },
-      {
-        name: "Plans",
-        description: "Subscription plan management"
-      },
-      {
-        name: "Subscription",
-        description: "User subscription information and management"
-      },
-      {
-        name: "Entitlements",
-        description: "Feature entitlement checking and usage tracking"
-      },
-      {
-        name: "Super Admin",
-        description: "Super admin dashboard and system management"
+        description: "Workspace document management — rich-text collaborative docs"
       },
       {
         name: "Members",
-        description: "Workspace member management"
+        description: "Workspace member management — list, roles, removal"
+      },
+      {
+        name: "Plans",
+        description: "Subscription plan management — CRUD for admin, listing for users"
+      },
+      {
+        name: "Subscription",
+        description: "User subscription info — status, trial, expiry"
+      },
+      {
+        name: "Entitlements",
+        description: "Feature entitlement checking and current usage tracking"
+      },
+      {
+        name: "Payment",
+        description: "eSewa payment integration for plan upgrades — initiate, verify, history"
+      },
+      {
+        name: "Currency",
+        description: "USD ↔ NPR exchange rate and conversion"
+      },
+      {
+        name: "Super Admin",
+        description: "Super admin dashboard — user management, financial analytics, system settings"
       },
       {
         name: "Feedback",
@@ -1092,11 +1084,15 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: "Presence",
-        description: "User presence and online status"
+        description: "User online presence and status"
       },
       {
         name: "Search",
         description: "Global search across tasks, spaces, and lists"
+      },
+      {
+        name: "Users",
+        description: "User profile management"
       }
     ]
   },

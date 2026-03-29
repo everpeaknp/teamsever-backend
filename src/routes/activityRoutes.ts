@@ -7,7 +7,7 @@ const { protect } = require("../middlewares/authMiddleware");
  * @swagger
  * tags:
  *   name: Activity
- *   description: Activity tracking and comments management
+ *   description: Task activity feed, comments, and reactions — the unified comment/update system
  */
 
 /**
