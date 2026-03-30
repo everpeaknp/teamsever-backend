@@ -20,7 +20,7 @@ const router = express.Router();
  * /api/plans:
  *   post:
  *     summary: Create a new plan
- *     description: Create a new subscription plan (Super User only)
+ *     description: Create a new subscription plan with specific feature limits. Restricted to Super Admins.
  *     tags: [Plans]
  *     security:
  *       - bearerAuth: []
@@ -32,46 +32,82 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - price
  *               - description
  *             properties:
  *               name:
  *                 type: string
  *                 example: "Pro Plan"
- *               price:
- *                 type: number
- *                 example: 29.99
  *               description:
  *                 type: string
  *                 example: "Professional plan with advanced features"
+ *               baseCurrency:
+ *                 type: string
+ *                 enum: [NPR, USD]
+ *                 default: NPR
+ *               pricePerMemberMonthly:
+ *                 type: number
+ *                 example: 300
+ *               pricePerMemberAnnual:
+ *                 type: number
+ *                 example: 3000
+ *               basePrice:
+ *                 type: number
+ *                 description: Legacy base price field for backward compatibility
  *               features:
  *                 type: object
  *                 properties:
  *                   maxWorkspaces:
  *                     type: number
  *                     example: 5
- *                   maxMembers:
+ *                   maxAdmins:
  *                     type: number
- *                     example: 50
+ *                     example: 2
+ *                   maxSpaces:
+ *                     type: number
+ *                     example: 20
+ *                   maxLists:
+ *                     type: number
+ *                     example: 100
+ *                   maxTasks:
+ *                     type: number
+ *                     example: 1000
  *                   hasAccessControl:
+ *                     type: boolean
+ *                     example: true
+ *                   accessControlTier:
+ *                     type: string
+ *                     enum: [none, basic, pro, advanced]
+ *                     example: "pro"
+ *                   hasGroupChat:
  *                     type: boolean
  *                     example: true
  *                   messageLimit:
  *                     type: number
- *                     example: 10000
+ *                     example: -1
+ *                   canUseCustomRoles:
+ *                     type: boolean
+ *                     example: true
+ *                   canCreateTables:
+ *                     type: boolean
+ *                     example: true
  *               isActive:
  *                 type: boolean
- *                 example: true
+ *                 default: true
  *     responses:
  *       201:
  *         description: Plan created successfully
- *       400:
- *         description: Validation error or plan already exists
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716751aa"
+ *                 name: "Pro Plan"
  *       403:
- *         description: Access denied - Super user privileges required
+ *         description: Forbidden
  *   get:
  *     summary: Get all plans
- *     description: Retrieve all subscription plans (active by default)
+ *     description: Retrieve all subscription plans. Active plans are returned by default.
  *     tags: [Plans]
  *     parameters:
  *       - in: query
@@ -79,23 +115,19 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           enum: ['true', 'false']
- *         description: Include inactive plans in the response
+ *         description: Whether to include deactivated plans
  *     responses:
  *       200:
- *         description: List of plans
+ *         description: List of plans retrieved successfully
  *         content:
  *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: number
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Plan'
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f716751aa"
+ *                   name: "Pro Plan"
+ *                   pricePerMemberMonthly: 300
+ *                   isActive: true
  */
 router.post("/", protect, validate(createPlanSchema), createPlan);
 router.get("/", getPlans);
@@ -105,7 +137,7 @@ router.get("/", getPlans);
  * /api/plans/{id}:
  *   get:
  *     summary: Get a single plan
- *     description: Retrieve a specific plan by ID
+ *     description: Retrieve full details of a specific subscription plan by its ID.
  *     tags: [Plans]
  *     parameters:
  *       - in: path
@@ -113,15 +145,22 @@ router.get("/", getPlans);
  *         required: true
  *         schema:
  *           type: string
- *         description: Plan ID
  *     responses:
  *       200:
- *         description: Plan details
+ *         description: Plan details retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716751aa"
+ *                 name: "Pro Plan"
+ *                 features: { ... }
  *       404:
  *         description: Plan not found
  *   put:
  *     summary: Update a plan
- *     description: Update an existing plan (Super User only)
+ *     description: Update features, pricing, or status of an existing plan. Restricted to Super Admins.
  *     tags: [Plans]
  *     security:
  *       - bearerAuth: []
@@ -131,7 +170,6 @@ router.get("/", getPlans);
  *         required: true
  *         schema:
  *           type: string
- *         description: Plan ID
  *     requestBody:
  *       required: true
  *       content:
@@ -141,24 +179,18 @@ router.get("/", getPlans);
  *             properties:
  *               name:
  *                 type: string
- *               price:
- *                 type: number
- *               description:
- *                 type: string
- *               features:
- *                 type: object
  *               isActive:
  *                 type: boolean
  *     responses:
  *       200:
  *         description: Plan updated successfully
  *       403:
- *         description: Access denied
+ *         description: Forbidden
  *       404:
  *         description: Plan not found
  *   delete:
- *     summary: Deactivate a plan
- *     description: Soft delete a plan by setting isActive to false (Super User only)
+ *     summary: Deactivate or Delete a plan
+ *     description: Marks a plan as inactive or removes it if no users are subscribed. Restricted to Super Admins.
  *     tags: [Plans]
  *     security:
  *       - bearerAuth: []
@@ -168,14 +200,11 @@ router.get("/", getPlans);
  *         required: true
  *         schema:
  *           type: string
- *         description: Plan ID
  *     responses:
  *       200:
- *         description: Plan deactivated successfully
+ *         description: Plan deactivated/deleted successfully
  *       403:
- *         description: Access denied
- *       404:
- *         description: Plan not found
+ *         description: Forbidden
  */
 router.get("/:id", getPlan);
 router.put("/:id", protect, validate(updatePlanSchema), updatePlan);
