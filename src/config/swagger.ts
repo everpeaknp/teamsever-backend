@@ -53,6 +53,22 @@ const options: swaggerJsdoc.Options = {
         }
       },
       schemas: {
+        ApiError: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: false },
+            message: { type: "string", description: "Error message" },
+            stack: { type: "string", description: "Stack trace (development only)" }
+          }
+        },
+        ApiResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Operation successful" },
+            data: { type: "object", nullable: true }
+          }
+        },
         Error: {
           type: "object",
           properties: {
@@ -82,50 +98,226 @@ const options: swaggerJsdoc.Options = {
               format: "email",
               description: "User's email address"
             },
+            profilePicture: {
+              type: "string",
+              description: "URL to profile picture"
+            },
             createdAt: {
               type: "string",
               format: "date-time"
             }
           }
         },
-        Workspace: {
+        AuthResponse: {
           type: "object",
           properties: {
-            _id: {
-              type: "string"
-            },
-            name: {
-              type: "string",
-              description: "Workspace name"
-            },
-            owner: {
-              type: "string",
-              description: "Owner user ID"
-            },
-            members: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Login successful" },
+            data: {
+              type: "object",
+              properties: {
+                token: { type: "string" },
+                user: { $ref: "#/components/schemas/User" }
+              }
+            }
+          }
+        },
+        UserResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Profile retrieved successfully" },
+            data: { $ref: "#/components/schemas/User" }
+          }
+        },
+        WorkspaceResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Workspace operation successful" },
+            data: { $ref: "#/components/schemas/Workspace" }
+          }
+        },
+        WorkspaceListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Workspace" }
+            }
+          }
+        },
+        MemberListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
               type: "array",
               items: {
                 type: "object",
                 properties: {
-                  user: {
-                    type: "string",
-                    description: "User ID"
-                  },
-                  role: {
-                    type: "string",
-                    enum: ["owner", "admin", "member"],
-                    description: "User role in workspace"
-                  },
-                  joinedAt: {
-                    type: "string",
-                    format: "date-time"
-                  }
+                  _id: { type: "string" },
+                  name: { type: "string" },
+                  email: { type: "string" },
+                  role: { type: "string" },
+                  status: { type: "string" },
+                  isOwner: { type: "boolean" },
+                  customRoleTitle: { type: "string", nullable: true },
+                  avatar: { type: "string", nullable: true },
+                  profilePicture: { type: "string", nullable: true }
                 }
               }
+            }
+          }
+        },
+        Workspace: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string", description: "Workspace name" },
+            logo: { type: "string", nullable: true },
+            owner: { type: "string", description: "Owner user ID" },
+            members: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceMember" }
             },
-            createdAt: {
-              type: "string",
-              format: "date-time"
+            createdAt: { type: "string", format: "date-time" }
+          }
+        },
+        WorkspaceMember: {
+          type: "object",
+          properties: {
+            user: {
+              oneOf: [
+                { type: "string" },
+                { $ref: "#/components/schemas/User" }
+              ]
+            },
+            role: { type: "string", enum: ["owner", "admin", "member"] },
+            status: { type: "string", enum: ["active", "inactive"] },
+            customRoleTitle: { type: "string", nullable: true },
+            joinedAt: { type: "string", format: "date-time" }
+          }
+        },
+        Announcement: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            title: { type: "string" },
+            content: { type: "string" },
+            author: { 
+              oneOf: [
+                { type: "string" },
+                { $ref: "#/components/schemas/User" }
+              ]
+            },
+            workspace: { type: "string" },
+            createdAt: { type: "string", format: "date-time" }
+          }
+        },
+        HierarchySpace: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            folders: {
+              type: "array",
+              items: { $ref: "#/components/schemas/HierarchyFolder" }
+            },
+            standaloneLists: {
+              type: "array",
+              items: { $ref: "#/components/schemas/HierarchyList" }
+            }
+          }
+        },
+        HierarchyFolder: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            color: { type: "string", nullable: true },
+            lists: {
+              type: "array",
+              items: { $ref: "#/components/schemas/HierarchyList" }
+            }
+          }
+        },
+        HierarchyList: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            color: { type: "string", nullable: true }
+          }
+        },
+        SpaceResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Space operation successful" },
+            data: { $ref: "#/components/schemas/Space" }
+          }
+        },
+        SpaceListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Space" }
+            }
+          }
+        },
+        FolderResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Folder operation successful" },
+            data: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                name: { type: "string" },
+                color: { type: "string" },
+                space: { type: "string" }
+              }
+            }
+          }
+        },
+        FolderListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/FolderResponse" }
+            }
+          }
+        },
+        ListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "List operation successful" },
+            data: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                name: { type: "string" },
+                space: { type: "string" },
+                folder: { type: "string", nullable: true }
+              }
+            }
+          }
+        },
+        ListListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ListResponse" }
             }
           }
         },
@@ -180,6 +372,208 @@ const options: swaggerJsdoc.Options = {
             createdAt: {
               type: "string",
               format: "date-time"
+            }
+          }
+        },
+        TaskResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Task operation successful" },
+            data: { $ref: "#/components/schemas/Task" }
+          }
+        },
+        TaskListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Task" }
+            }
+          }
+        },
+        DependencyResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string" },
+            data: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                taskId: { type: "string" },
+                dependsOnId: { type: "string" },
+                type: { type: "string" }
+              }
+            }
+          }
+        },
+        DependencyListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/DependencyResponse" }
+            }
+          }
+        },
+        TimeTrackingResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string" },
+            data: { type: "object" }
+          }
+        },
+        StickyNoteResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string" },
+            data: {
+              type: "object",
+              properties: {
+                content: { type: "string" },
+                updatedAt: { type: "string", format: "date-time" }
+              }
+            }
+          }
+        },
+        ActivityResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Activity retrieved successfully" },
+            data: { $ref: "#/components/schemas/WorkspaceActivity" }
+          }
+        },
+        ActivityListResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkspaceActivity" }
+            }
+          }
+        },
+        PerformanceResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Performance data retrieved successfully" },
+            data: { $ref: "#/components/schemas/PerformanceMetrics" }
+          }
+        },
+        NotificationResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string" },
+            data: { type: "object" }
+          }
+        },
+        AnalyticsResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Consolidated analytics data retrieved successfully" },
+            data: {
+              type: "object",
+              properties: {
+                workspace: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    logo: { type: "string", nullable: true },
+                    owner: { $ref: "#/components/schemas/User" }
+                  }
+                },
+                stats: {
+                  type: "object",
+                  properties: {
+                    totalTasks: { type: "number" },
+                    completedTasks: { type: "number" },
+                    completionRate: { type: "number" },
+                    priorityBreakdown: { type: "object", additionalProperties: { type: "number" } },
+                    statusBreakdown: { type: "object", additionalProperties: { type: "number" } }
+                  }
+                },
+                hierarchy: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/HierarchySpace" }
+                },
+                members: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/WorkspaceMember" }
+                },
+                tasks: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Task" }
+                },
+                announcements: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Announcement" }
+                },
+                currentRunningTimer: {
+                  type: "object",
+                  nullable: true,
+                  properties: {
+                    _id: { type: "string" },
+                    startTime: { type: "string", format: "date-time" },
+                    isRunning: { type: "boolean" },
+                    description: { type: "string" },
+                    task: {
+                      type: "object",
+                      properties: {
+                        _id: { type: "string" },
+                        title: { type: "string" }
+                      }
+                    }
+                  }
+                },
+                stickyNote: { type: "string", nullable: true },
+                recentActivity: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/WorkspaceActivity" }
+                },
+                performance: {
+                  type: "object",
+                  properties: {
+                    user: { $ref: "#/components/schemas/PerformanceMetrics" },
+                    team: { $ref: "#/components/schemas/PerformanceMetrics", nullable: true }
+                  }
+                },
+                velocity: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      date: { type: "string", format: "date" },
+                      completedCount: { type: "number" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        HierarchyResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Workspace hierarchy retrieved successfully" },
+            data: {
+              type: "object",
+              properties: {
+                spaces: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/HierarchySpace" }
+                }
+              }
             }
           }
         },
@@ -933,6 +1327,65 @@ const options: swaggerJsdoc.Options = {
               format: "date-time"
             }
           }
+        },
+        StickyNote: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            content: { type: "string" },
+            workspace: { type: "string" },
+            user: { type: "string" },
+            updatedAt: { type: "string", format: "date-time" }
+          }
+        },
+        PerformanceMetrics: {
+          type: "object",
+          properties: {
+            totalTasksFinished: { type: "number" },
+            averageTimePerTask: { type: "number", description: "In seconds" },
+            deadlineSuccessRate: { type: "number", description: "Percentage" },
+            performanceNote: { type: "string" }
+          }
+        },
+        WorkspaceActivity: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            type: { type: "string" },
+            description: { type: "string" },
+            user: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                avatar: { type: "string" }
+              }
+            },
+            createdAt: { type: "string", format: "date-time" }
+          }
+        },
+        ClockToggleResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            message: { type: "string" },
+            data: {
+              type: "object",
+              properties: {
+                status: { type: "string", enum: ["active", "inactive"] },
+                timeEntry: {
+                  type: "object",
+                  nullable: true,
+                  properties: {
+                    _id: { type: "string" },
+                    startTime: { type: "string", format: "date-time" },
+                    endTime: { type: "string", format: "date-time", nullable: true },
+                    duration: { type: "number", nullable: true },
+                    isRunning: { type: "boolean" }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -943,148 +1396,48 @@ const options: swaggerJsdoc.Options = {
     ],
     tags: [
       {
-        name: "Analytics",
-        description: "🚀 PRIMARY DASHBOARD — use GET /api/workspaces/{id}/analytics for everything. Sub-endpoints (velocity, lead-time, burn-down) are for dedicated chart screens only."
+        name: "Dashboard & Analytics",
+        description: "🚀 PRIMARY DASHBOARD — ALL-IN-ONE data source for Flutter. Use GET /api/workspaces/{id}/analytics for the main screen."
       },
       {
-        name: "Workspaces",
-        description: "Workspace CRUD, Hierarchy (Spaces→Folders→Lists), Announcements, Logo, Clock-in"
+        name: "Auth & User",
+        description: "Registration, Login, Password Reset, and User Profile management"
       },
       {
-        name: "Auth",
-        description: "Register, Login, Google OAuth, Email Verification, Password Reset"
+        name: "Workspace Management",
+        description: "Core Workspace CRUD, Settings, Logo, and Members"
       },
       {
-        name: "Members",
-        description: "Workspace members — list, invite, role changes, removal"
+        name: "Project Hierarchy",
+        description: "Organizational structure: Spaces, Folders, and Lists"
       },
       {
-        name: "Invitations",
-        description: "Invitation links — send, list, cancel, accept, verify token"
+        name: "Task Management",
+        description: "Tasks, Subtasks, Dependencies (Gantt logic), and Recurring tasks"
       },
       {
-        name: "Spaces",
-        description: "Spaces (Projects) inside a workspace — CRUD and member management"
+        name: "Attendance & Reporting",
+        description: "Clock-in/out tracking and detailed attendance reports (CSV/Excel)"
       },
       {
-        name: "Space Invitations",
-        description: "Space-level invitation management"
-      },
-      {
-        name: "Space Members",
-        description: "Space-level member permissions"
-      },
-      {
-        name: "Folders",
-        description: "Folders inside spaces — CRUD"
-      },
-      {
-        name: "Folder Members",
-        description: "Folder-level member permissions"
-      },
-      {
-        name: "Lists",
-        description: "Lists inside spaces — CRUD"
-      },
-      {
-        name: "List Members",
-        description: "List-level member permissions"
-      },
-      {
-        name: "Tasks",
-        description: "Tasks inside lists — CRUD, subtasks, assignments, priorities, due dates"
-      },
-      {
-        name: "Task Dependencies",
-        description: "Task dependency graph — FS/SS/FF/SF relationships with cascading Gantt logic"
-      },
-      {
-        name: "Recurring Tasks",
-        description: "Recurring task definitions — auto-processed by cron every hour"
-      },
-      {
-        name: "Activity",
-        description: "Task comments, reactions, and audit activity feed"
-      },
-      {
-        name: "Attachments",
-        description: "File uploads (Cloudinary) for tasks and workspace-level storage"
-      },
-      {
-        name: "Workspace Files",
-        description: "Workspace-wide file library — shared files not attached to a specific task"
-      },
-      {
-        name: "Custom Fields",
-        description: "Custom field definitions and per-task values"
+        name: "Attachments & Media",
+        description: "Task attachments, Workspace files, and Cloudinary uploads"
       },
       {
         name: "Custom Tables",
-        description: "Excel-style data tables inside spaces — columns, rows, cell colours"
+        description: "Excel-like custom tables and database management"
       },
       {
-        name: "Time Tracking",
-        description: "Timer start/stop, manual time entries, admin oversight, team timesheets"
+        name: "Productivity",
+        description: "Sticky Notes, Time Tracking (Task timers), and Performance metrics"
       },
       {
-        name: "Notification Center",
-        description: "In-app notifications (list, mark-read) + FCM device token registration"
+        name: "Collaboration",
+        description: "Chat (Group & DM), Comments, Activity Feed, and Presence"
       },
       {
-        name: "Chat",
-        description: "Real-time workspace group chat via Socket.io"
-      },
-      {
-        name: "Direct Messages",
-        description: "Private 1-to-1 messaging between workspace members"
-      },
-      {
-        name: "Documents",
-        description: "Rich-text collaborative workspace documents"
-      },
-      {
-        name: "Plans",
-        description: "Subscription plan management — admin CRUD, user listing"
-      },
-      {
-        name: "Subscription",
-        description: "Current user subscription status, trial info, and expiry"
-      },
-      {
-        name: "Entitlements",
-        description: "Feature gate checking and resource usage limits"
-      },
-      {
-        name: "Payment",
-        description: "eSewa payment integration — initiate, verify callback, history"
-      },
-      {
-        name: "Currency",
-        description: "USD ↔ NPR live exchange rates"
-      },
-      {
-        name: "Super Admin",
-        description: "Super-admin panel — all users, financials, system settings"
-      },
-      {
-        name: "Feedback",
-        description: "User feedback submission and admin review"
-      },
-      {
-        name: "Performance",
-        description: "Individual and team performance analytics"
-      },
-      {
-        name: "Presence",
-        description: "Real-time user online/offline presence"
-      },
-      {
-        name: "Search",
-        description: "Global full-text search across tasks, spaces, lists, and members"
-      },
-      {
-        name: "Users",
-        description: "User profile — view / update own profile"
+        name: "System & Admin",
+        description: "Plans, Subscriptions, Payments, Entitlements, and Super-Admin panel"
       }
     ]
   },

@@ -5,13 +5,8 @@ const notificationController = require("../controllers/notificationController");
 const { protect } = require("../middlewares/authMiddleware");
 
 /**
- * @swagger
- * tags:
- *   name: Notification Center
- *   description: In-app notification center (list, mark-read) + FCM device token registration for push notifications
+ * All routes require authentication
  */
-
-// All routes require authentication
 router.use(protect);
 
 /**
@@ -20,7 +15,7 @@ router.use(protect);
  *   post:
  *     summary: Register FCM device token
  *     description: Register a Firebase Cloud Messaging (FCM) token for push notifications. Call this when the app launches and gets a valid FCM token from Firebase.
- *     tags: [Notification Center]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -54,7 +49,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *   get:
  *     summary: Get notifications
  *     description: Retrieve the current user's in-app notifications, newest first.
- *     tags: [Notification Center]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -107,7 +102,7 @@ router.get("/", notificationCenterController.getNotifications);
  *   get:
  *     summary: Get unread notification count
  *     description: Returns the count of unread notifications. Use this to display the badge number on the notification bell icon.
- *     tags: [Notification Center]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -130,7 +125,7 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  *   patch:
  *     summary: Mark all notifications as read
  *     description: Marks all the current user's unread notifications as read. Useful when user opens the notification panel.
- *     tags: [Notification Center]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -152,7 +147,7 @@ router.patch("/read-all", notificationCenterController.markAllAsRead);
  *   patch:
  *     summary: Mark notification as read
  *     description: Mark a single notification as read.
- *     tags: [Notification Center]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:

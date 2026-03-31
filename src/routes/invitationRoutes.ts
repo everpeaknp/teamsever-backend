@@ -15,7 +15,7 @@ const { sendInviteSchema } = require("../validators/invitationValidators");
 /**
  * @swagger
  * tags:
- *   name: Invitations
+ *   name: "Workspace Management"
  *   description: Workspace invitation system
  */
 
@@ -28,7 +28,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send workspace invitation
  *     description: Create an invitation link for a workspace
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -65,7 +65,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get workspace invitations
  *     description: Returns all pending (not yet accepted or cancelled) invitations for a workspace.
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -104,7 +104,7 @@ router.get("/", protect, requirePermission("INVITE_MEMBER"), getWorkspaceInvitat
  *   delete:
  *     summary: Cancel invitation
  *     description: Cancels a pending invitation (admin/owner only)
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -141,7 +141,7 @@ const inviteRouter = express.Router();
  *   post:
  *     summary: Accept workspace invitation
  *     description: Accepts an invitation and adds the user to the workspace
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -169,7 +169,7 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *   get:
  *     summary: Get my pending invitations
  *     description: Returns all workspace invitations sent to the current user that are still pending (not yet accepted or declined).
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -203,7 +203,7 @@ const publicInviteRouter = express.Router();
  *   get:
  *     summary: Verify invitation token
  *     description: Retrieves invitation details by token (public endpoint)
- *     tags: [Invitations]
+ *     tags: ["Workspace Management"]
  *     parameters:
  *       - in: path
  *         name: token

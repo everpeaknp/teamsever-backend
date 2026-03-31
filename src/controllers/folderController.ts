@@ -43,7 +43,6 @@ const getFolders = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
 
   res.status(200).json({
     success: true,
-    count: folders.length,
     data: folders
   });
 });

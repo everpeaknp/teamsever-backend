@@ -38,7 +38,6 @@ const getActivities = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
-    count: activities.length,
     data: activities,
   });
 });
@@ -82,7 +81,6 @@ const getTaskActivity = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
-    count: activities.length,
     data: activities,
   });
 });
@@ -329,7 +327,6 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
-    count: limitedActivities.length,
     data: limitedActivities,
   });
 });

@@ -33,7 +33,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create a new task
  *     description: Creates a new task within a specific list. Supports regular tasks, recurring tasks, and milestones.
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -129,13 +129,13 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Task'
+ *               $ref: "#/components/schemas/TaskResponse"
  *       400:
  *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized - Invalid or missing token
  *       404:
@@ -143,7 +143,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get all tasks in a list
  *     description: Retrieves all tasks within a specific list with optional filtering
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -176,9 +176,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Task'
+ *               $ref: "#/components/schemas/TaskListResponse"
  *       401:
  *         description: Unauthorized
  *       404:
@@ -196,7 +194,7 @@ const taskRouter = express.Router();
  *   get:
  *     summary: Get a single task
  *     description: Returns full task details including assignee, custom fields, subtask count, and time tracking summary.
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -210,34 +208,16 @@ const taskRouter = express.Router();
  *         description: Task details
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716755f4"
- *                 title: "Implement OAuth2"
- *                 description: "Add JWT-based auth with refresh tokens"
- *                 status: "in-progress"
- *                 priority: "high"
- *                 list:
- *                   _id: "69bbf827a96fe78f716753d1"
- *                   name: "Sprint 5"
- *                 assignee:
- *                   _id: "69bce50b96fe109fe4e14ff6"
- *                   name: "Alice Smith"
- *                   profilePicture: null
- *                 dueDate: "2026-04-01T00:00:00Z"
- *                 startDate: "2026-03-28T00:00:00Z"
- *                 isMilestone: false
- *                 isRecurring: false
- *                 subtaskCount: 2
- *                 totalTimeSpent: 7200
- *                 totalTimeFormatted: "2h"
- *                 customFieldValues: []
- *                 createdAt: "2026-03-25T08:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/TaskResponse"
  *       401:
  *         description: Unauthorized
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   patch:
  *     summary: Update a task
  *     description: |
@@ -257,7 +237,7 @@ const taskRouter = express.Router();
  *       
  *       **Completion Tracking:**
  *       When status changes to 'done', completedAt timestamp is automatically set.
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -309,17 +289,21 @@ const taskRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Task'
+ *               $ref: "#/components/schemas/TaskResponse"
  *       400:
  *         description: Validation error
  *       401:
  *         description: Unauthorized
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete a task
  *     description: Soft deletes a task (sets isDeleted flag). Also cleans up associated attachments from Cloudinary.
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -335,9 +319,6 @@ const taskRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
  *                   type: string
  *                   example: "Task deleted successfully"
  *       401:
@@ -355,7 +336,7 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *   post:
  *     summary: Create a subtask
  *     description: Creates a subtask under a parent task
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -397,7 +378,7 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *   get:
  *     summary: Get all subtasks
  *     description: Retrieves all subtasks of a parent task
- *     tags: [Tasks]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -444,7 +425,7 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *       
  *       **Circular Dependency Protection:**
  *       The system prevents circular dependencies using a visited set during cascade operations.
- *     tags: [Task Dependencies]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -492,7 +473,7 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *   get:
  *     summary: Get task dependencies (blockers)
  *     description: Retrieves all tasks that the current task depends on (tasks blocking this one)
- *     tags: [Task Dependencies]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -525,7 +506,7 @@ taskRouter.get("/:taskId/dependencies", protect, requirePermission("VIEW_TASK"),
  *   delete:
  *     summary: Remove a task dependency
  *     description: Removes a dependency relationship between two tasks
- *     tags: [Task Dependencies]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -565,7 +546,7 @@ taskRouter.delete("/:taskId/dependencies/:depId", protect, requirePermission("ED
  *   get:
  *     summary: Get dependent tasks (blocked tasks)
  *     description: Retrieves all tasks that depend on the current task (tasks blocked by this one)
- *     tags: [Task Dependencies]
+ *     tags: ["Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

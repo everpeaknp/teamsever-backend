@@ -44,7 +44,6 @@ const getListTasks = asyncHandler(async (req: AuthRequest, res: Response, next: 
 
   res.status(200).json({
     success: true,
-    count: tasks.length,
     data: tasks
   });
 });
@@ -128,7 +127,6 @@ const getSubtasks = asyncHandler(async (req: AuthRequest, res: Response, next: N
 
   res.status(200).json({
     success: true,
-    count: subtasks.length,
     data: subtasks
   });
 });
@@ -172,7 +170,6 @@ const getDependencies = asyncHandler(async (req: AuthRequest, res: Response, nex
 
   res.status(200).json({
     success: true,
-    count: dependencies.length,
     data: dependencies
   });
 });
@@ -187,7 +184,6 @@ const getDependents = asyncHandler(async (req: AuthRequest, res: Response, next:
 
   res.status(200).json({
     success: true,
-    count: dependents.length,
     data: dependents
   });
 });

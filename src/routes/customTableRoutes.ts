@@ -81,7 +81,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create custom table
  *     description: Create a new custom table in a space
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -126,7 +126,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space tables
  *     description: Retrieve all tables in a space
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -170,7 +170,7 @@ const tableRouter = express.Router();
  *   get:
  *     summary: Get table
  *     description: Retrieve a specific table by ID
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -190,7 +190,7 @@ const tableRouter = express.Router();
  *   patch:
  *     summary: Update table
  *     description: Update table name
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -226,7 +226,7 @@ const tableRouter = express.Router();
  *   delete:
  *     summary: Delete table
  *     description: Soft delete a table
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -274,7 +274,7 @@ tableRouter.delete(
  *   post:
  *     summary: Add column to table
  *     description: Add a new column to a custom table
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -327,7 +327,7 @@ tableRouter.post(
  *   patch:
  *     summary: Update column
  *     description: Update a column's title or type
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -372,7 +372,7 @@ tableRouter.post(
  *   delete:
  *     summary: Delete column
  *     description: Delete a column and its data from all rows
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -418,7 +418,7 @@ tableRouter.delete(
  *   post:
  *     summary: Add row to table
  *     description: Add a new row to a custom table
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -463,7 +463,7 @@ tableRouter.post(
  *   delete:
  *     summary: Delete row from table
  *     description: Delete a row from a custom table
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -502,7 +502,7 @@ tableRouter.delete(
  *   patch:
  *     summary: Update cell value
  *     description: Update a cell value with type validation
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -564,7 +564,7 @@ tableRouter.patch(
  *   patch:
  *     summary: Update cell background color
  *     description: Update a cell's background color with hex format validation
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -627,7 +627,7 @@ tableRouter.patch(
  *   patch:
  *     summary: Update cell text color
  *     description: Update a cell's text color with hex format validation
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -690,7 +690,7 @@ tableRouter.patch(
  *   get:
  *     summary: Export table to Excel
  *     description: Export a custom table to Excel format with color preservation
- *     tags: [Custom Tables]
+ *     tags: ["Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -11,8 +11,8 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: Folder Members
- *   description: Folder-level member permission management
+ *   name: "Project Hierarchy"
+ *   description: "Folder-level member permission management"
  */
 
 const router = express.Router({ mergeParams: true });
@@ -23,7 +23,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get folder members
  *     description: Retrieve all folder members with their permission overrides
- *     tags: [Folder Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,7 +43,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add folder member override
  *     description: Add or update folder-level permission override for a member
- *     tags: [Folder Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -84,7 +84,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addFold
  *   patch:
  *     summary: Update folder member permissions
  *     description: Update folder-level permission override for a member
- *     tags: [Folder Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,7 +123,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addFold
  *   delete:
  *     summary: Remove folder member override
  *     description: Remove folder-level permission override for a member
- *     tags: [Folder Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

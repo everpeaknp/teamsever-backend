@@ -35,7 +35,6 @@ const getSpaceLists = asyncHandler(async (req: AuthRequest, res: Response, next:
 
   res.status(200).json({
     success: true,
-    count: lists.length,
     data: lists
   });
 });

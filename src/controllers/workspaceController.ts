@@ -36,7 +36,6 @@ const getMyWorkspaces = asyncHandler(async (req: AuthRequest, res: Response, nex
 
   res.status(200).json({
     success: true,
-    count: workspaces.length,
     data: workspaces
   });
 });
@@ -89,6 +88,7 @@ const getWorkspaceAnalytics = asyncHandler(async (req: AuthRequest, res: Respons
 
   res.status(200).json({
     success: true,
+    message: "Consolidated analytics data retrieved successfully",
     data: analytics
   });
 });
@@ -205,7 +205,8 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
 
   res.status(200).json({
     success: true,
-    member: updatedMember
+    message: "Member custom role updated successfully",
+    data: updatedMember
   });
 });
 
@@ -220,6 +221,7 @@ const getWorkspaceHierarchy = asyncHandler(async (req: AuthRequest, res: Respons
 
   res.status(200).json({
     success: true,
+    message: "Workspace hierarchy retrieved successfully",
     data: hierarchy
   });
 });

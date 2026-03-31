@@ -47,7 +47,6 @@ const getTaskDependencies = asyncHandler(async (req: AuthRequest, res: Response,
 
   res.status(200).json({
     success: true,
-    count: dependencies.length,
     data: dependencies
   });
 });
@@ -62,7 +61,6 @@ const getBlockingTasks = asyncHandler(async (req: AuthRequest, res: Response, ne
 
   res.status(200).json({
     success: true,
-    count: blockingTasks.length,
     data: blockingTasks
   });
 });

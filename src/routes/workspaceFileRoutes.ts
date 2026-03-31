@@ -9,7 +9,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *   post:
  *     summary: Generate Cloudinary upload signature
  *     description: Get signature and credentials for direct Cloudinary upload
- *     tags: [Workspace Files]
+ *     tags: ["Attachments & Media"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,7 +55,7 @@ router.post("/init-upload", protect, workspaceFileController.initUpload);
  *   post:
  *     summary: Confirm file upload
  *     description: Save file metadata after successful Cloudinary upload
- *     tags: [Workspace Files]
+ *     tags: ["Attachments & Media"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -117,7 +117,7 @@ router.post("/confirm", protect, workspaceFileController.confirmUpload);
  *   get:
  *     summary: Get workspace files
  *     description: List all files in workspace with pagination and search
- *     tags: [Workspace Files]
+ *     tags: ["Attachments & Media"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -171,7 +171,7 @@ router.get("/", protect, workspaceFileController.getFiles);
  *   get:
  *     summary: Get single file
  *     description: Get file details by ID
- *     tags: [Workspace Files]
+ *     tags: ["Attachments & Media"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -198,7 +198,7 @@ fileRouter.get("/:id", protect, workspaceFileController.getFile);
  *   delete:
  *     summary: Delete file
  *     description: Delete file (uploader or workspace admin/owner only)
- *     tags: [Workspace Files]
+ *     tags: ["Attachments & Media"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

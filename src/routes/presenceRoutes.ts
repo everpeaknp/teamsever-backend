@@ -16,7 +16,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *   get:
  *     summary: Get workspace presence
  *     description: Returns the online/offline status and last seen timestamp for all members of a specific workspace.
- *     tags: [Presence]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -57,7 +57,7 @@ router.get(
  *   get:
  *     summary: Get online users
  *     description: Returns a list of users who are currently connected via WebSockets in the specified workspace.
- *     tags: [Presence]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -89,7 +89,7 @@ router.get(
  *   get:
  *     summary: Get user presence
  *     description: Get the real-time presence status and last seen time for a specific user.
- *     tags: [Presence]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:

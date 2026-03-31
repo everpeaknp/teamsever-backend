@@ -15,8 +15,8 @@ const { createListSchema, updateListSchema } = require("../validators/listValida
 /**
  * @swagger
  * tags:
- *   name: Lists
- *   description: List management within spaces
+ *   name: "Project Hierarchy"
+ *   description: "List management within spaces"
  */
 
 // Space-scoped router
@@ -28,7 +28,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create list
  *     description: Create a new list in a space
- *     tags: [Lists]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -56,8 +56,16 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: List created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ListResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  *       403:
@@ -65,7 +73,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get lists in a space
  *     description: Retrieve all lists in a space (not inside a folder).
- *     tags: [Lists]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -79,20 +87,16 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *         description: Lists retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f716753d1"
- *                   name: "Backlog"
- *                   description: "Unplanned tasks"
- *                   color: "#94a3b8"
- *                   space: "69bbf827a96fe78f716753b2"
- *                   taskCount: 17
- *                   createdAt: "2026-02-10T09:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/ListListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceListRouter.post("/", protect, requirePermission("CREATE_LIST"), checkListLimit, validate(createListSchema), createList);
 spaceListRouter.get("/", protect, requirePermission("VIEW_LIST"), getSpaceLists);
@@ -106,7 +110,7 @@ const listRouter = express.Router();
  *   get:
  *     summary: Get list
  *     description: Get a single list with its tasks count and metadata.
- *     tags: [Lists]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -120,26 +124,20 @@ const listRouter = express.Router();
  *         description: List retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716753d1"
- *                 name: "Backlog"
- *                 description: "Unplanned tasks"
- *                 color: "#94a3b8"
- *                 space:
- *                   _id: "69bbf827a96fe78f716753b2"
- *                   name: "Backend API"
- *                 taskCount: 17
- *                 customFields: []
+ *             schema:
+ *               $ref: "#/components/schemas/ListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   patch:
  *     summary: Update list
  *     description: Update list details
- *     tags: [Lists]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -165,6 +163,10 @@ const listRouter = express.Router();
  *     responses:
  *       200:
  *         description: List updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ListResponse"
  *       400:
  *         description: Validation error
  *       401:
@@ -173,10 +175,14 @@ const listRouter = express.Router();
  *         description: Insufficient permissions
  *       404:
  *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete list
  *     description: Delete a list and its contents
- *     tags: [Lists]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -189,12 +195,20 @@ const listRouter = express.Router();
  *     responses:
  *       200:
  *         description: List deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
  *       404:
  *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 listRouter.get("/:id", protect, requirePermission("VIEW_LIST"), getList);
 listRouter.patch("/:id", protect, requirePermission("UPDATE_LIST"), require("../middlewares/ownerOnly"), validate(updateListSchema), updateList);

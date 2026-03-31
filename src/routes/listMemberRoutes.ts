@@ -11,8 +11,8 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: List Members
- *   description: List-level member permission management
+ *   name: "Project Hierarchy"
+ *   description: "List-level member permission management"
  */
 
 const router = express.Router({ mergeParams: true });
@@ -23,7 +23,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get list members
  *     description: Retrieve all list members with their permission overrides
- *     tags: [List Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,7 +43,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add list member override
  *     description: Add or update list-level permission override for a member
- *     tags: [List Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -84,7 +84,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addList
  *   patch:
  *     summary: Update list member permissions
  *     description: Update list-level permission override for a member
- *     tags: [List Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,7 +123,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addList
  *   delete:
  *     summary: Remove list member override
  *     description: Remove list-level permission override for a member
- *     tags: [List Members]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

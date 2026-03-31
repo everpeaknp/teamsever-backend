@@ -195,6 +195,7 @@ class EntitlementService {
                 {
                     // Group to get totals
                     $group: {
+                        _id: null,
                         totalWorkspaces: { $sum: 1 },
                         totalSpaces: { $sum: '$spaceCount' },
                         totalLists: { $sum: '$listCount' },

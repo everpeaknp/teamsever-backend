@@ -11,6 +11,7 @@ const {
   getWorkspaceHierarchy,
   uploadLogo
 } = require("../controllers/workspaceController");
+const stickyNoteController = require("../controllers/stickyNoteController");
 const {
   getAnnouncements,
   createAnnouncement,
@@ -21,13 +22,6 @@ const { protect } = require("../middlewares/authMiddleware");
 const { checkWorkspaceLimit } = require("../middlewares/subscriptionMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const requireWorkspaceOwner = require("../middlewares/requireWorkspaceOwner");
-
-/**
- * @swagger
- * tags:
- *   name: Workspaces
- *   description: Workspace management and member operations
- */
 
 const router = express.Router();
 
@@ -46,7 +40,7 @@ const customRoleRateLimiter = rateLimit({
  *   post:
  *     summary: Create a new workspace
  *     description: Creates a new workspace with the authenticated user as owner
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -64,8 +58,16 @@ const customRoleRateLimiter = rateLimit({
  *     responses:
  *       201:
  *         description: Workspace created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/WorkspaceResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  *       403:
@@ -73,7 +75,7 @@ const customRoleRateLimiter = rateLimit({
  *   get:
  *     summary: Get all user workspaces
  *     description: Returns all workspaces where the user is a member, including member count and owner info.
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -81,23 +83,8 @@ const customRoleRateLimiter = rateLimit({
  *         description: List of workspaces
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f716752bb"
- *                   name: "Engineering Team"
- *                   logo: null
- *                   createdBy: "69bce50b96fe109fe4e14ff6"
- *                   memberCount: 5
- *                   myRole: "owner"
- *                   createdAt: "2026-01-15T08:00:00Z"
- *                 - _id: "69bbf827a96fe78f716752cc"
- *                   name: "Design Squad"
- *                   logo: "https://res.cloudinary.com/example/image/upload/logo.png"
- *                   createdBy: "69bcc46789cab60dfa454499"
- *                   memberCount: 3
- *                   myRole: "member"
- *                   createdAt: "2026-02-01T10:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/WorkspaceListResponse"
  *       401:
  *         description: Authentication required
  */
@@ -110,7 +97,7 @@ router.get("/", protect, getMyWorkspaces);
  *   get:
  *     summary: Get a single workspace
  *     description: Returns full workspace details including members, settings, and subscription status.
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -125,38 +112,20 @@ router.get("/", protect, getMyWorkspaces);
  *         description: Workspace details
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716752bb"
- *                 name: "Engineering Team"
- *                 logo: null
- *                 createdBy:
- *                   _id: "69bce50b96fe109fe4e14ff6"
- *                   name: "Alice Smith"
- *                   email: "alice@example.com"
- *                 members:
- *                   - user:
- *                       _id: "69bce50b96fe109fe4e14ff6"
- *                       name: "Alice Smith"
- *                     role: "owner"
- *                     isClockedIn: true
- *                   - user:
- *                       _id: "69bcc46789cab60dfa454499"
- *                       name: "Bob Jones"
- *                     role: "member"
- *                     isClockedIn: false
- *                 settings:
- *                   defaultTimezone: "Asia/Kathmandu"
- *                 createdAt: "2026-01-15T08:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/WorkspaceResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   put:
  *     summary: Update workspace
  *     description: Updates workspace properties (owner/admin only)
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -179,16 +148,24 @@ router.get("/", protect, getMyWorkspaces);
  *     responses:
  *       200:
  *         description: Workspace updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/WorkspaceResponse"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete workspace
  *     description: Deletes a workspace (owner only)
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,12 +178,20 @@ router.get("/", protect, getMyWorkspaces);
  *     responses:
  *       200:
  *         description: Workspace deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Only owner can delete workspace
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id", protect, requirePermission("VIEW_WORKSPACE"), getWorkspace);
 router.put("/:id", protect, requirePermission("UPDATE_WORKSPACE"), updateWorkspace);
@@ -218,7 +203,7 @@ router.delete("/:id", protect, requirePermission("DELETE_WORKSPACE"), deleteWork
  *   get:
  *     summary: Get workspace hierarchy (optimized)
  *     description: Returns complete workspace structure (Spaces -> Folders -> Lists) with task counts in a single query
- *     tags: [Workspaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -234,30 +219,7 @@ router.delete("/:id", protect, requirePermission("DELETE_WORKSPACE"), deleteWork
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     workspaceId:
- *                       type: string
- *                     workspaceName:
- *                       type: string
- *                     spaces:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           _id:
- *                             type: string
- *                           name:
- *                             type: string
- *                           folders:
- *                             type: array
- *                           lists:
- *                             type: array
+ *               $ref: "#/components/schemas/HierarchyResponse"
  *       401:
  *         description: Authentication required
  *       404:
@@ -286,12 +248,15 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *       | `stats` | Total tasks, completion rate, priority & status breakdown |
  *       | `hierarchy` | Full tree: Spaces → Folders → Lists |
  *       | `members` | Who is clocked in right now |
- *       | `tasks` | Recent tasks |
+ *       | `tasks` | Recent tasks (top 100) |
  *       | `announcements` | Latest workspace announcements |
  *       | `currentRunningTimer` | The logged-in user's active timer (if any) |
+ *       | `stickyNote` | The logged-in user's personal sticky note for this workspace |
+ *       | `recentActivity` | Recent actions performed in this workspace |
+ *       | `performance` | Performance metrics for the user (and team for admins) |
  *
  *       **Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.
- *     tags: [Analytics, Workspaces]
+ *     tags: ["Dashboard & Analytics"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -307,68 +272,7 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     workspace:
- *                       type: object
- *                     stats:
- *                       type: object
- *                     hierarchy:
- *                       type: array
- *                     members:
- *                       type: array
- *                     tasks:
- *                       type: array
- *                     announcements:
- *                       type: array
- *                     currentRunningTimer:
- *                       type: object
- *             example:
- *               success: true
- *               data:
- *                 workspace:
- *                   _id: "69bbf827a96fe78f716752bb"
- *                   name: "Engineering Team"
- *                 stats:
- *                   totalTasks: 156
- *                   completedTasks: 89
- *                   completionRate: 57
- *                   priorityDistribution:
- *                     - label: "High"
- *                       value: 12
- *                     - label: "Urgent"
- *                       value: 5
- *                 hierarchy:
- *                   - _id: "69bbf827a96fe78f716753c1"
- *                     name: "Backend API"
- *                     folders: []
- *                     lists:
- *                       - _id: "69bbf827a96fe78f716753d2"
- *                         name: "Sprint 5"
- *                         taskCount: 24
- *                 members:
- *                   - _id: "69bbf827a96fe78f716754e3"
- *                     name: "Alice Smith"
- *                     isClockedIn: true
- *                     lastClockIn: "2026-03-30T01:00:00Z"
- *                 tasks:
- *                   - _id: "69bbf827a96fe78f716755f4"
- *                     title: "Implement OAuth2"
- *                     status: "in-progress"
- *                     priority: "high"
- *                 announcements:
- *                   - _id: "69bbf827a96fe78f71675605"
- *                     title: "Server Migration"
- *                     content: "Scheduled for Friday midnight."
- *                 currentRunningTimer:
- *                   _id: "69bbf827a96fe78f71675716"
- *                   taskTitle: "API Documentation"
- *                   startTime: "2026-03-30T01:30:00Z"
+ *               $ref: "#/components/schemas/AnalyticsResponse"
  *       401:
  *         description: Authentication required
  *       404:
@@ -382,7 +286,7 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *   get:
  *     summary: Get workspace announcements
  *     description: Retrieve all active announcements for a specific workspace, ordered by creation date (newest first).
- *     tags: [Workspaces]
+ *     tags: ["Collaboration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -397,20 +301,19 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *         description: Announcements retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675601"
- *                   title: "Welcome to our new Workspace!"
- *                   content: "Feel free to explore and add your first task."
- *                   author: "69bce50b96fe109fe4e14ff6"
- *                   createdAt: "2026-03-30T08:00:00Z"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: "#/components/schemas/Announcement" }
  *       401:
  *         description: Authentication required
  *   post:
  *     summary: Create workspace announcement
  *     description: Create a new announcement that will be visible to all workspace members.
- *     tags: [Workspaces]
+ *     tags: ["Collaboration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -441,11 +344,11 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *         description: Announcement created successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675602"
- *                 title: "System Maintenance"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/Announcement" }
  *       401:
  *         description: Authentication required
  *       403:
@@ -460,7 +363,7 @@ router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), 
  *   delete:
  *     summary: Delete workspace announcement
  *     description: Delete an announcement from a workspace
- *     tags: [Workspaces]
+ *     tags: ["Collaboration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -492,7 +395,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *   post:
  *     summary: Toggle workspace clock
  *     description: Clock in or clock out of workspace
- *     tags: [Workspaces]
+ *     tags: ["Attendance & Reporting"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -505,10 +408,48 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *     responses:
  *       200:
  *         description: Clock toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClockToggleResponse'
+ *       401:
+ *         description: Authentication required
+ * /api/workspaces/{id}/sticky-note:
+ *   patch:
+ *     summary: Update personal sticky note
+ *     description: Save the user's personal sticky note content for this workspace.
+ *     tags: ["Productivity"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Sticky note updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/StickyNoteResponse"
  *       401:
  *         description: Authentication required
  */
 router.post("/:workspaceId/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
+router.patch("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.updateStickyNote);
+router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.getStickyNote);
 
 /**
  * @swagger
@@ -516,7 +457,7 @@ router.post("/:workspaceId/clock/toggle", protect, requirePermission("VIEW_WORKS
  *   patch:
  *     summary: Update member custom role
  *     description: Update custom role for a workspace member (Owner only)
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -569,7 +510,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   patch:
  *     summary: Upload workspace logo
  *     description: Upload a new logo for the workspace (Owner only)
- *     tags: [Workspaces]
+ *     tags: ["Workspace Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

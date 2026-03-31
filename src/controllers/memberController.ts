@@ -70,7 +70,6 @@ const getWorkspaceMembers = asyncHandler(
 
     res.status(200).json({
       success: true,
-      count: members.length,
       data: members,
     });
   }
@@ -219,6 +218,7 @@ const removeMember = asyncHandler(
     res.status(200).json({
       success: true,
       message: "Member removed successfully",
+      data: null
     });
   }
 );

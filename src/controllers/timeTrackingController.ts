@@ -151,6 +151,7 @@ const getActiveTimer = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
+    message: "Active timer retrieved successfully",
     data: {
       taskId: task._id,
       title: task.title,
@@ -247,6 +248,7 @@ const getTimeLogs = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
+    message: "Time logs retrieved successfully",
     data: {
       taskId: task._id,
       title: task.title,

@@ -36,6 +36,7 @@ const getUnreadCount = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
+    message: "Unread count retrieved successfully",
     data: { count },
   });
 });
@@ -53,6 +54,7 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
+    message: "Notification marked as read successfully",
     data: notification,
   });
 });
@@ -118,6 +120,7 @@ const getDevices = asyncHandler(async (req: any, res: any) => {
 
   res.status(200).json({
     success: true,
+    message: "Registered devices retrieved successfully",
     data: devices,
   });
 });

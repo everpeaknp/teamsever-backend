@@ -8,13 +8,6 @@ const {
   unregisterDeviceSchema,
 } = require("../validators/notificationValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Notifications
- *   description: Push notification device management
- */
-
 // All routes require authentication
 router.use(protect);
 
@@ -24,7 +17,7 @@ router.use(protect);
  *   post:
  *     summary: Register FCM token
  *     description: Register Firebase Cloud Messaging token for web push notifications
- *     tags: [Notifications]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -41,6 +34,10 @@ router.use(protect);
  *     responses:
  *       200:
  *         description: FCM token registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/NotificationResponse"
  *       401:
  *         description: Authentication required
  */
@@ -52,7 +49,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *   post:
  *     summary: Register device
  *     description: Register a device for push notifications
- *     tags: [Notifications]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -73,6 +70,10 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *     responses:
  *       200:
  *         description: Device registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/NotificationResponse"
  *       400:
  *         description: Validation error
  *       401:
@@ -90,7 +91,7 @@ router.post(
  *   delete:
  *     summary: Unregister device
  *     description: Unregister a device from push notifications
- *     tags: [Notifications]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -107,6 +108,10 @@ router.post(
  *     responses:
  *       200:
  *         description: Device unregistered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/NotificationResponse"
  *       400:
  *         description: Validation error
  *       401:
@@ -124,12 +129,16 @@ router.delete(
  *   get:
  *     summary: Get registered devices
  *     description: Retrieve all registered devices for the current user
- *     tags: [Notifications]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Devices retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/NotificationResponse"
  *       401:
  *         description: Authentication required
  */

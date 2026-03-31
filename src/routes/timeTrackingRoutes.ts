@@ -26,7 +26,7 @@ router.use(protect);
  *   get:
  *     summary: Get my active timer
  *     description: Returns the currently running timer for the authenticated user, or null if no timer is running. Useful for showing a persistent timer widget at the top of the app.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -34,14 +34,8 @@ router.use(protect);
  *         description: Active timer (or null)
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675716"
- *                 taskId: "69bbf827a96fe78f716755f4"
- *                 taskTitle: "Implement OAuth2"
- *                 startTime: "2026-03-30T09:00:00Z"
- *                 elapsedSeconds: 3420
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
  */
@@ -53,7 +47,7 @@ router.get("/time/active", getActiveTimer);
  *   post:
  *     summary: Start task timer
  *     description: Start a timer for a specific task. Only one timer can run at a time per user.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -68,12 +62,8 @@ router.get("/time/active", getActiveTimer);
  *         description: Timer started
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675717"
- *                 taskId: "69bbf827a96fe78f716755f4"
- *                 startTime: "2026-03-30T10:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       400:
  *         description: Timer already active — stop existing timer first
  *       401:
@@ -87,7 +77,7 @@ router.post("/:id/time/start", startTimer);
  *   post:
  *     summary: Stop task timer
  *     description: Stop the active timer for a task and record the time entry.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -111,15 +101,8 @@ router.post("/:id/time/start", startTimer);
  *         description: Timer stopped and entry recorded
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675717"
- *                 taskId: "69bbf827a96fe78f716755f4"
- *                 duration: 3420
- *                 durationFormatted: "57m"
- *                 startTime: "2026-03-30T09:00:00Z"
- *                 endTime: "2026-03-30T09:57:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
  */
@@ -131,7 +114,7 @@ router.post("/:id/time/stop", stopTimer);
  *   post:
  *     summary: Log manual time
  *     description: Add a manual time entry for a task without using the timer. Useful for logging offline work.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -166,15 +149,8 @@ router.post("/:id/time/stop", stopTimer);
  *         description: Manual time log added
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675718"
- *                 taskId: "69bbf827a96fe78f716755f4"
- *                 duration: 9000
- *                 durationFormatted: "2h 30m"
- *                 description: "Design review session"
- *                 isManual: true
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
  */
@@ -186,7 +162,7 @@ router.post("/:id/time/manual", addManualTimeLog);
  *   get:
  *     summary: Get task time logs
  *     description: Returns all time entries for a specific task.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,23 +177,8 @@ router.post("/:id/time/manual", addManualTimeLog);
  *         description: Time logs retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 totalSeconds: 12600
- *                 totalFormatted: "3h 30m"
- *                 logs:
- *                   - _id: "69bbf827a96fe78f71675717"
- *                     duration: 3420
- *                     durationFormatted: "57m"
- *                     startTime: "2026-03-30T09:00:00Z"
- *                     endTime: "2026-03-30T09:57:00Z"
- *                     isManual: false
- *                   - _id: "69bbf827a96fe78f71675718"
- *                     duration: 9000
- *                     durationFormatted: "2h 30m"
- *                     description: "Design review"
- *                     isManual: true
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
  */
@@ -229,7 +190,7 @@ router.get("/:id/time/logs", getTimeLogs);
  *   delete:
  *     summary: Delete time log
  *     description: Delete a specific time log entry.
- *     tags: [Time Tracking]
+ *     tags: [Productivity]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -250,9 +211,8 @@ router.get("/:id/time/logs", getTimeLogs);
  *         description: Time log deleted
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Time log deleted"
+ *             schema:
+ *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
  */

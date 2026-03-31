@@ -13,8 +13,8 @@ const { checkFolderLimit } = require("../middlewares/subscriptionMiddleware");
 /**
  * @swagger
  * tags:
- *   name: Folders
- *   description: Folder management within spaces
+ *   name: "Project Hierarchy"
+ *   description: "Folder management within spaces"
  */
 
 // Space-scoped router
@@ -26,7 +26,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create folder
  *     description: Create a new folder in a space
- *     tags: [Folders]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -54,8 +54,16 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Folder created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/FolderResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  *       403:
@@ -63,7 +71,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get folders in a space
  *     description: Retrieve all folders in a space, ordered by creation date.
- *     tags: [Folders]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -77,20 +85,16 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *         description: Folders retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f716753a1"
- *                   name: "Sprint 5"
- *                   description: "Current sprint"
- *                   color: "#6366f1"
- *                   space: "69bbf827a96fe78f716753b2"
- *                   listCount: 3
- *                   createdAt: "2026-03-01T08:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/FolderListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceFolderRouter.post("/", protect, requirePermission("CREATE_FOLDER"), checkFolderLimit, createFolder);
 spaceFolderRouter.get("/", protect, requirePermission("VIEW_FOLDER"), getFolders);
@@ -104,7 +108,7 @@ const folderRouter = express.Router();
  *   get:
  *     summary: Get folder
  *     description: Returns a single folder with its lists.
- *     tags: [Folders]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -118,29 +122,20 @@ const folderRouter = express.Router();
  *         description: Folder retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716753a1"
- *                 name: "Sprint 5"
- *                 description: "Current sprint folder"
- *                 color: "#6366f1"
- *                 space: "69bbf827a96fe78f716753b2"
- *                 lists:
- *                   - _id: "69bbf827a96fe78f716753c3"
- *                     name: "Backend Tasks"
- *                     taskCount: 12
- *                   - _id: "69bbf827a96fe78f716753c4"
- *                     name: "Frontend Tasks"
- *                     taskCount: 8
+ *             schema:
+ *               $ref: "#/components/schemas/FolderResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Folder not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   put:
  *     summary: Update folder
  *     description: Update folder details
- *     tags: [Folders]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -166,6 +161,10 @@ const folderRouter = express.Router();
  *     responses:
  *       200:
  *         description: Folder updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/FolderResponse"
  *       400:
  *         description: Validation error
  *       401:
@@ -174,10 +173,14 @@ const folderRouter = express.Router();
  *         description: Insufficient permissions
  *       404:
  *         description: Folder not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete folder
  *     description: Delete a folder and its contents
- *     tags: [Folders]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -190,12 +193,20 @@ const folderRouter = express.Router();
  *     responses:
  *       200:
  *         description: Folder deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
  *       404:
  *         description: Folder not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 folderRouter.get("/:id", protect, requirePermission("VIEW_FOLDER"), getFolder);
 folderRouter.put("/:id", protect, requirePermission("UPDATE_FOLDER"), require("../middlewares/ownerOnly"), updateFolder);

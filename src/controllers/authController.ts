@@ -37,11 +37,13 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
   res.status(201).json({
     success: true,
     message: "User registered successfully",
-    token: generateToken(user._id.toString(), user.email, user.name),
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email
+    data: {
+      token: generateToken(user._id.toString(), user.email, user.name),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email
+      }
     }
   });
 });
@@ -69,12 +71,14 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
   res.json({
     success: true,
     message: "Logged in successfully",
-    token: generateToken(user._id.toString(), user.email, user.name),
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isSuperUser: user.isSuperUser || false
+    data: {
+      token: generateToken(user._id.toString(), user.email, user.name),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isSuperUser: user.isSuperUser || false
+      }
     }
   });
 });
@@ -141,13 +145,15 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   res.json({
     success: true,
     message: "Logged in with Google successfully",
-    token: token,
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      profilePicture: user.profilePicture,
-      isSuperUser: user.isSuperUser || false
+    data: {
+      token: token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        isSuperUser: user.isSuperUser || false
+      }
     }
   });
 });

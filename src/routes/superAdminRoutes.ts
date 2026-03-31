@@ -19,7 +19,7 @@ router.use(protect);
  *   get:
  *     summary: Get all workspace admins/owners
  *     description: Retrieve all workspace owners with their full subscription details. Restricted to Super Admins only.
- *     tags: [Super Admin]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -49,7 +49,7 @@ router.get("/users", getAdminUsers);
  *   patch:
  *     summary: Update user subscription
  *     description: Manually override or update a user's subscription status and plan.
- *     tags: [Super Admin]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -96,7 +96,7 @@ router.patch("/users/:userId/subscription", updateUserSubscription);
  *   get:
  *     summary: Get system-wide financial analytics
  *     description: Retrieve global revenue, conversion rates, and user signup trends.
- *     tags: [Super Admin]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -122,7 +122,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   get:
  *     summary: Get global system settings
  *     description: Retrieve system-wide configuration settings like support contact numbers.
- *     tags: [Super Admin]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -139,7 +139,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   put:
  *     summary: Update global system settings
  *     description: Update system-wide configuration.
- *     tags: [Super Admin]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

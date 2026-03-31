@@ -6,18 +6,11 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
 
 /**
  * @swagger
- * tags:
- *   name: Upload
- *   description: File upload management
- */
-
-/**
- * @swagger
  * /api/upload/tasks/{taskId}/attachments:
  *   post:
  *     summary: Upload task attachment
  *     description: Upload a file attachment to a task
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -44,7 +37,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   get:
  *     summary: Get task attachments
  *     description: Retrieve all attachments for a task
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -79,7 +72,7 @@ router.get(
  *   post:
  *     summary: Upload comment attachment
  *     description: Upload a file attachment to a comment
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -106,7 +99,7 @@ router.get(
  *   get:
  *     summary: Get comment attachments
  *     description: Retrieve all attachments for a comment
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -141,7 +134,7 @@ router.get(
  *   post:
  *     summary: Upload DM attachment
  *     description: Upload a file attachment to a direct message
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -168,7 +161,7 @@ router.get(
  *   get:
  *     summary: Get conversation attachments
  *     description: Retrieve all attachments in a conversation
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -203,7 +196,7 @@ router.get(
  *   delete:
  *     summary: Delete attachment
  *     description: Delete a file attachment
- *     tags: [Attachments]
+ *     tags: [Workspace Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -11,10 +11,11 @@ const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
 
-const PlanInheritanceService = require("./planInheritanceService").default;
-const EntitlementService = require("./entitlementService").default;
 const HierarchyService = require("./hierarchyService").default;
 const analyticsService = require("./analyticsService");
+const activityService = require("./activityService");
+const performanceService = require("./performanceService");
+const stickyNoteService = require("./stickyNoteService");
 
 interface CreateWorkspaceData {
   name: string;
@@ -395,6 +396,28 @@ class WorkspaceService {
       .limit(100)
       .lean();
 
+    // 6. Fetch Sticky Note for this user
+    const stickyNote = await stickyNoteService.getStickyNote(workspaceId, userId);
+
+    // 7. Fetch Recent Activity (last 20 items)
+    const recentActivity = await activityService.getActivities({
+      workspaceId,
+      limit: 20
+    });
+
+    // 8. Fetch Performance Metrics
+    const userPerformance = await performanceService.getUserPerformance(userId, workspaceId);
+    
+    // 9. Fetch Team Performance (for admins/owners only)
+    let teamPerformance = null;
+    const member = workspace.members.find((m: any) => m.user._id.toString() === userId);
+    if (member && (member.role === 'admin' || member.role === 'owner')) {
+      teamPerformance = await performanceService.getTeamPerformance(workspaceId);
+    }
+
+    // 10. Fetch Velocity (last 30 days)
+    const velocity = await analyticsService.getVelocity(workspaceId, 30);
+
     return {
       workspace: {
         id: workspaceId,
@@ -407,7 +430,14 @@ class WorkspaceService {
       members: workspace.members,
       tasks: recentTasks,
       announcements,
-      currentRunningTimer
+      currentRunningTimer,
+      stickyNote,
+      recentActivity,
+      performance: {
+        user: userPerformance,
+        team: teamPerformance
+      },
+      velocity
     };
   }
 

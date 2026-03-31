@@ -13,8 +13,8 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: Space Invitations
- *   description: Space invitation management
+ *   name: "Project Hierarchy"
+ *   description: "Space invitation management"
  */
 
 // Space-scoped routes (requires spaceId)
@@ -26,7 +26,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send space invitation
  *     description: Invite a user to join a space
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -59,7 +59,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space invitations
  *     description: Retrieve all pending invitations for a space
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,7 +86,7 @@ spaceInvitationRouter.get("/", protect, requirePermission("MANAGE_SPACE_PERMISSI
  *   delete:
  *     summary: Cancel space invitation
  *     description: Cancel a pending space invitation
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,7 +123,7 @@ const invitationRouter = express.Router();
  *   post:
  *     summary: Accept space invitation
  *     description: Accept a space invitation using token
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -149,7 +149,7 @@ invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
  *   post:
  *     summary: Decline space invitation
  *     description: Decline a space invitation using token
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -175,7 +175,7 @@ invitationRouter.post("/decline/:token", protect, declineSpaceInvitation);
  *   get:
  *     summary: Get my space invitations
  *     description: Retrieve all pending space invitations for current user
- *     tags: [Space Invitations]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     responses:

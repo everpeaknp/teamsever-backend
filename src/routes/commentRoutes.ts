@@ -7,12 +7,7 @@ const {
   editCommentSchema,
 } = require("../validators/commentValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Activity
- *   description: Task comments (legacy — superseded by Activity system)
- */
+
 
 // Task-scoped comment routes
 const taskCommentRouter = express.Router({ mergeParams: true });
@@ -25,7 +20,7 @@ taskCommentRouter.use(protect);
  *   post:
  *     summary: Create comment
  *     description: Add a comment to a task
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -62,7 +57,7 @@ taskCommentRouter.use(protect);
  *   get:
  *     summary: Get task comments
  *     description: Retrieve all comments for a task
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -99,7 +94,7 @@ commentRouter.use(protect);
  *   get:
  *     summary: Get single comment
  *     description: Retrieve a specific comment by ID
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -119,7 +114,7 @@ commentRouter.use(protect);
  *   patch:
  *     summary: Edit comment
  *     description: Update a comment's content
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -154,7 +149,7 @@ commentRouter.use(protect);
  *   delete:
  *     summary: Delete comment
  *     description: Remove a comment from a task
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:

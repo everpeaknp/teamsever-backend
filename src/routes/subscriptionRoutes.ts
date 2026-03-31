@@ -10,7 +10,7 @@ const router = express.Router();
  *   get:
  *     summary: Get current user's subscription information
  *     description: Returns detailed subscription info including plan features, unified global usage, and expiry details.
- *     tags: [Subscription]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -77,7 +77,7 @@ router.get("/info", protect, getSubscriptionInfo);
  *   get:
  *     summary: Get the next higher tier plan
  *     description: Returns the details of the next available plan with a higher price than the current user's plan.
- *     tags: [Subscription]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:

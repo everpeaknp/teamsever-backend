@@ -26,7 +26,7 @@ router.use(protect);
  *   post:
  *     summary: Create task dependency
  *     description: Create a dependency relationship between two tasks
- *     tags: [Task Dependencies]
+ *     tags: [Task Management]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -49,8 +49,16 @@ router.use(protect);
  *     responses:
  *       201:
  *         description: Dependency created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/DependencyResponse"
  *       400:
  *         description: Validation error or circular dependency
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  */
@@ -62,7 +70,7 @@ router.post("/", validate(createTaskDependencySchema), createDependency);
  *   delete:
  *     summary: Delete task dependency
  *     description: Remove a dependency relationship between tasks
- *     tags: [Task Dependencies]
+ *     tags: [Task Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -75,10 +83,18 @@ router.post("/", validate(createTaskDependencySchema), createDependency);
  *     responses:
  *       200:
  *         description: Dependency deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Dependency not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete("/:id", deleteDependency);
 
@@ -88,7 +104,7 @@ router.delete("/:id", deleteDependency);
  *   get:
  *     summary: Get task dependencies
  *     description: Retrieve all dependencies for a task
- *     tags: [Task Dependencies]
+ *     tags: [Task Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -101,10 +117,18 @@ router.delete("/:id", deleteDependency);
  *     responses:
  *       200:
  *         description: Dependencies retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/DependencyListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/task/:taskId", getTaskDependencies);
 
@@ -114,7 +138,7 @@ router.get("/task/:taskId", getTaskDependencies);
  *   get:
  *     summary: Get blocking tasks
  *     description: Retrieve all tasks that are blocking this task
- *     tags: [Task Dependencies]
+ *     tags: [Task Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -127,10 +151,18 @@ router.get("/task/:taskId", getTaskDependencies);
  *     responses:
  *       200:
  *         description: Blocking tasks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/TaskListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/task/:taskId/blocking", getBlockingTasks);
 

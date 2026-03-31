@@ -68,11 +68,9 @@ const startServer = async () => {
     const directMessageRoutes = require("./routes/directMessageRoutes");
     const uploadRoutes = require("./routes/uploadRoutes");
     const customFieldRouter = require("./routes/customFieldRoutes");
-    const dashboardRouter = require("./routes/dashboardRoutes");
     const taskDependencyRoutes = require("./routes/taskDependencyRoutes");
     const timeEntryRoutes = require("./routes/timeEntryRoutes");
     const recurringRoutes = require("./routes/recurringRoutes");
-    const analyticsRoutes = require("./routes/analyticsRoutes");
     const attachmentRoutes = require("./routes/attachmentRoutes");
     const activityRoutes = require("./routes/activityRoutes");
     const searchRoutes = require("./routes/searchRoutes");
@@ -211,11 +209,9 @@ const startServer = async () => {
     app.use("/api/presence", presenceRoutes);
     app.use("/api", uploadRoutes);
     app.use("/api/custom-fields", customFieldRouter);
-    app.use("/api/dashboard", dashboardRouter);
     app.use("/api/task-dependencies", taskDependencyRoutes);
     app.use("/api/time", timeEntryRoutes);
     app.use("/api/recurring", recurringRoutes);
-    app.use("/api/analytics", analyticsRoutes);
     app.use("/api/attendance", attendanceRoutes);
     app.use("/api", attachmentRoutes);
     app.use("/api", activityRoutes);

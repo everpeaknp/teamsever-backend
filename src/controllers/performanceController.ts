@@ -14,6 +14,7 @@ exports.getUserPerformance = asyncHandler(async (req: AuthRequest, res: Response
 
   res.status(200).json({
     success: true,
+    message: "User performance metrics retrieved successfully",
     data: metrics
   });
 });
@@ -29,6 +30,7 @@ exports.getMyPerformance = asyncHandler(async (req: AuthRequest, res: Response, 
 
   res.status(200).json({
     success: true,
+    message: "My performance metrics retrieved successfully",
     data: metrics
   });
 });
@@ -43,6 +45,7 @@ exports.getTeamPerformance = asyncHandler(async (req: AuthRequest, res: Response
 
   res.status(200).json({
     success: true,
+    message: "Team performance metrics retrieved successfully",
     data: teamMetrics
   });
 });
@@ -57,6 +60,7 @@ exports.getWorkspacePerformanceSummary = asyncHandler(async (req: AuthRequest, r
 
   res.status(200).json({
     success: true,
+    message: "Workspace performance summary retrieved successfully",
     data: summary
   });
 });

@@ -5,20 +5,13 @@ const { protect } = require("../middlewares/authMiddleware");
 
 /**
  * @swagger
- * tags:
- *   name: Activity
- *   description: Task comments, emoji reactions, and audit activity feed. All task interactions are stored as activity entries.
- */
-
-/**
- * @swagger
  * /api/activities:
  *   get:
  *     summary: Get activity logs
  *     description: |
  *       Retrieve activity logs with optional filters.
  *       **Access Control:** Owners/Admins see all workspace activity; regular members see only their own logs.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,32 +36,8 @@ const { protect } = require("../middlewares/authMiddleware");
  *         description: Activities retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675900"
- *                   type: "task_created"
- *                   action: "created task"
- *                   performedBy:
- *                     _id: "69bce50b96fe109fe4e14ff6"
- *                     name: "Alice Smith"
- *                   task:
- *                     _id: "69bbf827a96fe78f716755f4"
- *                     title: "Implement OAuth2"
- *                   workspace: "69bbf827a96fe78f716752bb"
- *                   createdAt: "2026-03-30T08:00:00Z"
- *                 - _id: "69bbf827a96fe78f71675901"
- *                   type: "comment"
- *                   action: "commented"
- *                   content: "Great progress! Let's merge this."
- *                   performedBy:
- *                     _id: "69bcc46789cab60dfa454499"
- *                     name: "Bob Jones"
- *                   task:
- *                     _id: "69bbf827a96fe78f716755f4"
- *                     title: "Implement OAuth2"
- *                   workspace: "69bbf827a96fe78f716752bb"
- *                   createdAt: "2026-03-30T09:15:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
  */
@@ -84,7 +53,7 @@ router.get(
  *   post:
  *     summary: Add comment to task
  *     description: Post a new comment on a task. Supports @mentions by including user IDs in the `mentions` array.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -115,17 +84,8 @@ router.get(
  *         description: Comment created
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f71675902"
- *                 type: "comment"
- *                 content: "Great work! Can we also handle the edge case?"
- *                 performedBy:
- *                   _id: "69bce50b96fe109fe4e14ff6"
- *                   name: "Alice Smith"
- *                 reactions: []
- *                 createdAt: "2026-03-30T10:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
  *       404:
@@ -143,7 +103,7 @@ router.post(
  *   get:
  *     summary: Get task activity feed
  *     description: Returns all activity (comments, status changes, assignments) for a specific task, newest first.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -157,26 +117,8 @@ router.post(
  *         description: Task activity retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675902"
- *                   type: "comment"
- *                   content: "Can we add unit tests here?"
- *                   performedBy:
- *                     _id: "69bce50b96fe109fe4e14ff6"
- *                     name: "Alice Smith"
- *                   reactions:
- *                     - emoji: "👍"
- *                       user: "69bcc46789cab60dfa454499"
- *                   createdAt: "2026-03-30T09:00:00Z"
- *                 - _id: "69bbf827a96fe78f71675903"
- *                   type: "status_changed"
- *                   action: "changed status from todo to in-progress"
- *                   performedBy:
- *                     _id: "69bcc46789cab60dfa454499"
- *                     name: "Bob Jones"
- *                   createdAt: "2026-03-29T14:00:00Z"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
  *       404:
@@ -194,7 +136,7 @@ router.get(
  *   put:
  *     summary: Edit comment
  *     description: Edit an existing comment. Only the comment author can edit it.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -216,22 +158,21 @@ router.get(
  *                 type: string
  *     responses:
  *       200:
- *         description: Comment updated
+ *         description: Comment updated/deleted
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Comment updated"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
  *       403:
- *         description: Only the comment author can edit
+ *         description: Not authorized
  *       404:
  *         description: Comment not found
  *   delete:
  *     summary: Delete comment
  *     description: Delete a comment. Author or workspace admin can delete.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -242,12 +183,11 @@ router.get(
  *           type: string
  *     responses:
  *       200:
- *         description: Comment deleted
+ *         description: Comment updated/deleted
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Comment deleted"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
  *       403:
@@ -272,7 +212,7 @@ router.delete(
  *   post:
  *     summary: Add emoji reaction
  *     description: Add an emoji reaction to a comment. If the same emoji already exists from the user, it toggles off.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -295,18 +235,17 @@ router.delete(
  *                 example: "👍"
  *     responses:
  *       200:
- *         description: Reaction added
+ *         description: Reaction updated
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Reaction added"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
  *   delete:
  *     summary: Remove emoji reaction
  *     description: Remove your emoji reaction from a comment.
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -329,12 +268,11 @@ router.delete(
  *                 example: "👍"
  *     responses:
  *       200:
- *         description: Reaction removed
+ *         description: Reaction updated
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Reaction removed"
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
  */
@@ -359,7 +297,7 @@ router.delete(
  *       **Access Control:**
  *       - **Owners/Admins:** See all workspace activity
  *       - **Members:** See only their own personal activity
- *     tags: [Activity]
+ *     tags: [Collaboration]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -383,17 +321,8 @@ router.delete(
  *         description: Workspace activity retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675900"
- *                   type: "task_created"
- *                   action: "created task 'Implement OAuth2'"
- *                   performedBy:
- *                     _id: "69bce50b96fe109fe4e14ff6"
- *                     name: "Alice Smith"
- *                   createdAt: "2026-03-30T08:00:00Z"
- *               total: 42
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
  *       404:

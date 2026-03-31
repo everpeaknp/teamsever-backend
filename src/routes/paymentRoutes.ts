@@ -24,7 +24,7 @@ const {
  * /api/payment/initiate:
  *   post:
  *     summary: Initiate eSewa payment for plan upgrade
- *     tags: [Payment]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -78,7 +78,7 @@ router.post('/initiate', authMiddleware, initiatePayment);
  * /api/payment/verify:
  *   post:
  *     summary: Verify eSewa payment and activate plan
- *     tags: [Payment]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -126,7 +126,7 @@ router.post('/verify', authMiddleware, verifyPayment);
  * /api/payment/transactions:
  *   get:
  *     summary: Get user's payment transactions
- *     tags: [Payment]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -153,7 +153,7 @@ router.get('/transactions', authMiddleware, getTransactions);
  * /api/payment/transaction/{transactionId}:
  *   get:
  *     summary: Get transaction details
- *     tags: [Payment]
+ *     tags: ["System & Admin"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

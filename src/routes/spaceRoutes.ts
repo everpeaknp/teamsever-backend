@@ -20,8 +20,8 @@ const { createSpaceSchema, updateSpaceSchema } = require("../validators/spaceVal
 /**
  * @swagger
  * tags:
- *   name: Spaces
- *   description: Space management within workspaces
+ *   name: "Project Hierarchy"
+ *   description: "Space management within workspaces"
  */
 
 // Workspace-scoped router
@@ -33,7 +33,7 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create space
  *     description: Create a new space in a workspace
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -63,16 +63,28 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Space created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/SpaceResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Space limit reached or insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get workspace spaces
  *     description: Retrieve all spaces in a workspace
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -85,10 +97,18 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *     responses:
  *       200:
  *         description: Spaces retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/SpaceListResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 workspaceSpaceRouter.post("/", protect, requirePermission("CREATE_SPACE"), checkSpaceLimit, validate(createSpaceSchema), createSpace);
 workspaceSpaceRouter.get("/", protect, requirePermission("VIEW_SPACE"), getWorkspaceSpaces);
@@ -102,7 +122,7 @@ const spaceRouter = express.Router();
  *   get:
  *     summary: Get space
  *     description: Retrieve a specific space by ID
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -115,14 +135,22 @@ const spaceRouter = express.Router();
  *     responses:
  *       200:
  *         description: Space retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/SpaceResponse"
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   patch:
  *     summary: Update space
  *     description: Update space details
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -150,18 +178,30 @@ const spaceRouter = express.Router();
  *     responses:
  *       200:
  *         description: Space updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/SpaceResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete space
  *     description: Delete a space and its contents
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -174,12 +214,20 @@ const spaceRouter = express.Router();
  *     responses:
  *       200:
  *         description: Space deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
  *       403:
  *         description: Insufficient permissions
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
 
@@ -189,7 +237,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *   get:
  *     summary: Get space metadata
  *     description: Returns lightweight metadata for a space (name, members count, settings) without full nested data
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -230,7 +278,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *   get:
  *     summary: Get space lists metadata
  *     description: Returns all lists within a space with lightweight metadata (no task data). Useful for sidebar/navigation rendering.
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -280,7 +328,7 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *   post:
  *     summary: Add member to space
  *     description: Add a workspace member to a space
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -319,7 +367,7 @@ spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"),
  *   delete:
  *     summary: Remove member from space
  *     description: Remove a member from a space
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -353,7 +401,7 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  *   post:
  *     summary: Invite external users to space
  *     description: Invite users who are not workspace members to a space
- *     tags: [Spaces]
+ *     tags: ["Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

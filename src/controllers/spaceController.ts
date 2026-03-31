@@ -35,7 +35,6 @@ const getWorkspaceSpaces = asyncHandler(async (req: AuthRequest, res: Response, 
 
   res.status(200).json({
     success: true,
-    count: spaces.length,
     data: spaces
   });
 });

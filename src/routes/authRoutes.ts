@@ -9,7 +9,7 @@ const router = express.Router();
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user account with email and password
- *     tags: [Auth]
+ *     tags: ["Auth & User"]
  *     requestBody:
  *       required: true
  *       content:
@@ -38,8 +38,16 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/AuthResponse"
  *       400:
  *         description: Validation error or user already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/register", registerUser);
 
@@ -49,7 +57,7 @@ router.post("/register", registerUser);
  *   post:
  *     summary: Login user
  *     description: Authenticates user and returns JWT token
- *     tags: [Auth]
+ *     tags: ["Auth & User"]
  *     requestBody:
  *       required: true
  *       content:
@@ -71,8 +79,16 @@ router.post("/register", registerUser);
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/AuthResponse"
  *       401:
  *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/login", loginUser);
 
@@ -82,7 +98,7 @@ router.post("/login", loginUser);
  *   post:
  *     summary: Google OAuth authentication
  *     description: Authenticate user with Google OAuth token
- *     tags: [Auth]
+ *     tags: ["Auth & User"]
  *     requestBody:
  *       required: true
  *       content:
@@ -98,8 +114,16 @@ router.post("/login", loginUser);
  *     responses:
  *       200:
  *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/AuthResponse"
  *       401:
  *         description: Invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/google", googleAuth);
 
@@ -109,7 +133,7 @@ router.post("/google", googleAuth);
  *   post:
  *     summary: Request password reset
  *     description: Sends a password reset email if the account exists (always returns 200 on success to prevent enumeration)
- *     tags: [Auth]
+ *     tags: ["Auth & User"]
  *     requestBody:
  *       required: true
  *       content:
@@ -126,10 +150,22 @@ router.post("/google", googleAuth);
  *     responses:
  *       200:
  *         description: Reset email request accepted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       500:
  *         description: Email send failed (development only)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/forgot-password", requestPasswordReset);
 
@@ -139,7 +175,7 @@ router.post("/forgot-password", requestPasswordReset);
  *   post:
  *     summary: Reset password
  *     description: Resets the password using a valid reset token
- *     tags: [Auth]
+ *     tags: ["Auth & User"]
  *     requestBody:
  *       required: true
  *       content:
@@ -160,8 +196,16 @@ router.post("/forgot-password", requestPasswordReset);
  *     responses:
  *       200:
  *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Invalid/expired token or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/reset-password", resetPassword);
 

@@ -18,7 +18,7 @@ const router = express.Router();
  *   get:
  *     summary: Get current user profile
  *     description: Retrieve the profile details of the authenticated user.
- *     tags: [Users]
+ *     tags: ["Auth & User"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -27,29 +27,13 @@ const router = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bce50b96fe109fe4e14ff6"
- *                 name: "John Doe"
- *                 email: "john@example.com"
- *                 jobTitle: "Developer"
- *                 department: "Engineering"
- *                 bio: "Loves coding and coffee."
- *                 avatar: "https://res.cloudinary.com/example/image/upload/avatar.jpg"
- *                 createdAt: "2026-01-15T08:00:00Z"
+ *               $ref: "#/components/schemas/UserResponse"
  *       401:
  *         description: Authentication required
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/profile", protect, getMyProfile);
 
@@ -59,7 +43,7 @@ router.get("/profile", protect, getMyProfile);
  *   patch:
  *     summary: Update user profile
  *     description: Update name, job title, department, bio, and profile picture. Uses multipart/form-data for file uploads.
- *     tags: [Users]
+ *     tags: ["Auth & User"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -95,25 +79,19 @@ router.get("/profile", protect, getMyProfile);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *             example:
- *               success: true
- *               message: "Profile updated successfully"
- *               data:
- *                 _id: "69bce50b96fe109fe4e14ff6"
- *                 name: "John Updated"
- *                 jobTitle: "Senior Developer"
+ *               $ref: "#/components/schemas/UserResponse"
  *       400:
  *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch(
   "/profile",
