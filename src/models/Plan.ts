@@ -11,6 +11,7 @@ interface IPlan extends Document {
   description: string;
   parentPlanId?: string;
   features: {
+    maxMembers: number;
     maxWorkspaces: number;
     maxAdmins: number;
     maxSpaces: number;
@@ -103,6 +104,12 @@ const planSchema = new mongoose.Schema(
       default: null
     },
     features: {
+      maxMembers: {
+        type: Number,
+        required: true,
+        min: -1, // -1 means unlimited
+        default: 5
+      },
       maxWorkspaces: {
         type: Number,
         required: true,
