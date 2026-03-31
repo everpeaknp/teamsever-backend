@@ -1,0 +1,196 @@
+{
+	"info": {
+		"_postman_id": "7f8e9d0a-1b2c-3d4e-5f6g-7h8i9j0k1l2m",
+		"name": "Teamsever API (Professional)",
+		"description": "Comprehensive API documentation for the Teamsever project. Designed for frontend and mobile (Flutter) developers.\n\n### Authentication\nMost endpoints require a Bearer Token. Log in using the **Auth > Login User** request to automatically set the `{{token}}` variable.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"description": "User authentication and account management.",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Create a new user account."
+					},
+					"response": [
+						{
+							"name": "Registration Success",
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"message\": \"User registered successfully\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n        \"_id\": \"65d8a1b2c3d4e5f6g7h8i9j0\",\n        \"name\": \"John Doe\",\n        \"email\": \"john@example.com\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.environment.set(\"token\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Authenticate user and get JWT token."
+					},
+					"response": [
+						{
+							"name": "Login Success",
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n    \"success\": true,\n    \"message\": \"Logged in successfully\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n        \"_id\": \"65d8a1b2c3d4e5f6g7h8i9j0\",\n        \"name\": \"John Doe\",\n        \"email\": \"john@example.com\",\n        \"isSuperUser\": false\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Workspaces",
+			"description": "Workspace management.",
+			"item": [
+				{
+					"name": "Get My Workspaces",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces", "host": ["{{base_url}}"], "path": ["api", "workspaces"] }
+					}
+				},
+				{
+					"name": "Get Workspace Hierarchy",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces/:workspaceId/hierarchy", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "hierarchy"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Spaces & Lists",
+			"item": [
+				{
+					"name": "Get Space Lists",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/spaces/:spaceId/lists", "host": ["{{base_url}}"], "path": ["api", "spaces", ":spaceId", "lists"], "variable": [{ "key": "spaceId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "Create Task",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Develop API\",\n    \"description\": \"Build the backend endpoints\",\n    \"priority\": \"high\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/lists/:listId/tasks", "host": ["{{base_url}}"], "path": ["api", "lists", ":listId", "tasks"], "variable": [{ "key": "listId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get Notifications",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/notification-center", "host": ["{{base_url}}"], "path": ["api", "notification-center"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Super Admin",
+			"description": "High-level administrative tools.",
+			"item": [
+				{
+					"name": "Get Financial Analytics",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/super-admin/analytics/financial", "host": ["{{base_url}}"], "path": ["api", "super-admin", "analytics", "financial"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Custom Tables",
+			"item": [
+				{
+					"name": "Export Table to Excel",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/tables/:tableId/export", "host": ["{{base_url}}"], "path": ["api", "tables", ":tableId", "export"], "variable": [{ "key": "tableId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Time Tracking",
+			"item": [
+				{
+					"name": "Start Timer",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"url": { "raw": "{{base_url}}/api/time/start/:taskId", "host": ["{{base_url}}"], "path": ["api", "time", "start", ":taskId"], "variable": [{ "key": "taskId", "value": "ID" }] }
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+		{ "key": "token", "value": "", "type": "string" }
+	]
+}

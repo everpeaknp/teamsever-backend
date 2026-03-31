@@ -1,8 +1,26 @@
 import mongoose from "mongoose";
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import entitlementService from "../services/entitlementService";
-import { LIMIT_CONFIG, DEFAULT_LIMITS } from "../config/subscriptionLimits";
-import type { AuthRequest } from "../types/express";
+import * as subscriptionLimits from "../config/subscriptionLimits";
+const { LIMIT_CONFIG, DEFAULT_LIMITS } = subscriptionLimits;
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    _id?: any;
+    email?: string;
+    name?: string;
+    isSuperUser?: boolean;
+  };
+  subscription?: {
+    isPaid: boolean;
+    status: string;
+    plan: any;
+    subscriptionExpired: boolean;
+    daysRemaining: number;
+  };
+  workspace?: any;
+}
 
 const User = require("../models/User");
 const Workspace = require("../models/Workspace");

@@ -71,24 +71,7 @@ const registerHandlers = (io, socket) => {
       }
 
       // Verify user is workspace member
-      const workspace = await Workspace.findOne({
-        _id: workspaceId,
-        isDeleted: false
-      }).lean();
-
-      if (!workspace) {
-        socket.emit("error", { message: "Workspace not found" });
-        return;
-      }
-
-      const isMember = workspace.members.some(
-        (member) => member.user.toString() === userId
-      );
-
-      if (!isMember) {
-        socket.emit("error", { message: "Unauthorized: Not a workspace member" });
-        return;
-      }
+      const { membership } = await chatService.validateWorkspaceMembership(workspaceId, userId);
 
       // Join workspace room
       const roomName = `workspace:${workspaceId}`;
@@ -100,7 +83,47 @@ const registerHandlers = (io, socket) => {
 
       socket.emit("joined_workspace", { workspaceId, room: roomName });
     } catch (error) {
-      socket.emit("error", { message: "Failed to join workspace" });
+      socket.emit("error", { message: error.message || "Failed to join workspace" });
+    }
+  });
+
+  /**
+   * Join channel room
+   */
+  socket.on("join_channel", async (payload) => {
+    try {
+      const { channelId } = payload;
+
+      if (!channelId) {
+        socket.emit("error", { message: "Channel ID is required" });
+        return;
+      }
+
+      // Verify channel access (via chatService)
+      const channel = await chatService.validateChannelAccess(channelId, userId);
+
+      // Join channel room
+      const roomName = `channel:${channelId}`;
+      await socket.join(roomName);
+
+      socket.emit("joined_channel", { channelId, room: roomName });
+    } catch (error) {
+      socket.emit("error", { message: error.message || "Failed to join channel" });
+    }
+  });
+
+  /**
+   * Leave channel room
+   */
+  socket.on("leave_channel", async (payload) => {
+    try {
+      const { channelId } = payload;
+      if (channelId) {
+        await socket.leave(`channel:${channelId}`);
+        socket.emit("left_channel", { channelId });
+      }
+    } catch (error) {
+      // Ignored
     }
   });
 
@@ -128,24 +151,7 @@ const registerHandlers = (io, socket) => {
       }
 
       // Verify user is workspace member
-      const workspace = await Workspace.findOne({
-        _id: space.workspace,
-        isDeleted: false
-      }).lean();
-
-      if (!workspace) {
-        socket.emit("error", { message: "Workspace not found" });
-        return;
-      }
-
-      const isMember = workspace.members.some(
-        (member) => member.user.toString() === userId
-      );
-
-      if (!isMember) {
-        socket.emit("error", { message: "Unauthorized: Not a workspace member" });
-        return;
-      }
+      await chatService.validateWorkspaceMembership(space.workspace.toString(), userId);
 
       // Join space room
       const roomName = `space:${spaceId}`;
@@ -153,7 +159,7 @@ const registerHandlers = (io, socket) => {
 
       socket.emit("joined_space", { spaceId, room: roomName });
     } catch (error) {
-      socket.emit("error", { message: "Failed to join space" });
+      socket.emit("error", { message: error.message || "Failed to join space" });
     }
   });
 
@@ -182,24 +188,7 @@ const registerHandlers = (io, socket) => {
       }
 
       // Verify user is workspace member
-      const workspace = await Workspace.findOne({
-        _id: task.workspace,
-        isDeleted: false
-      }).lean();
-
-      if (!workspace) {
-        socket.emit("error", { message: "Workspace not found" });
-        return;
-      }
-
-      const isMember = workspace.members.some(
-        (member) => member.user.toString() === userId
-      );
-
-      if (!isMember) {
-        socket.emit("error", { message: "Unauthorized: Not a workspace member" });
-        return;
-      }
+      await chatService.validateWorkspaceMembership(task.workspace.toString(), userId);
 
       // Join task room
       const roomName = `task:${taskId}`;
@@ -207,7 +196,7 @@ const registerHandlers = (io, socket) => {
 
       socket.emit("joined_task", { taskId, room: roomName });
     } catch (error) {
-      socket.emit("error", { message: "Failed to join task" });
+      socket.emit("error", { message: error.message || "Failed to join task" });
     }
   });
 
@@ -259,7 +248,7 @@ const registerHandlers = (io, socket) => {
               workspace.members.forEach((member) => {
                 const memberId = member.user.toString();
                 if (memberId !== userId) {
-                  socketService.emitToUser(memberId, "user:offline", {
+                  socketService.emitToUser(memberId, "user:online", {
                     userId,
                     userName: socket.user!.name,
                     workspaceId: workspace._id.toString(),
@@ -270,10 +259,10 @@ const registerHandlers = (io, socket) => {
             });
           })
           .catch((error) => {
-            console.error("[Socket] Failed to emit user:offline event:", error);
+            console.error("[Socket] Failed to emit user:online event:", error);
           });
       } catch (error) {
-        console.error("[Socket] Failed to emit user:offline event:", error);
+        console.error("[Socket] Failed to emit user:online event:", error);
       }
     }
 
@@ -291,42 +280,37 @@ const registerHandlers = (io, socket) => {
    */
   socket.on("chat:send", async (payload) => {
     try {
-      const { workspaceId, content, mentions } = payload;
+      const { workspaceId, channelId, content, mentions } = payload;
 
       if (!workspaceId) {
         socket.emit("error", { message: "Workspace ID is required" });
         return;
       }
 
-      if (!content || content.trim().length === 0) {
-        socket.emit("error", { message: "Message content is required" });
-        return;
-      }
-
-      // Check message limit before creating message
+      // Check message limit
       const limitCheck = await checkMessageLimitForWorkspace(workspaceId);
-      
       if (!limitCheck.allowed) {
         socket.emit("error", limitCheck.error);
         return;
       }
 
-      // Create message using service (validates membership)
+      // Create message (validates membership and channel access)
       const message = await chatService.createMessage({
         workspaceId,
-        senderId: userId, // Use authenticated user ID from socket
+        channelId,
+        senderId: userId,
         content,
         mentions: mentions || [],
       });
 
-      // Broadcast to workspace room
-      const workspace = await Workspace.findById(workspaceId).select('name').lean();
+      // Broadcast to channel room
+      const targetChannelId = message.channel.toString();
       
-      io.to(`workspace:${workspaceId}`).emit("chat:new", {
+      io.to(`channel:${targetChannelId}`).emit("chat:new", {
         message: {
           _id: message._id,
           workspace: message.workspace,
-          workspaceName: workspace?.name,
+          channel: targetChannelId,
           sender: message.sender,
           content: message.content,
           type: message.type,
@@ -347,38 +331,20 @@ const registerHandlers = (io, socket) => {
    */
   socket.on("chat:typing", async (payload) => {
     try {
-      const { workspaceId } = payload;
+      const { channelId } = payload;
+      if (!channelId) return;
 
-      if (!workspaceId) {
-        return;
-      }
+      // Validate access
+      await chatService.validateChannelAccess(channelId, userId);
 
-      // Verify workspace membership
-      const workspace = await Workspace.findOne({
-        _id: workspaceId,
-        isDeleted: false
-      }).lean();
-
-      if (!workspace) {
-        return;
-      }
-
-      const isMember = workspace.members.some(
-        (member) => member.user.toString() === userId
-      );
-
-      if (!isMember) {
-        return;
-      }
-
-      // Broadcast to workspace room except sender
-      socket.to(`workspace:${workspaceId}`).emit("chat:user_typing", {
-        workspaceId,
+      // Broadcast to channel room except sender
+      socket.to(`channel:${channelId}`).emit("chat:user_typing", {
+        channelId,
         userId,
         userName: socket.user!.name,
       });
     } catch (error) {
-      // Silently fail for typing indicators
+      // Silently fail
     }
   });
 
@@ -387,19 +353,16 @@ const registerHandlers = (io, socket) => {
    */
   socket.on("chat:stop_typing", async (payload) => {
     try {
-      const { workspaceId } = payload;
+      const { channelId } = payload;
+      if (!channelId) return;
 
-      if (!workspaceId) {
-        return;
-      }
-
-      // Broadcast to workspace room except sender
-      socket.to(`workspace:${workspaceId}`).emit("chat:user_stop_typing", {
-        workspaceId,
+      // Broadcast to channel room except sender
+      socket.to(`channel:${channelId}`).emit("chat:user_stop_typing", {
+        channelId,
         userId,
       });
     } catch (error) {
-      // Silently fail for typing indicators
+      // Silently fail
     }
   });
 };

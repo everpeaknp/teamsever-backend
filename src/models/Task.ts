@@ -240,6 +240,7 @@ taskSchema.index({ dependencies: 1 });
 taskSchema.index({ dependents: 1 });
 taskSchema.index({ isRecurring: 1, nextOccurrence: 1 });
 taskSchema.index({ recurringTaskId: 1 });
+taskSchema.index({ workspace: 1, isDeleted: 1, status: 1 }); // Unified analytics
 
 // Analytics-specific indexes
 taskSchema.index({ workspace: 1, status: 1, updatedAt: 1 }); // For velocity queries

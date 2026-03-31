@@ -1,6 +1,6 @@
 const directMessageService = require("../services/directMessageService");
 const asyncHandler = require("../utils/asyncHandler");
-const EntitlementService = require("../services/entitlementService").default;
+const EntitlementService = require("../services/entitlementService");
 
 /**
  * @desc    Start or get conversation with a user

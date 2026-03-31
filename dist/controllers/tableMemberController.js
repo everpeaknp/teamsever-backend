@@ -12,7 +12,6 @@ const AppError = require("../utils/AppError");
  * @access  Private (Member or higher)
  */
 const getTableMembers = asyncHandler(async (req, res, next) => {
-    console.log('[TableMemberController] getTableMembers called', { tableId: req.params.tableId });
     const { tableId } = req.params;
     const table = await CustomTable.findById(tableId);
     if (!table) {
@@ -50,7 +49,6 @@ const getTableMembers = asyncHandler(async (req, res, next) => {
             addedAt: override?.createdAt || null,
         };
     });
-    console.log('[TableMemberController] Members retrieved (excluding admins/owners)', { count: members.length });
     res.status(200).json({
         success: true,
         count: members.length,
@@ -66,7 +64,6 @@ const addTableMember = asyncHandler(async (req, res, next) => {
     const { tableId } = req.params;
     const { userId, permissionLevel } = req.body;
     const currentUserId = req.user.id;
-    console.log('[addTableMember] Request:', { tableId, userId, permissionLevel, currentUserId });
     // Validate permission level
     const validLevels = Object.values(TablePermissionLevel);
     if (!permissionLevel || !validLevels.includes(permissionLevel)) {
@@ -123,12 +120,10 @@ const addTableMember = asyncHandler(async (req, res, next) => {
             permissionLevel,
             addedBy: currentUserId,
         };
-        console.log('[addTableMember] Creating with data:', createData);
         try {
             tableMember = await TableMember.create(createData);
         }
         catch (createError) {
-            console.error('[addTableMember] Create error:', createError);
             return next(new AppError(`Failed to create table member: ${createError.message}`, 500));
         }
     }
@@ -148,7 +143,6 @@ const addTableMember = asyncHandler(async (req, res, next) => {
             });
         }
         catch (error) {
-            console.error('[addTableMember] Failed to create workspace activity:', error);
         }
     }
     res.status(200).json({
@@ -238,7 +232,6 @@ const removeTableMember = asyncHandler(async (req, res, next) => {
             });
         }
         catch (error) {
-            console.error('[removeTableMember] Failed to create workspace activity:', error);
         }
     }
     res.status(200).json({

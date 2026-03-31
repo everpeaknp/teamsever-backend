@@ -11,8 +11,6 @@ const AppError = require("../utils/AppError");
  * @access  Private (Member or higher)
  */
 const getTableMembers = asyncHandler(async (req: any, res: any, next: any) => {
-  console.log('[TableMemberController] getTableMembers called', { tableId: req.params.tableId });
-
   const { tableId } = req.params;
 
   const table = await CustomTable.findById(tableId);
@@ -57,8 +55,6 @@ const getTableMembers = asyncHandler(async (req: any, res: any, next: any) => {
       };
     });
 
-  console.log('[TableMemberController] Members retrieved (excluding admins/owners)', { count: members.length });
-
   res.status(200).json({
     success: true,
     count: members.length,
@@ -75,8 +71,6 @@ const addTableMember = asyncHandler(async (req: any, res: any, next: any) => {
   const { tableId } = req.params;
   const { userId, permissionLevel } = req.body;
   const currentUserId = req.user.id;
-
-  console.log('[addTableMember] Request:', { tableId, userId, permissionLevel, currentUserId });
 
   // Validate permission level
   const validLevels = Object.values(TablePermissionLevel);
@@ -143,12 +137,9 @@ const addTableMember = asyncHandler(async (req: any, res: any, next: any) => {
       addedBy: currentUserId,
     };
 
-    console.log('[addTableMember] Creating with data:', createData);
-
     try {
       tableMember = await TableMember.create(createData);
     } catch (createError: any) {
-      console.error('[addTableMember] Create error:', createError);
       return next(new AppError(`Failed to create table member: ${createError.message}`, 500));
     }
   }
@@ -169,7 +160,6 @@ const addTableMember = asyncHandler(async (req: any, res: any, next: any) => {
         metadata: { permissionLevel, tableId }
       });
     } catch (error) {
-      console.error('[addTableMember] Failed to create workspace activity:', error);
     }
   }
 
@@ -273,7 +263,6 @@ const removeTableMember = asyncHandler(async (req: any, res: any, next: any) => 
         metadata: { tableId }
       });
     } catch (error) {
-      console.error('[removeTableMember] Failed to create workspace activity:', error);
     }
   }
 

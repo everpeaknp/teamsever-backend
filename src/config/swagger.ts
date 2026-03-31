@@ -943,20 +943,28 @@ const options: swaggerJsdoc.Options = {
     ],
     tags: [
       {
-        name: "Auth",
-        description: "Authentication — register, login, Google OAuth, password reset"
+        name: "Analytics",
+        description: "🚀 PRIMARY DASHBOARD — use GET /api/workspaces/{id}/analytics for everything. Sub-endpoints (velocity, lead-time, burn-down) are for dedicated chart screens only."
       },
       {
         name: "Workspaces",
-        description: "Workspace CRUD, hierarchy, analytics, announcements, logo upload"
+        description: "Workspace CRUD, Hierarchy (Spaces→Folders→Lists), Announcements, Logo, Clock-in"
+      },
+      {
+        name: "Auth",
+        description: "Register, Login, Google OAuth, Email Verification, Password Reset"
+      },
+      {
+        name: "Members",
+        description: "Workspace members — list, invite, role changes, removal"
       },
       {
         name: "Invitations",
-        description: "Workspace invitation system — send, accept, revoke, verify"
+        description: "Invitation links — send, list, cancel, accept, verify token"
       },
       {
         name: "Spaces",
-        description: "Space/Project management within workspaces — CRUD and member operations"
+        description: "Spaces (Projects) inside a workspace — CRUD and member management"
       },
       {
         name: "Space Invitations",
@@ -964,79 +972,67 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: "Space Members",
-        description: "Space-level member permission management"
+        description: "Space-level member permissions"
       },
       {
         name: "Folders",
-        description: "Folder management within spaces"
+        description: "Folders inside spaces — CRUD"
       },
       {
         name: "Folder Members",
-        description: "Folder-level member permission management"
+        description: "Folder-level member permissions"
       },
       {
         name: "Lists",
-        description: "List management within spaces"
+        description: "Lists inside spaces — CRUD"
       },
       {
         name: "List Members",
-        description: "List-level member permission management"
+        description: "List-level member permissions"
       },
       {
         name: "Tasks",
-        description: "Task CRUD, subtasks, and inline dependency management"
+        description: "Tasks inside lists — CRUD, subtasks, assignments, priorities, due dates"
       },
       {
         name: "Task Dependencies",
-        description: "Standalone task dependency endpoints — FS/SS/FF/SF with cascading Gantt logic"
+        description: "Task dependency graph — FS/SS/FF/SF relationships with cascading Gantt logic"
       },
       {
         name: "Recurring Tasks",
-        description: "Recurring task automation — cron-based processing every hour"
+        description: "Recurring task definitions — auto-processed by cron every hour"
       },
       {
         name: "Activity",
-        description: "Task activity feed, comments, reactions — the unified comment/update system"
+        description: "Task comments, reactions, and audit activity feed"
       },
       {
         name: "Attachments",
-        description: "File uploads for tasks and workspace-wide storage via Cloudinary"
+        description: "File uploads (Cloudinary) for tasks and workspace-level storage"
       },
       {
         name: "Workspace Files",
-        description: "Workspace-wide shared file management (not task-specific)"
-      },
-      {
-        name: "Analytics",
-        description: "Workspace analytics — summary, workload, velocity, lead time, burn-down"
-      },
-      {
-        name: "Dashboard",
-        description: "Dashboard statistics and summaries for the logged-in user"
+        description: "Workspace-wide file library — shared files not attached to a specific task"
       },
       {
         name: "Custom Fields",
-        description: "Custom field definitions and values on tasks"
+        description: "Custom field definitions and per-task values"
       },
       {
         name: "Custom Tables",
-        description: "Excel-like custom tables within spaces — columns, rows, colours"
+        description: "Excel-style data tables inside spaces — columns, rows, cell colours"
       },
       {
         name: "Time Tracking",
-        description: "Time entries and time tracking — start/stop timers, log hours"
-      },
-      {
-        name: "Notifications",
-        description: "Push notification device registration (FCM)"
+        description: "Timer start/stop, manual time entries, admin oversight, team timesheets"
       },
       {
         name: "Notification Center",
-        description: "In-app notification center — list, mark read, clear"
+        description: "In-app notifications (list, mark-read) + FCM device token registration"
       },
       {
         name: "Chat",
-        description: "Real-time workspace group chat via WebSocket"
+        description: "Real-time workspace group chat via Socket.io"
       },
       {
         name: "Direct Messages",
@@ -1044,62 +1040,56 @@ const options: swaggerJsdoc.Options = {
       },
       {
         name: "Documents",
-        description: "Workspace document management — rich-text collaborative docs"
-      },
-      {
-        name: "Members",
-        description: "Workspace member management — list, roles, removal"
+        description: "Rich-text collaborative workspace documents"
       },
       {
         name: "Plans",
-        description: "Subscription plan management — CRUD for admin, listing for users"
+        description: "Subscription plan management — admin CRUD, user listing"
       },
       {
         name: "Subscription",
-        description: "User subscription info — status, trial, expiry"
+        description: "Current user subscription status, trial info, and expiry"
       },
       {
         name: "Entitlements",
-        description: "Feature entitlement checking and current usage tracking"
+        description: "Feature gate checking and resource usage limits"
       },
       {
         name: "Payment",
-        description: "eSewa payment integration for plan upgrades — initiate, verify, history"
+        description: "eSewa payment integration — initiate, verify callback, history"
       },
       {
         name: "Currency",
-        description: "USD ↔ NPR exchange rate and conversion"
+        description: "USD ↔ NPR live exchange rates"
       },
       {
         name: "Super Admin",
-        description: "Super admin dashboard — user management, financial analytics, system settings"
+        description: "Super-admin panel — all users, financials, system settings"
       },
       {
         name: "Feedback",
-        description: "User feedback submission and management"
+        description: "User feedback submission and admin review"
       },
       {
         name: "Performance",
-        description: "User and team performance metrics"
+        description: "Individual and team performance analytics"
       },
       {
         name: "Presence",
-        description: "User online presence and status"
+        description: "Real-time user online/offline presence"
       },
       {
         name: "Search",
-        description: "Global search across tasks, spaces, and lists"
+        description: "Global full-text search across tasks, spaces, lists, and members"
       },
       {
         name: "Users",
-        description: "User profile management"
+        description: "User profile — view / update own profile"
       }
     ]
   },
   apis: [
-    "./src/routes/*.ts",
-    "./src/routes/*.js",
-    "./dist/routes/*.js"
+    "./src/routes/*.ts"
   ]
 };
 

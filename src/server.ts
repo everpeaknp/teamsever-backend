@@ -31,6 +31,8 @@ if (!process.env.JWT_SECRET) {
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
+const compression = require("compression");
+const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger").default;
@@ -58,7 +60,7 @@ const startServer = async () => {
     const listMemberRoutes = require("./routes/listMemberRoutes");
     const { listTaskRouter, taskRouter } = require("./routes/taskRoutes");
     const { workspaceInvitationRouter, inviteRouter, publicInviteRouter } = require("./routes/invitationRoutes");
-    const { workspaceChatRouter, chatRouter } = require("./routes/chatRoutes");
+    const { workspaceChatRouter, channelRouter, chatRouter } = require("./routes/chatRoutes");
     const notificationRoutes = require("./routes/notificationRoutes");
     const notificationCenterRoutes = require("./routes/notificationCenterRoutes");
     const presenceRoutes = require("./routes/presenceRoutes");
@@ -75,6 +77,7 @@ const startServer = async () => {
     const activityRoutes = require("./routes/activityRoutes");
     const searchRoutes = require("./routes/searchRoutes");
     const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
+    const attendanceRoutes = require("./routes/attendanceRoutes");
     const memberRoutes = require("./routes/memberRoutes");
     const documentRoutes = require("./routes/documentRoutes");
     const performanceRoutes = require("./routes/performanceRoutes");
@@ -128,14 +131,32 @@ const startServer = async () => {
     app.use(cors(corsOptions));
     app.options(/.*/, cors(corsOptions));
 
-    // 6. Rate limiting
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5000, // Increased for development
+    // 6. Rate limiting — tiered by endpoint sensitivity
+    // Auth endpoints: 20 requests per 15 min (brute-force protection)
+    const authLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 20,
       skip: (req) => req.method === "OPTIONS",
-      message: "Too many requests from this IP, please try again later"
+      message: { success: false, message: "Too many authentication attempts. Try again later." }
     });
-    app.use("/api/", limiter);
+    // General API: 500 requests per 15 min per IP
+    const generalLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 500,
+      skip: (req) => req.method === "OPTIONS",
+      message: { success: false, message: "Too many requests from this IP. Try again later." }
+    });
+    app.use("/api/auth/login", authLimiter);
+    app.use("/api/auth/register", authLimiter);
+    app.use("/api/auth/forgot-password", authLimiter);
+    app.use("/api/", generalLimiter);
+
+    // 6.1. Response compression — reduces bandwidth by 60-80%
+    app.use(compression());
+
+    // 6.2. Request logging
+    app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
     app.use(express.json());
     
     // 6.5. NoSQL Injection Protection - MUST be after express.json() and before routes
@@ -183,6 +204,7 @@ const startServer = async () => {
     app.use("/api/workspaces/:workspaceId/invites", workspaceInvitationRouter);
     app.use("/api/workspaces/:workspaceId/chat", workspaceChatRouter);
     app.use("/api/invites", inviteRouter);
+    app.use("/api/chat/channels", channelRouter);
     app.use("/api/chat", chatRouter);
     app.use("/api/notifications/devices", notificationRoutes);
     app.use("/api/notifications", notificationCenterRoutes);
@@ -194,6 +216,7 @@ const startServer = async () => {
     app.use("/api/time", timeEntryRoutes);
     app.use("/api/recurring", recurringRoutes);
     app.use("/api/analytics", analyticsRoutes);
+    app.use("/api/attendance", attendanceRoutes);
     app.use("/api", attachmentRoutes);
     app.use("/api", activityRoutes);
     app.use("/api/search", searchRoutes);
@@ -240,28 +263,28 @@ const startServer = async () => {
 
       // Initialize subscription expiry check cron job (runs every hour)
       cron.schedule("0 * * * *", async () => {
-        console.log("[Cron] Checking for expired subscriptions...");
         try {
           const User = require("./models/User");
           const now = new Date();
           
-          // Find all active paid subscriptions that have expired
-          const expiredUsers = await User.find({
-            'subscription.isPaid': true,
-            'subscription.status': 'active',
-            'subscription.expiresAt': { $lte: now }
-          });
+          // Single updateMany instead of N+1 individual saves
+          const result = await User.updateMany(
+            {
+              'subscription.isPaid': true,
+              'subscription.status': 'active',
+              'subscription.expiresAt': { $lte: now }
+            },
+            {
+              $set: {
+                'subscription.status': 'expired',
+                'subscription.isPaid': false,
+              }
+            }
+          );
 
-          let expiredCount = 0;
-          for (const user of expiredUsers) {
-            user.subscription.status = 'expired';
-            user.subscription.isPaid = false;
-            await user.save();
-            expiredCount++;
-            console.log(`[Cron] Expired subscription for user: ${user.email}`);
+          if (result.modifiedCount > 0) {
+            console.log(`[Cron] ${result.modifiedCount} subscriptions expired`);
           }
-
-          console.log(`[Cron] Subscription check complete: ${expiredCount} subscriptions expired`);
         } catch (error) {
           console.error("[Cron] Error checking subscription expiry:", error);
         }

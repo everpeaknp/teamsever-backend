@@ -15,7 +15,6 @@ class RecurringService {
             details: []
         };
         try {
-            console.log("[RecurringService] Starting recurring task processing...");
             // Find all recurring tasks that are due
             const now = new Date();
             const recurringTasks = await Task.find({
@@ -28,7 +27,6 @@ class RecurringService {
                     { recurrenceEnd: { $gte: now } }
                 ]
             }).lean();
-            console.log(`[RecurringService] Found ${recurringTasks.length} recurring tasks to process`);
             for (const task of recurringTasks) {
                 result.processed++;
                 try {
@@ -42,7 +40,6 @@ class RecurringService {
                         title: task.title,
                         success: true
                     });
-                    console.log(`[RecurringService] Successfully processed recurring task: ${task.title}`);
                     // Emit real-time event for new task
                     try {
                         emitTaskEvent(newTask._id.toString(), "task_created", {
@@ -67,10 +64,8 @@ class RecurringService {
                         success: false,
                         error: error.message
                     });
-                    console.error(`[RecurringService] Error processing task ${task.title}:`, error);
                 }
             }
-            console.log(`[RecurringService] Processing complete. Created: ${result.created}, Errors: ${result.errors}`);
             // Log activity (removed - logger requires valid ObjectIds)
             // Activity logging for system-generated recurring tasks is handled per-task above
             return result;
@@ -100,7 +95,6 @@ class RecurringService {
             dueDate: this.calculateNewDueDate(originalTask)
         };
         const newTask = await Task.create(taskData);
-        console.log(`[RecurringService] Cloned task: ${originalTask.title} -> ${newTask._id}`);
         return newTask;
     }
     /**
@@ -111,7 +105,6 @@ class RecurringService {
         await Task.findByIdAndUpdate(task._id, {
             nextOccurrence: nextDate
         });
-        console.log(`[RecurringService] Updated nextOccurrence for ${task.title}: ${nextDate}`);
     }
     /**
      * Calculate the next occurrence date based on frequency and interval
@@ -204,7 +197,6 @@ class RecurringService {
         task.isRecurring = false;
         task.nextOccurrence = undefined;
         await task.save();
-        console.log(`[RecurringService] Stopped recurring task: ${task.title}`);
         return task;
     }
 }

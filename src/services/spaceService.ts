@@ -71,7 +71,6 @@ class SpaceService {
       
       if (!freePlan) {
         // If no free plan exists, allow creation (backward compatibility)
-        console.log('[SpaceService] No free plan found, allowing space creation');
         const space = await Space.create({
           name,
           description,
@@ -117,13 +116,6 @@ class SpaceService {
     const currentSpaceCount = await Space.countDocuments({
       workspace: workspace,
       isDeleted: false
-    });
-    
-    console.log('[SpaceService] Space limit check:', {
-      workspaceId: workspace,
-      currentCount: currentSpaceCount,
-      maxAllowed: maxSpaces,
-      planName: planToUse.name
     });
     
     // Check if limit is reached (only if not unlimited)
@@ -172,14 +164,11 @@ class SpaceService {
     // Invalidate usage cache for workspace owner
     const EntitlementService = require("./entitlementService").default;
     EntitlementService.invalidateUsageCache(workspaceOwner._id.toString());
-    console.log('[SpaceService] Invalidated usage cache for workspace owner');
 
     return space;
   }
 
   async getWorkspaceSpaces(workspaceId: string, userId: string) {
-    console.log(`[SpaceService] getWorkspaceSpaces called with workspaceId: ${workspaceId}, userId: ${userId}`);
-    
     // Import ListMember model
     const ListMember = require("../models/ListMember").ListMember;
     
@@ -210,8 +199,6 @@ class SpaceService {
     });
     const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
 
-    console.log(`[SpaceService] User access check:`, { isOwner, isAdmin });
-
     const allSpaces = await Space.find({
       workspace: workspaceId,
       isDeleted: false
@@ -221,11 +208,8 @@ class SpaceService {
       .sort("-createdAt")
       .lean();
 
-    console.log(`[SpaceService] Found ${allSpaces.length} total spaces`);
-
     // If user is owner or admin, return all spaces
     if (isOwner || isAdmin) {
-      console.log(`[SpaceService] User is owner/admin, returning all ${allSpaces.length} spaces`);
       return allSpaces;
     }
 
@@ -239,8 +223,6 @@ class SpaceService {
       });
     });
 
-    console.log(`[SpaceService] User is member of ${spacesAsMember.length} spaces`);
-
     // Get spaces where user has list access (but not space member)
     const userListMemberships = await ListMember.find({
       user: userId,
@@ -248,7 +230,6 @@ class SpaceService {
     }).select('space').lean();
 
     const spacesWithListAccess = [...new Set(userListMemberships.map((lm: any) => lm.space.toString()))];
-    console.log(`[SpaceService] User has list access in ${spacesWithListAccess.length} additional spaces`);
 
     // Combine both sets of spaces
     const accessibleSpaceIds = new Set([
@@ -260,13 +241,10 @@ class SpaceService {
       accessibleSpaceIds.has(space._id.toString())
     );
 
-    console.log(`[SpaceService] Returning ${filteredSpaces.length} filtered spaces`);
     return filteredSpaces;
   }
 
   async getSpaceById(spaceId: string, userId: string) {
-    console.log(`[SpaceService] getSpaceById called with spaceId: ${spaceId}, userId: ${userId}`);
-    
     // Validate ObjectId format
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(spaceId)) {
@@ -283,11 +261,8 @@ class SpaceService {
       .lean();
 
     if (!space) {
-      console.error(`[SpaceService] Space not found with ID: ${spaceId}`);
       throw new AppError("Space not found", 404);
     }
-
-    console.log(`[SpaceService] Found space: ${space.name}, workspace: ${space.workspace}`);
 
     // Check if user has access (workspace member or space member)
     const workspace = await Workspace.findOne({
@@ -300,24 +275,18 @@ class SpaceService {
       throw new AppError("Workspace not found", 404);
     }
 
-    console.log(`[SpaceService] Found workspace: ${workspace.name}`);
-
     const isWorkspaceMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
     if (!isWorkspaceMember) {
-      console.error(`[SpaceService] User ${userId} is not a member of workspace ${workspace._id}`);
       throw new AppError("You do not have access to this space", 403);
     }
 
-    console.log(`[SpaceService] User ${userId} has access to space ${spaceId}`);
     return space;
   }
 
   async getSpaceMetadataById(spaceId: string, userId: string) {
-    console.log(`[SpaceService] getSpaceMetadataById called with spaceId: ${spaceId}, userId: ${userId}`);
-    
     // Validate ObjectId format
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(spaceId)) {
@@ -356,21 +325,16 @@ class SpaceService {
     );
 
     if (!isWorkspaceMember) {
-      console.error(`[SpaceService] User ${userId} is not a member of workspace ${workspace._id}`);
       throw new AppError("You do not have access to this space", 403);
     }
 
-    console.log(`[SpaceService] User ${userId} has access to space metadata ${spaceId}`);
     return space;
   }
 
   async getSpaceListsMetadata(spaceId: string, userId: string) {
-    console.log(`[SpaceService] getSpaceListsMetadata called with spaceId: ${spaceId}, userId: ${userId}`);
-    
     // Validate ObjectId format
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(spaceId)) {
-      console.error(`[SpaceService] Invalid space ID format: ${spaceId}`);
       throw new AppError("Invalid space ID format", 400);
     }
     
@@ -411,7 +375,6 @@ class SpaceService {
       .select('_id name description status folderId taskCount completedCount createdAt updatedAt')
       .lean();
 
-    console.log(`[SpaceService] Found ${lists.length} lists for space ${spaceId}`);
     return lists;
   }
 
@@ -726,7 +689,7 @@ class SpaceService {
     }
 
     // Send invitation emails
-    const mailService = require("./mailService");
+    const emailService = require("./emailService");
     const User = require("../models/User");
 
     const results = [];
@@ -754,12 +717,12 @@ class SpaceService {
           results.push({ email: invite.email, status: 'added' });
         } else {
           // Send invitation email
-          await mailService.sendSpaceInvitation({
-            email: invite.email,
+          await emailService.sendSpaceInvitation({
+            recipientEmail: invite.email,
             spaceName: space.name,
             workspaceName: workspace.name,
             inviterName: workspace.owner.name || 'Team member',
-            role: invite.role
+            invitationLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/register?email=${encodeURIComponent(invite.email)}`
           });
           results.push({ email: invite.email, status: 'invited' });
         }

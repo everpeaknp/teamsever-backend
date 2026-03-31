@@ -24,7 +24,7 @@ router.use(protect);
  *   get:
  *     summary: Get workspace active timers (Admin)
  *     description: Get all active timers in workspace (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -48,7 +48,7 @@ router.get("/admin/workspace/:workspaceId/active", getWorkspaceActiveTimers);
  *   get:
  *     summary: Get team timesheets (Admin)
  *     description: Get team timesheets for workspace (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -72,7 +72,7 @@ router.get("/admin/workspace/:workspaceId/timesheets", getTeamTimesheets);
  *   get:
  *     summary: Get workspace time stats (Admin)
  *     description: Get workspace time statistics (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -96,7 +96,7 @@ router.get("/admin/workspace/:workspaceId/stats", getWorkspaceTimeStats);
  *   post:
  *     summary: Admin force-stop timer
  *     description: Force stop a running timer (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -120,7 +120,7 @@ router.post("/admin/stop/:entryId", adminStopTimer);
  *   post:
  *     summary: Cleanup orphaned timers (Admin)
  *     description: Cleanup orphaned timers in workspace (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -144,7 +144,7 @@ router.post("/admin/workspace/:workspaceId/cleanup-orphaned", cleanupOrphanedTim
  *   post:
  *     summary: Stop all user timers (Admin)
  *     description: Stop all running timers for a user (Admin only)
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -176,7 +176,7 @@ router.post("/admin/workspace/:workspaceId/stop-user-timers/:userId", stopAllUse
  *   post:
  *     summary: Start timer
  *     description: Start a time tracking timer for a task
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -207,7 +207,7 @@ router.post("/start/:taskId", validate(startTimerSchema), startTimer);
  *   post:
  *     summary: Stop timer
  *     description: Stop a running timer
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -229,7 +229,7 @@ router.post("/stop/:entryId", stopTimer);
  *   post:
  *     summary: Add manual time entry
  *     description: Add a manual time entry for a task
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -262,14 +262,26 @@ router.post("/manual", validate(addManualTimeSchema), addManualTime);
  * @swagger
  * /api/time/running:
  *   get:
- *     summary: Get running timer
- *     description: Get user's currently running timer
- *     tags: [Time Entries]
+ *     summary: Get my running timer
+ *     description: Returns the user's currently active timer. Returns null data if no timer is running. Check this on app startup to restore the timer UI.
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Running timer retrieved successfully
+ *         description: Running timer or null
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675716"
+ *                 task:
+ *                   _id: "69bbf827a96fe78f716755f4"
+ *                   title: "Implement OAuth2"
+ *                 startTime: "2026-03-30T09:00:00Z"
+ *                 elapsedSeconds: 3600
+ *                 workspace: "69bbf827a96fe78f716752bb"
  *       401:
  *         description: Authentication required
  */
@@ -279,8 +291,8 @@ router.get("/running", getRunningTimer);
  * /api/time/task/{taskId}:
  *   get:
  *     summary: Get task time summary
- *     description: Get time tracking summary for a task
- *     tags: [Time Entries]
+ *     description: Returns total time logged for a task plus a breakdown of individual entries.
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -291,7 +303,24 @@ router.get("/running", getRunningTimer);
  *           type: string
  *     responses:
  *       200:
- *         description: Task time summary retrieved successfully
+ *         description: Task time summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 taskId: "69bbf827a96fe78f716755f4"
+ *                 totalSeconds: 12600
+ *                 totalFormatted: "3h 30m"
+ *                 entries:
+ *                   - duration: 3600
+ *                     durationFormatted: "1h"
+ *                     startTime: "2026-03-29T09:00:00Z"
+ *                     isManual: false
+ *                   - duration: 9000
+ *                     durationFormatted: "2h 30m"
+ *                     description: "Additional research"
+ *                     isManual: true
  *       401:
  *         description: Authentication required
  */
@@ -302,7 +331,7 @@ router.get("/task/:taskId", getTaskTimeSummary);
  *   get:
  *     summary: Get project time summary
  *     description: Get time tracking summary for a project
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -324,7 +353,7 @@ router.get("/project/:projectId", getProjectTimeSummary);
  *   delete:
  *     summary: Delete time entry
  *     description: Delete a time entry
- *     tags: [Time Entries]
+ *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     parameters:

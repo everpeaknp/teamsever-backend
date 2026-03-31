@@ -35,6 +35,10 @@ interface IPlan extends Document {
     maxDocuments: number;
     // Direct Messages (Pro Feature)
     maxDirectMessagesPerUser: number;
+    // Private Channels (Pro Feature)
+    canCreatePrivateChannels: boolean;
+    maxPrivateChannelsCount: number;
+    maxMembersPerPrivateChannel: number;
   };
   isActive: boolean;
   createdAt: Date;
@@ -214,6 +218,24 @@ const planSchema = new mongoose.Schema(
       },
       // Direct Messages (Pro Feature)
       maxDirectMessagesPerUser: {
+        type: Number,
+        required: false,
+        min: -1, // -1 means unlimited
+        default: -1
+      },
+      // Private Channels (Pro Feature)
+      canCreatePrivateChannels: {
+        type: Boolean,
+        required: false,
+        default: false
+      },
+      maxPrivateChannelsCount: {
+        type: Number,
+        required: false,
+        min: -1, // -1 means unlimited
+        default: -1
+      },
+      maxMembersPerPrivateChannel: {
         type: Number,
         required: false,
         min: -1, // -1 means unlimited

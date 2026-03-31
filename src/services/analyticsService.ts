@@ -1,6 +1,7 @@
 const Task = require("../models/Task");
 const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
+const mongoose = require("mongoose");
 
 interface VelocityData {
   date: string;
@@ -54,7 +55,6 @@ class AnalyticsService {
     // Verify user has access to workspace
     await this.verifyWorkspaceAccess(workspaceId, userId);
 
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
 
     // Calculate date range: from N days ago to end of today
@@ -112,7 +112,6 @@ class AnalyticsService {
     // Verify user has access to workspace
     await this.verifyWorkspaceAccess(workspaceId, userId);
 
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
 
     // Calculate date range
@@ -168,29 +167,17 @@ class AnalyticsService {
    * Get burn-down data: open vs completed tasks in a project
    * GET /api/analytics/burn-down
    */
-  async getBurnDown(projectId: string, userId: string): Promise<BurnDownData> {
-    // Get project and verify access
-    const Space = require("../models/Space");
-    const mongoose = require("mongoose");
-    const projectObjectId = new mongoose.Types.ObjectId(projectId);
-    
-    const project = await Space.findOne({
-      _id: projectObjectId,
-      isDeleted: false
-    });
-
-    if (!project) {
-      throw new AppError("Project not found", 404);
-    }
-
+  async getBurnDown(workspaceId: string, userId: string): Promise<BurnDownData> {
     // Verify user has access to workspace
-    await this.verifyWorkspaceAccess(project.workspace.toString(), userId);
+    await this.verifyWorkspaceAccess(workspaceId, userId);
 
-    // MongoDB aggregation pipeline
+    const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
+
+    // MongoDB aggregation pipeline for the entire workspace
     const burnDownData = await Task.aggregate([
       {
         $match: {
-          space: projectObjectId,
+          workspace: workspaceObjectId,
           isDeleted: false
         }
       },
@@ -215,7 +202,7 @@ class AnalyticsService {
         case "done":
           completed = item.count;
           break;
-        case "in-progress":
+        case "inprogress": // Fix typo from "in-progress" to "inprogress" to match Task model
           inProgress = item.count;
           break;
         case "todo":
@@ -243,7 +230,6 @@ class AnalyticsService {
     // Verify user has access to workspace
     await this.verifyWorkspaceAccess(workspaceId, userId);
 
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
 
     // Single aggregation query to get all overview data
@@ -362,7 +348,6 @@ class AnalyticsService {
     // Verify user has access to workspace
     await this.verifyWorkspaceAccess(workspaceId, userId);
 
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
 
     // Aggregation with $lookup to get user details
@@ -455,7 +440,6 @@ class AnalyticsService {
    * Get status distribution for workspace
    */
   private async getStatusDistribution(workspaceId: string) {
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
     
     const distribution = await Task.aggregate([
@@ -487,7 +471,6 @@ class AnalyticsService {
    * Get priority distribution for workspace
    */
   private async getPriorityDistribution(workspaceId: string) {
-    const mongoose = require("mongoose");
     const workspaceObjectId = new mongoose.Types.ObjectId(workspaceId);
     
     const distribution = await Task.aggregate([

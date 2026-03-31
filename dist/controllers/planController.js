@@ -44,6 +44,9 @@ const createPlan = asyncHandler(async (req, res) => {
         maxFiles: features?.maxFiles !== undefined ? features.maxFiles : -1,
         maxDocuments: features?.maxDocuments !== undefined ? features.maxDocuments : -1,
         maxDirectMessagesPerUser: features?.maxDirectMessagesPerUser !== undefined ? features.maxDirectMessagesPerUser : -1,
+        canCreatePrivateChannels: features?.canCreatePrivateChannels || false,
+        maxPrivateChannelsCount: features?.maxPrivateChannelsCount !== undefined ? features.maxPrivateChannelsCount : -1,
+        maxMembersPerPrivateChannel: features?.maxMembersPerPrivateChannel !== undefined ? features.maxMembersPerPrivateChannel : -1,
     };
     // If parentPlanId is provided, inherit features from parent plan
     if (parentPlanId) {
@@ -75,6 +78,9 @@ const createPlan = asyncHandler(async (req, res) => {
             maxFiles: features?.maxFiles !== undefined ? features.maxFiles : parentPlan.features.maxFiles,
             maxDocuments: features?.maxDocuments !== undefined ? features.maxDocuments : parentPlan.features.maxDocuments,
             maxDirectMessagesPerUser: features?.maxDirectMessagesPerUser !== undefined ? features.maxDirectMessagesPerUser : parentPlan.features.maxDirectMessagesPerUser,
+            canCreatePrivateChannels: features?.canCreatePrivateChannels !== undefined ? features.canCreatePrivateChannels : parentPlan.features.canCreatePrivateChannels,
+            maxPrivateChannelsCount: features?.maxPrivateChannelsCount !== undefined ? features.maxPrivateChannelsCount : parentPlan.features.maxPrivateChannelsCount,
+            maxMembersPerPrivateChannel: features?.maxMembersPerPrivateChannel !== undefined ? features.maxMembersPerPrivateChannel : parentPlan.features.maxMembersPerPrivateChannel,
         };
     }
     // Prepare plan data with currency fields

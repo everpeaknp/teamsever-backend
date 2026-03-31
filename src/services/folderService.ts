@@ -75,8 +75,6 @@ class FolderService {
   }
 
   async getFolders(spaceId: string, userId: string) {
-    console.log(`[FolderService] getFolders called with spaceId: ${spaceId}, userId: ${userId}`);
-    
     // Import ListMember model
     const ListMember = require("../models/ListMember").ListMember;
     
@@ -123,8 +121,6 @@ class FolderService {
       return memberId === userId;
     });
 
-    console.log(`[FolderService] User access:`, { isOwner, isAdmin });
-
     // Get folders with their lists
     const folders = await Folder.find({
       spaceId,
@@ -164,18 +160,15 @@ class FolderService {
     
     // Only owners and admins can see all lists
     if (isOwner || isAdmin) {
-      // Full access - can see all lists
       accessibleListIds = allLists.map((list: any) => list._id.toString());
-      console.log(`[FolderService] User is owner/admin, has access to all ${accessibleListIds.length} lists`);
     } else {
-      // For regular members (including space members), filter to only lists where user is a list member
+      // Get lists where user has membership
       const userListMemberships = await ListMember.find({
         user: userId,
-        space: spaceId
+        workspace: space.workspace
       }).select('list').lean();
       
       accessibleListIds = userListMemberships.map((lm: any) => lm.list.toString());
-      console.log(`[FolderService] User has access to ${accessibleListIds.length} lists via list membership`);
     }
 
     // Populate lists for each folder, filtering by access
@@ -185,8 +178,6 @@ class FolderService {
           list.folderId?.toString() === folder._id.toString() &&
           accessibleListIds.includes(list._id.toString())
         );
-
-        console.log(`[FolderService] Folder "${folder.name}" has ${folderLists.length} accessible lists`);
 
         return {
           ...folder,
@@ -200,8 +191,6 @@ class FolderService {
       ? foldersWithLists 
       : foldersWithLists.filter((folder: any) => folder.lists.length > 0);
 
-    console.log(`[FolderService] Returning ${filteredFolders.length} folders`);
-    console.log(`[FolderService] Folder names:`, filteredFolders.map((f: any) => ({ name: f.name, listCount: f.lists.length })));
     return filteredFolders;
   }
 

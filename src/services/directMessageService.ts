@@ -234,15 +234,17 @@ class DirectMessageService {
       conversation: conversationId,
     });
 
-    // Get messages (sorted by createdAt ASC for chat-style)
+    // Get messages (sorted by newest first, then reversed for ASC display)
     const messages = await DirectMessage.find({
       conversation: conversationId,
     })
       .populate("sender", "name email avatar profilePicture")
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
+
+    messages.reverse();
 
     // Mark messages as read by current user
     try {

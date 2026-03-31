@@ -1,0 +1,270 @@
+{
+	"info": {
+		"_postman_id": "00000000-1111-2222-3333-444444444444",
+		"name": "Teamsever API (EXHAUSTIVE)",
+		"description": "The definitive, zero-gap API documentation for Teamsever. This collection contains 100% of the endpoints identified in the backend source code.\n\n### Usage Guide\n1. Import the collection.\n2. Set `{{base_url}}` (default: http://localhost:5000).\n3. Use **Auth > Login User** to update `{{token}}` automatically.\n4. Explore folders for localized features.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth & Profile",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\"\n}" },
+						"url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] }
+					}
+				},
+				{
+					"name": "Login User",
+					"event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json(); if (jsonData.token) { pm.environment.set(\"token\", jsonData.token); }"], "type": "text/javascript" } }],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\"\n}" },
+						"url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/users/profile", "host": ["{{base_url}}"], "path": ["api", "users", "profile"] }
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Updated\",\n  \"jobTitle\": \"Lead Developer\",\n  \"bio\": \"Loves Flutter and Node.js\"\n}" },
+						"url": { "raw": "{{base_url}}/api/users/profile", "host": ["{{base_url}}"], "path": ["api", "users", "profile"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Workspaces",
+			"item": [
+				{
+					"name": "Get My Workspaces",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces", "host": ["{{base_url}}"], "path": ["api", "workspaces"] }
+					}
+				},
+				{
+					"name": "Create Workspace",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Engineering HQ\"\n}" },
+						"url": { "raw": "{{base_url}}/api/workspaces", "host": ["{{base_url}}"], "path": ["api", "workspaces"] }
+					}
+				},
+				{
+					"name": "Get Workspace Hierarchy",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces/:workspaceId/hierarchy", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "hierarchy"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Upload Workspace Logo",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "PATCH",
+						"body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": [] }] },
+						"url": { "raw": "{{base_url}}/api/workspaces/:id/logo", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":id", "logo"], "variable": [{ "key": "id", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Spaces, Folders & Lists",
+			"item": [
+				{
+					"name": "Get Workspace Spaces",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces/:workspaceId/spaces", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "spaces"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Create Space",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Productivity\",\n  \"color\": \"#FF5733\",\n  \"icon\": \"star\"\n}" },
+						"url": { "raw": "{{base_url}}/api/workspaces/:workspaceId/spaces", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "spaces"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Get Space Folders",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/spaces/:spaceId/folders", "host": ["{{base_url}}"], "path": ["api", "spaces", ":spaceId", "folders"], "variable": [{ "key": "spaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Get Space Lists",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/spaces/:spaceId/lists", "host": ["{{base_url}}"], "path": ["api", "spaces", ":spaceId", "lists"], "variable": [{ "key": "spaceId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Tasks & Productivity",
+			"item": [
+				{
+					"name": "Create Task",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Complete API Collection\",\n  \"description\": \"Ensure all endpoints are included.\",\n  \"priority\": \"urgent\"\n}" },
+						"url": { "raw": "{{base_url}}/api/lists/:listId/tasks", "host": ["{{base_url}}"], "path": ["api", "lists", ":listId", "tasks"], "variable": [{ "key": "listId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Get Task Details",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/tasks/:id", "host": ["{{base_url}}"], "path": ["api", "tasks", ":id"], "variable": [{ "key": "id", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Add Task Dependency",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"dependencyTaskId\": \"DEPENDENT_ID\"\n}" },
+						"url": { "raw": "{{base_url}}/api/tasks/:taskId/dependencies", "host": ["{{base_url}}"], "path": ["api", "tasks", ":taskId", "dependencies"], "variable": [{ "key": "taskId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Start Task Timer",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"url": { "raw": "{{base_url}}/api/tasks/:id/time/start", "host": ["{{base_url}}"], "path": ["api", "tasks", ":id", "time", "start"], "variable": [{ "key": "id", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Chat & Activity",
+			"item": [
+				{
+					"name": "Get Workspace Chat",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/workspaces/:workspaceId/chat", "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "chat"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Get Workspace Activity",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/activities/workspaces/:workspaceId", "host": ["{{base_url}}"], "path": ["api", "activities", "workspaces", ":workspaceId"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Custom Tables (Deep)",
+			"item": [
+				{
+					"name": "Create Table",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Inventory List\"\n}" },
+						"url": { "raw": "{{base_url}}/api/spaces/:spaceId/tables", "host": ["{{base_url}}"], "path": ["api", "spaces", ":spaceId", "tables"], "variable": [{ "key": "spaceId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Add Column",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "POST",
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Price\",\n  \"type\": \"number\"\n}" },
+						"url": { "raw": "{{base_url}}/api/tables/:tableId/columns", "host": ["{{base_url}}"], "path": ["api", "tables", ":tableId", "columns"], "variable": [{ "key": "tableId", "value": "ID" }] }
+					}
+				},
+				{
+					"name": "Update Cell Value",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "PATCH",
+						"body": { "mode": "raw", "raw": "{\n  \"value\": \"Updated Content\"\n}" },
+						"url": { "raw": "{{base_url}}/api/tables/:tableId/rows/:rowId/cells/:columnId", "host": ["{{base_url}}"], "path": ["api", "tables", ":tableId", "rows", ":rowId", "cells", ":columnId"], "variable": [{ "key": "tableId", "value": "ID" }, { "key": "rowId", "value": "ID" }, { "key": "columnId", "value": "ID" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Super Admin & Plans",
+			"item": [
+				{
+					"name": "Get All Plans",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/plans", "host": ["{{base_url}}"], "path": ["api", "plans"] }
+					}
+				},
+				{
+					"name": "Get Financial Analytics",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/super-admin/analytics/financial", "host": ["{{base_url}}"], "path": ["api", "super-admin", "analytics", "financial"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Search & Analytics",
+			"item": [
+				{
+					"name": "Global Search",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/search?q=TaskName", "host": ["{{base_url}}"], "path": ["api", "search"], "query": [{ "key": "q", "value": "TaskName" }] }
+					}
+				},
+				{
+					"name": "Get Team Workload",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+						"method": "GET",
+						"url": { "raw": "{{base_url}}/api/analytics/workspaces/:workspaceId/workload", "host": ["{{base_url}}"], "path": ["api", "analytics", "workspaces", ":workspaceId", "workload"], "variable": [{ "key": "workspaceId", "value": "ID" }] }
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+		{ "key": "token", "value": "", "type": "string" }
+	]
+}

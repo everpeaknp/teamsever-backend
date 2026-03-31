@@ -17,7 +17,6 @@ class SocketService {
      */
     initialize(socketIo) {
         this.io = socketIo;
-        console.log("[SocketService] Initialized");
     }
     /**
      * Get Socket.IO instance
@@ -39,8 +38,6 @@ class SocketService {
         this.userSockets.get(userId).add(socketId);
         // Add reverse lookup
         this.socketUsers.set(socketId, userId);
-        const socketCount = this.userSockets.get(userId).size;
-        console.log(`[SocketService] Added socket ${socketId} for user ${userId} (total: ${socketCount})`);
     }
     /**
      * Remove socket connection for a user
@@ -53,10 +50,6 @@ class SocketService {
             // Clean up if no more sockets
             if (userSocketSet.size === 0) {
                 this.userSockets.delete(userId);
-                console.log(`[SocketService] User ${userId} is now offline (no active sockets)`);
-            }
-            else {
-                console.log(`[SocketService] Removed socket ${socketId} for user ${userId} (remaining: ${userSocketSet.size})`);
             }
         }
         // Remove reverse lookup
@@ -135,7 +128,6 @@ class SocketService {
                     successCount++;
                 }
             });
-            console.log(`[SocketService] Emitted '${event}' to ${successCount}/${socketIds.length} devices for user ${userId}`);
             return successCount > 0;
         }
         catch (error) {
@@ -158,7 +150,6 @@ class SocketService {
         try {
             const io = this.getIO();
             io.emit(event, data);
-            console.log(`[SocketService] Broadcasted '${event}' to all users`);
         }
         catch (error) {
             console.error("[SocketService] Failed to broadcast:", error);
@@ -212,7 +203,6 @@ class SocketService {
             sockets.forEach((socket) => {
                 socket.disconnect(true);
             });
-            console.log(`[SocketService] Disconnected ${sockets.length} sockets for user ${userId}`);
         }
         catch (error) {
             console.error(`[SocketService] Failed to disconnect user ${userId}:`, error);
@@ -242,7 +232,6 @@ class SocketService {
     clear() {
         this.userSockets.clear();
         this.socketUsers.clear();
-        console.log("[SocketService] Cleared all connections");
     }
 }
 // Singleton instance

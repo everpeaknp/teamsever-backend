@@ -9,7 +9,7 @@ const router = express.Router();
  * /api/subscription/info:
  *   get:
  *     summary: Get current user's subscription information
- *     description: Returns subscription details including plan, usage, and trial status
+ *     description: Returns detailed subscription info including plan features, unified global usage, and expiry details.
  *     tags: [Subscription]
  *     security:
  *       - bearerAuth: []
@@ -30,11 +30,18 @@ const router = express.Router();
  *                       type: boolean
  *                     status:
  *                       type: string
- *                       enum: [trial, active, expired]
- *                     trialDaysRemaining:
+ *                       enum: [active, expired, free]
+ *                     daysRemaining:
  *                       type: number
- *                     trialExpired:
+ *                     subscriptionExpired:
  *                       type: boolean
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                     memberCount:
+ *                       type: number
+ *                     billingCycle:
+ *                       type: string
  *                     plan:
  *                       type: object
  *                       properties:
@@ -42,8 +49,6 @@ const router = express.Router();
  *                           type: string
  *                         name:
  *                           type: string
- *                         price:
- *                           type: number
  *                         features:
  *                           type: object
  *                     usage:
@@ -66,9 +71,28 @@ const router = express.Router();
  */
 router.get("/info", protect, getSubscriptionInfo);
 /**
- * @route   GET /api/subscription/next-plan
- * @desc    Get the next available higher-tier plan
- * @access  Private
+ * @swagger
+ * /api/subscription/next-plan:
+ *   get:
+ *     summary: Get the next higher tier plan
+ *     description: Returns the details of the next available plan with a higher price than the current user's plan.
+ *     tags: [Subscription]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Next plan retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 hasNextPlan: true
+ *                 nextPlan:
+ *                   _id: "plan_id"
+ *                   name: "Pro"
+ *                   price: 20
+ *                   features: {}
  */
 router.get("/next-plan", protect, async (req, res) => {
     try {

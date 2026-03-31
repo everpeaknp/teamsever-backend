@@ -8,6 +8,12 @@ const chatMessageSchema = new mongoose_1.Schema({
         required: true,
         index: true,
     },
+    channel: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "ChatChannel",
+        required: true,
+        index: true,
+    },
     sender: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
@@ -43,7 +49,8 @@ const chatMessageSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 // Compound indexes for efficient queries
+chatMessageSchema.index({ channel: 1, createdAt: -1 });
+chatMessageSchema.index({ channel: 1, isDeleted: 1, createdAt: -1 });
 chatMessageSchema.index({ workspace: 1, createdAt: -1 });
-chatMessageSchema.index({ workspace: 1, isDeleted: 1, createdAt: -1 });
 const ChatMessage = (0, mongoose_1.model)("ChatMessage", chatMessageSchema);
 module.exports = ChatMessage;

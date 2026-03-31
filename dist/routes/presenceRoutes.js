@@ -15,7 +15,7 @@ const { protect } = require("../middlewares/authMiddleware");
  * /api/presence/{workspaceId}:
  *   get:
  *     summary: Get workspace presence
- *     description: Get online/offline status of all workspace members
+ *     description: Returns the online/offline status and last seen timestamp for all members of a specific workspace.
  *     tags: [Presence]
  *     security:
  *       - bearerAuth: []
@@ -25,11 +25,25 @@ const { protect } = require("../middlewares/authMiddleware");
  *         required: true
  *         schema:
  *           type: string
+ *         description: Workspace ID
  *     responses:
  *       200:
  *         description: Presence data retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - userId: "69bce50b96fe109fe4e14ff6"
+ *                   status: "online"
+ *                   lastSeen: "2026-03-30T17:00:00Z"
+ *                 - userId: "69bcc46789cab60dfa454499"
+ *                   status: "offline"
+ *                   lastSeen: "2026-03-30T16:30:00Z"
  *       401:
  *         description: Authentication required
+ *       404:
+ *         description: Workspace not found
  */
 router.get("/:workspaceId", protect, presenceController.getWorkspacePresence);
 /**
@@ -37,7 +51,7 @@ router.get("/:workspaceId", protect, presenceController.getWorkspacePresence);
  * /api/presence/{workspaceId}/online:
  *   get:
  *     summary: Get online users
- *     description: Get list of currently online users in workspace
+ *     description: Returns a list of users who are currently connected via WebSockets in the specified workspace.
  *     tags: [Presence]
  *     security:
  *       - bearerAuth: []
@@ -50,6 +64,11 @@ router.get("/:workspaceId", protect, presenceController.getWorkspacePresence);
  *     responses:
  *       200:
  *         description: Online users retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data: ["69bce50b96fe109fe4e14ff6", "69bcc46789cab60dfa45500"]
  *       401:
  *         description: Authentication required
  */
@@ -59,7 +78,7 @@ router.get("/:workspaceId/online", protect, presenceController.getOnlineUsers);
  * /api/presence/user/{userId}:
  *   get:
  *     summary: Get user presence
- *     description: Get specific user's presence status
+ *     description: Get the real-time presence status and last seen time for a specific user.
  *     tags: [Presence]
  *     security:
  *       - bearerAuth: []
@@ -72,8 +91,17 @@ router.get("/:workspaceId/online", protect, presenceController.getOnlineUsers);
  *     responses:
  *       200:
  *         description: User presence retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 status: "online"
+ *                 lastSeen: "2026-03-30T17:05:00Z"
  *       401:
  *         description: Authentication required
+ *       404:
+ *         description: User not found
  */
 router.get("/user/:userId", protect, presenceController.getUserPresence);
 module.exports = router;

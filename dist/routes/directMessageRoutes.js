@@ -19,13 +19,28 @@ router.use(protect);
  * /api/dm:
  *   get:
  *     summary: Get all conversations
- *     description: Retrieve all direct message conversations for the current user
+ *     description: Retrieve all direct message conversations for the current user, including last message, participants, and unread count.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Conversations retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f71675700"
+ *                   participants:
+ *                     - _id: "69bce50b96fe109fe4e14ff6"
+ *                       name: "Alice Smith"
+ *                       avatar: null
+ *                   lastMessage:
+ *                     content: "See you tomorrow!"
+ *                     sender: "69bce50b96fe109fe4e14ff6"
+ *                     createdAt: "2026-03-30T12:00:00Z"
+ *                   unreadCount: 2
  *       401:
  *         description: Authentication required
  */
@@ -35,7 +50,7 @@ router.get("/", directMessageController.getConversations);
  * /api/dm/{userId}:
  *   post:
  *     summary: Start conversation
- *     description: Start a new conversation with a user
+ *     description: Start a new conversation with a user or retrieve the existing one if it already exists.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
@@ -48,20 +63,34 @@ router.get("/", directMessageController.getConversations);
  *         description: User ID to start conversation with
  *     responses:
  *       201:
- *         description: Conversation started successfully
+ *         description: Conversation started or retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675700"
+ *                 participants: [...]
+ *       400:
+ *         description: Bad Request (e.g. starting conversation with yourself)
  *       401:
  *         description: Authentication required
  *       404:
- *         description: User not found
+ *         description: Target user not found
+ */
+router.post("/:userId", directMessageController.startConversation);
+/**
+ * @swagger
+ * /api/dm/{conversationId}:
  *   get:
- *     summary: Get conversation
- *     description: Retrieve a specific conversation by ID
+ *     summary: Get conversation details
+ *     description: Retrieve a specific conversation by its ID, including full participant details.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: conversationId
  *         required: true
  *         schema:
  *           type: string
@@ -69,19 +98,27 @@ router.get("/", directMessageController.getConversations);
  *     responses:
  *       200:
  *         description: Conversation retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675700"
+ *                 participants: [...]
  *       401:
  *         description: Authentication required
  *       404:
  *         description: Conversation not found
  */
-router.post("/:userId", directMessageController.startConversation);
 router.get("/:conversationId", directMessageController.getConversation);
 /**
  * @swagger
  * /api/dm/{userId}/message:
  *   post:
  *     summary: Send direct message
- *     description: Send a message in a direct conversation
+ *     description: |
+ *       Sends a message to another user. If no conversation exists, it creates one automatically.
+ *       **Note:** Message content cannot be empty unless attachments are provided.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
@@ -91,7 +128,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
+ *         description: Recipient User ID
  *     requestBody:
  *       required: true
  *       content:
@@ -103,17 +140,31 @@ router.get("/:conversationId", directMessageController.getConversation);
  *             properties:
  *               content:
  *                 type: string
+ *                 description: Message text
+ *                 example: "Hey! Did you see the new update?"
  *               attachments:
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: Cloudinary URLs of attachments
  *     responses:
  *       201:
  *         description: Message sent successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675701"
+ *                 content: "Hey! Did you see the new update?"
+ *                 sender: "69bcc46789cab60dfa454499"
+ *                 createdAt: "2026-03-30T12:05:00Z"
  *       400:
  *         description: Validation error
  *       401:
  *         description: Authentication required
+ *       403:
+ *         description: Subscription limit reached (if applicable)
  */
 router.post("/:userId/message", validate(sendMessageSchema), directMessageController.sendMessage);
 /**
@@ -121,7 +172,7 @@ router.post("/:userId/message", validate(sendMessageSchema), directMessageContro
  * /api/dm/{conversationId}/messages:
  *   get:
  *     summary: Get conversation messages
- *     description: Retrieve all messages in a conversation
+ *     description: Retrieve paginated messages in a conversation, newest first.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
@@ -133,18 +184,34 @@ router.post("/:userId/message", validate(sendMessageSchema), directMessageContro
  *           type: string
  *         description: Conversation ID
  *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
  *         name: limit
  *         schema:
- *           type: number
- *         description: Number of messages to retrieve
- *       - in: query
- *         name: before
- *         schema:
- *           type: string
- *         description: Get messages before this message ID
+ *           type: integer
+ *           default: 50
+ *         description: Number of messages to retrieve per page
  *     responses:
  *       200:
  *         description: Messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f71675701"
+ *                   content: "Hey! Did you see the new update?"
+ *                   sender: "69bcc46789cab60dfa454499"
+ *                   createdAt: "2026-03-30T12:05:00Z"
+ *               pagination:
+ *                 total: 120
+ *                 page: 1
+ *                 limit: 50
+ *                 pages: 3
  *       401:
  *         description: Authentication required
  *       404:
@@ -156,7 +223,7 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  * /api/dm/{conversationId}/read:
  *   patch:
  *     summary: Mark conversation as read
- *     description: Mark all messages in a conversation as read
+ *     description: Marks all unread messages in the conversation as read for the current user.
  *     tags: [Direct Messages]
  *     security:
  *       - bearerAuth: []
@@ -170,6 +237,11 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  *     responses:
  *       200:
  *         description: Conversation marked as read
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Messages marked as read"
  *       401:
  *         description: Authentication required
  *       404:

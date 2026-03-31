@@ -292,14 +292,26 @@ router.post("/manual", validate(addManualTimeSchema), addManualTime);
  * @swagger
  * /api/time/running:
  *   get:
- *     summary: Get running timer
- *     description: Get user's currently running timer
+ *     summary: Get my running timer
+ *     description: Returns the user's currently active timer. Returns null data if no timer is running. Check this on app startup to restore the timer UI.
  *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Running timer retrieved successfully
+ *         description: Running timer or null
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675716"
+ *                 task:
+ *                   _id: "69bbf827a96fe78f716755f4"
+ *                   title: "Implement OAuth2"
+ *                 startTime: "2026-03-30T09:00:00Z"
+ *                 elapsedSeconds: 3600
+ *                 workspace: "69bbf827a96fe78f716752bb"
  *       401:
  *         description: Authentication required
  */
@@ -310,7 +322,7 @@ router.get("/running", getRunningTimer);
  * /api/time/task/{taskId}:
  *   get:
  *     summary: Get task time summary
- *     description: Get time tracking summary for a task
+ *     description: Returns total time logged for a task plus a breakdown of individual entries.
  *     tags: [Time Tracking]
  *     security:
  *       - bearerAuth: []
@@ -322,7 +334,24 @@ router.get("/running", getRunningTimer);
  *           type: string
  *     responses:
  *       200:
- *         description: Task time summary retrieved successfully
+ *         description: Task time summary
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 taskId: "69bbf827a96fe78f716755f4"
+ *                 totalSeconds: 12600
+ *                 totalFormatted: "3h 30m"
+ *                 entries:
+ *                   - duration: 3600
+ *                     durationFormatted: "1h"
+ *                     startTime: "2026-03-29T09:00:00Z"
+ *                     isManual: false
+ *                   - duration: 9000
+ *                     durationFormatted: "2h 30m"
+ *                     description: "Additional research"
+ *                     isManual: true
  *       401:
  *         description: Authentication required
  */

@@ -168,6 +168,92 @@ const spaceRouter = express.Router();
  *         description: Space not found
  */
 spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
+/**
+ * @swagger
+ * /api/spaces/{id}/metadata:
+ *   get:
+ *     summary: Get space metadata
+ *     description: Returns lightweight metadata for a space (name, members count, settings) without full nested data
+ *     tags: [Spaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Space ID
+ *     responses:
+ *       200:
+ *         description: Space metadata retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 workspace:
+ *                   type: string
+ *                 color:
+ *                   type: string
+ *                 icon:
+ *                   type: string
+ *                 membersCount:
+ *                   type: number
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Space not found
+ *
+ * /api/spaces/{id}/lists/metadata:
+ *   get:
+ *     summary: Get space lists metadata
+ *     description: Returns all lists within a space with lightweight metadata (no task data). Useful for sidebar/navigation rendering.
+ *     tags: [Spaces]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Space ID
+ *     responses:
+ *       200:
+ *         description: List metadata retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   space:
+ *                     type: string
+ *                   workspace:
+ *                     type: string
+ *                   folder:
+ *                     type: string
+ *                     nullable: true
+ *                     description: Parent folder ID if list is inside a folder
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Space not found
+ */
 spaceRouter.get("/:id/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceMetadata);
 spaceRouter.get("/:id/lists/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceListsMetadata);
 spaceRouter.patch("/:id", protect, requirePermission("UPDATE_SPACE"), require("../middlewares/ownerOnly"), validate(updateSpaceSchema), updateSpace);

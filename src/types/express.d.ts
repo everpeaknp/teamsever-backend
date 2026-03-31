@@ -10,6 +10,13 @@ declare global {
         isSuperUser?: boolean;
       };
       workspace?: any;
+      subscription?: {
+        isPaid: boolean;
+        status: string;
+        plan: any;
+        subscriptionExpired: boolean;
+        daysRemaining: number;
+      };
     }
   }
 }
@@ -22,4 +29,11 @@ export interface AuthRequest extends Request {
     isSuperUser?: boolean;
   };
   workspace?: any;
+  subscription?: {
+    isPaid: boolean;
+    status: string;
+    plan: any;
+    subscriptionExpired: boolean;
+    daysRemaining: number;
+  };
 }

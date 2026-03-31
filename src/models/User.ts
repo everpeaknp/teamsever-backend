@@ -32,6 +32,9 @@ interface IUser extends Document {
       maxFiles?: number;
       maxDocuments?: number;
       maxDirectMessagesPerUser?: number;
+      canCreatePrivateChannels?: boolean;
+      maxPrivateChannelsCount?: number;
+      maxMembersPerPrivateChannel?: number;
     };
   };
 }
@@ -101,7 +104,10 @@ const userSchema = new mongoose.Schema(
         maxColumnsLimit: { type: Number },
         maxFiles: { type: Number },
         maxDocuments: { type: Number },
-        maxDirectMessagesPerUser: { type: Number }
+        maxDirectMessagesPerUser: { type: Number },
+        canCreatePrivateChannels: { type: Boolean },
+        maxPrivateChannelsCount: { type: Number },
+        maxMembersPerPrivateChannel: { type: Number }
       }
     }
   },

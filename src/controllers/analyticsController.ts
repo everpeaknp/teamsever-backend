@@ -70,18 +70,18 @@ exports.getLeadTime = async (req: any, res: any, next: any) => {
  */
 exports.getBurnDown = async (req: any, res: any, next: any) => {
   try {
-    const { projectId } = req.query;
+    const { workspaceId } = req.query;
     const userId = req.user.id;
 
-    if (!projectId) {
+    if (!workspaceId) {
       return res.status(400).json({
         success: false,
-        message: "projectId is required"
+        message: "workspaceId is required"
       });
     }
 
     const burnDownData = await analyticsService.getBurnDown(
-      projectId,
+      workspaceId,
       userId
     );
 

@@ -56,8 +56,8 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *       403:
  *         description: List limit reached or insufficient permissions
  *   get:
- *     summary: Get lists
- *     description: Retrieve all lists in a space
+ *     summary: Get lists in a space
+ *     description: Retrieve all lists in a space (not inside a folder).
  *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
@@ -67,10 +67,21 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *         required: true
  *         schema:
  *           type: string
- *         description: Space ID
  *     responses:
  *       200:
- *         description: Lists retrieved successfully
+ *         description: Lists retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f716753d1"
+ *                   name: "Backlog"
+ *                   description: "Unplanned tasks"
+ *                   color: "#94a3b8"
+ *                   space: "69bbf827a96fe78f716753b2"
+ *                   taskCount: 17
+ *                   createdAt: "2026-02-10T09:00:00Z"
  *       401:
  *         description: Authentication required
  *       404:
@@ -85,7 +96,7 @@ const listRouter = express.Router();
  * /api/lists/{id}:
  *   get:
  *     summary: Get list
- *     description: Retrieve a specific list by ID
+ *     description: Get a single list with its tasks count and metadata.
  *     tags: [Lists]
  *     security:
  *       - bearerAuth: []
@@ -95,10 +106,23 @@ const listRouter = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
  *     responses:
  *       200:
- *         description: List retrieved successfully
+ *         description: List retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716753d1"
+ *                 name: "Backlog"
+ *                 description: "Unplanned tasks"
+ *                 color: "#94a3b8"
+ *                 space:
+ *                   _id: "69bbf827a96fe78f716753b2"
+ *                   name: "Backend API"
+ *                 taskCount: 17
+ *                 customFields: []
  *       401:
  *         description: Authentication required
  *       404:

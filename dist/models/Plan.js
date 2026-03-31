@@ -177,6 +177,24 @@ const planSchema = new mongoose.Schema({
             required: false,
             min: -1, // -1 means unlimited
             default: -1
+        },
+        // Private Channels (Pro Feature)
+        canCreatePrivateChannels: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        maxPrivateChannelsCount: {
+            type: Number,
+            required: false,
+            min: -1, // -1 means unlimited
+            default: -1
+        },
+        maxMembersPerPrivateChannel: {
+            type: Number,
+            required: false,
+            min: -1, // -1 means unlimited
+            default: -1
         }
     },
     isActive: {

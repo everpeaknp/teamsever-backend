@@ -85,7 +85,6 @@ class TaskService {
         try {
             const EntitlementService = require('./entitlementService').default;
             EntitlementService.invalidateUsageCache(workspace.owner.toString());
-            console.log(`[Task] Invalidated usage cache for owner ${workspace.owner.toString()} after task creation`);
         }
         catch (error) {
             console.error("[Task] Failed to invalidate usage cache:", error);
@@ -437,15 +436,11 @@ class TaskService {
             // Invalidate usage cache for workspace owner
             const EntitlementService = require('./entitlementService').default;
             EntitlementService.invalidateUsageCache(workspace.owner.toString());
-            console.log(`[Task] Invalidated usage cache for owner ${workspace.owner.toString()}`);
         }
         // Delete associated attachments
         try {
             const attachmentService = require("./attachmentService");
             const deletedCount = await attachmentService.deleteTaskAttachments(taskId);
-            if (deletedCount > 0) {
-                console.log(`[Task] Deleted ${deletedCount} attachments for task ${taskId}`);
-            }
         }
         catch (error) {
             console.error("[Task] Failed to delete attachments:", error);

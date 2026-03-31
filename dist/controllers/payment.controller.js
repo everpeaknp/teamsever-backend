@@ -110,17 +110,6 @@ const initiatePayment = async (req, res) => {
         });
         // Prepare eSewa payment request with total amount
         const paymentRequest = esewaService.preparePayment(totalAmount, transactionUuid);
-        console.log('[Payment] Initiated:', {
-            transactionId: transaction._id,
-            transactionUuid,
-            planId,
-            billingCycle,
-            pricePerSeat,
-            discountPercentage,
-            discountedPricePerSeat,
-            memberCount,
-            totalAmount
-        });
         res.status(200).json({
             success: true,
             message: 'Payment initiated successfully',
@@ -158,13 +147,9 @@ const initiatePayment = async (req, res) => {
  */
 const verifyPayment = async (req, res) => {
     try {
-        console.log('[Payment] Verify request received');
-        console.log('[Payment] User ID:', req.user?.id);
-        console.log('[Payment] Request body:', req.body);
         const { data: encodedData } = req.body;
         const userId = req.user?.id;
         if (!userId) {
-            console.error('[Payment] User not authenticated');
             res.status(401).json({
                 success: false,
                 message: 'User not authenticated'
@@ -172,7 +157,6 @@ const verifyPayment = async (req, res) => {
             return;
         }
         if (!encodedData) {
-            console.error('[Payment] Payment data missing');
             res.status(400).json({
                 success: false,
                 message: 'Payment data is required'
@@ -184,7 +168,6 @@ const verifyPayment = async (req, res) => {
         try {
             const decodedString = Buffer.from(encodedData, 'base64').toString('utf-8');
             paymentData = JSON.parse(decodedString);
-            console.log('[Payment] Decoded payment data:', paymentData);
         }
         catch (error) {
             console.error('[Payment] Failed to decode payment data:', error);
@@ -196,7 +179,6 @@ const verifyPayment = async (req, res) => {
         }
         const { transaction_uuid, total_amount, transaction_code, status } = paymentData;
         if (!transaction_uuid) {
-            console.error('[Payment] Transaction UUID missing');
             res.status(400).json({
                 success: false,
                 message: 'Transaction UUID is missing'
@@ -204,27 +186,16 @@ const verifyPayment = async (req, res) => {
             return;
         }
         // Find transaction
-        console.log('[Payment] Looking for transaction:', transaction_uuid);
         const transaction = await Transaction.findOne({ transactionUuid: transaction_uuid });
         if (!transaction) {
-            console.error('[Payment] Transaction not found:', transaction_uuid);
             res.status(404).json({
                 success: false,
                 message: 'Transaction not found'
             });
             return;
         }
-        console.log('[Payment] Transaction found:', {
-            id: transaction._id,
-            userId: transaction.userId,
-            status: transaction.status
-        });
         // Verify transaction belongs to user
         if (transaction.userId.toString() !== userId) {
-            console.error('[Payment] Unauthorized access:', {
-                transactionUserId: transaction.userId.toString(),
-                requestUserId: userId
-            });
             res.status(403).json({
                 success: false,
                 message: 'Unauthorized access to transaction'
@@ -233,7 +204,6 @@ const verifyPayment = async (req, res) => {
         }
         // Check if already processed
         if (transaction.status === 'completed') {
-            console.warn('[Payment] Transaction already processed:', transaction_uuid);
             res.status(400).json({
                 success: false,
                 message: 'Transaction already processed'
@@ -242,21 +212,16 @@ const verifyPayment = async (req, res) => {
         }
         // Verify signature (optional but recommended)
         const isSignatureValid = esewaService.verifySignature(paymentData);
-        console.log('[Payment] Signature valid:', isSignatureValid);
         if (!isSignatureValid) {
-            console.warn('[Payment] Invalid signature for transaction:', transaction_uuid);
             // Continue anyway as we'll verify with status API
         }
         // Verify with eSewa Status API (double-check)
-        console.log('[Payment] Verifying with eSewa Status API...');
         const isStatusValid = await esewaService.verifyStatus(transaction_uuid, parseFloat(total_amount));
-        console.log('[Payment] Status API verification result:', isStatusValid);
         if (!isStatusValid) {
             // Update transaction as failed
             transaction.status = 'failed';
             transaction.esewaTransactionCode = transaction_code;
             await transaction.save();
-            console.error('[Payment] Payment verification failed');
             res.status(400).json({
                 success: false,
                 message: 'Payment verification failed. Please contact support.'
@@ -264,17 +229,14 @@ const verifyPayment = async (req, res) => {
             return;
         }
         // Payment verified successfully - Update transaction
-        console.log('[Payment] Payment verified successfully, updating transaction...');
         transaction.status = 'completed';
         transaction.esewaRefId = paymentData.ref_id || null;
         transaction.esewaTransactionCode = transaction_code;
         transaction.completedAt = new Date();
         await transaction.save();
         // Activate plan for user
-        console.log('[Payment] Activating plan for user...');
         const user = await User.findById(userId);
         if (!user) {
-            console.error('[Payment] User not found:', userId);
             res.status(404).json({
                 success: false,
                 message: 'User not found'
@@ -283,7 +245,6 @@ const verifyPayment = async (req, res) => {
         }
         const plan = await Plan.findById(transaction.planId);
         if (!plan) {
-            console.error('[Payment] Plan not found:', transaction.planId);
             res.status(404).json({
                 success: false,
                 message: 'Plan not found'

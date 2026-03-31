@@ -56,13 +56,32 @@ const customRoleRateLimiter = rateLimit({
  *         description: Workspace limit reached
  *   get:
  *     summary: Get all user workspaces
- *     description: Returns all workspaces where the user is a member
+ *     description: Returns all workspaces where the user is a member, including member count and owner info.
  *     tags: [Workspaces]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of workspaces
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f716752bb"
+ *                   name: "Engineering Team"
+ *                   logo: null
+ *                   createdBy: "69bce50b96fe109fe4e14ff6"
+ *                   memberCount: 5
+ *                   myRole: "owner"
+ *                   createdAt: "2026-01-15T08:00:00Z"
+ *                 - _id: "69bbf827a96fe78f716752cc"
+ *                   name: "Design Squad"
+ *                   logo: "https://res.cloudinary.com/example/image/upload/logo.png"
+ *                   createdBy: "69bcc46789cab60dfa454499"
+ *                   memberCount: 3
+ *                   myRole: "member"
+ *                   createdAt: "2026-02-01T10:00:00Z"
  *       401:
  *         description: Authentication required
  */
@@ -73,7 +92,7 @@ router.get("/", protect, getMyWorkspaces);
  * /api/workspaces/{id}:
  *   get:
  *     summary: Get a single workspace
- *     description: Returns workspace details with populated members
+ *     description: Returns full workspace details including members, settings, and subscription status.
  *     tags: [Workspaces]
  *     security:
  *       - bearerAuth: []
@@ -87,6 +106,32 @@ router.get("/", protect, getMyWorkspaces);
  *     responses:
  *       200:
  *         description: Workspace details
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716752bb"
+ *                 name: "Engineering Team"
+ *                 logo: null
+ *                 createdBy:
+ *                   _id: "69bce50b96fe109fe4e14ff6"
+ *                   name: "Alice Smith"
+ *                   email: "alice@example.com"
+ *                 members:
+ *                   - user:
+ *                       _id: "69bce50b96fe109fe4e14ff6"
+ *                       name: "Alice Smith"
+ *                     role: "owner"
+ *                     isClockedIn: true
+ *                   - user:
+ *                       _id: "69bcc46789cab60dfa454499"
+ *                       name: "Bob Jones"
+ *                     role: "member"
+ *                     isClockedIn: false
+ *                 settings:
+ *                   defaultTimezone: "Asia/Kathmandu"
+ *                 createdAt: "2026-01-15T08:00:00Z"
  *       401:
  *         description: Authentication required
  *       404:
@@ -205,9 +250,29 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  * @swagger
  * /api/workspaces/{id}/analytics:
  *   get:
- *     summary: Get workspace analytics
- *     description: Retrieve analytics data for a workspace
- *     tags: [Workspaces]
+ *     summary: "🚀 PRIMARY DASHBOARD — Get All Workspace Data in One Call"
+ *     description: |
+ *       ## ⭐ Use This Endpoint for the Dashboard Screen
+ *
+ *       This is the **only endpoint** the Flutter app needs for the main workspace dashboard.
+ *       It replaces ALL of these older/deprecated endpoints:
+ *       - ~~`/api/analytics/workspace/{id}`~~ (deprecated)
+ *       - ~~`/api/analytics/workspaces/{id}/summary`~~ (deprecated)
+ *       - ~~`/api/analytics/workspaces/{id}/workload`~~ (deprecated)
+ *
+ *       **What you get in one call:**
+ *       | Field | Description |
+ *       |---|---|
+ *       | `workspace` | Workspace name and details |
+ *       | `stats` | Total tasks, completion rate, priority & status breakdown |
+ *       | `hierarchy` | Full tree: Spaces → Folders → Lists |
+ *       | `members` | Who is clocked in right now |
+ *       | `tasks` | Recent tasks |
+ *       | `announcements` | Latest workspace announcements |
+ *       | `currentRunningTimer` | The logged-in user's active timer (if any) |
+ *
+ *       **Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.
+ *     tags: [Analytics, Workspaces]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -219,7 +284,72 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *         description: Workspace ID
  *     responses:
  *       200:
- *         description: Analytics data retrieved successfully
+ *         description: Consolidated analytics data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     workspace:
+ *                       type: object
+ *                     stats:
+ *                       type: object
+ *                     hierarchy:
+ *                       type: array
+ *                     members:
+ *                       type: array
+ *                     tasks:
+ *                       type: array
+ *                     announcements:
+ *                       type: array
+ *                     currentRunningTimer:
+ *                       type: object
+ *             example:
+ *               success: true
+ *               data:
+ *                 workspace:
+ *                   _id: "69bbf827a96fe78f716752bb"
+ *                   name: "Engineering Team"
+ *                 stats:
+ *                   totalTasks: 156
+ *                   completedTasks: 89
+ *                   completionRate: 57
+ *                   priorityDistribution:
+ *                     - label: "High"
+ *                       value: 12
+ *                     - label: "Urgent"
+ *                       value: 5
+ *                 hierarchy:
+ *                   - _id: "69bbf827a96fe78f716753c1"
+ *                     name: "Backend API"
+ *                     folders: []
+ *                     lists:
+ *                       - _id: "69bbf827a96fe78f716753d2"
+ *                         name: "Sprint 5"
+ *                         taskCount: 24
+ *                 members:
+ *                   - _id: "69bbf827a96fe78f716754e3"
+ *                     name: "Alice Smith"
+ *                     isClockedIn: true
+ *                     lastClockIn: "2026-03-30T01:00:00Z"
+ *                 tasks:
+ *                   - _id: "69bbf827a96fe78f716755f4"
+ *                     title: "Implement OAuth2"
+ *                     status: "in-progress"
+ *                     priority: "high"
+ *                 announcements:
+ *                   - _id: "69bbf827a96fe78f71675605"
+ *                     title: "Server Migration"
+ *                     content: "Scheduled for Friday midnight."
+ *                 currentRunningTimer:
+ *                   _id: "69bbf827a96fe78f71675716"
+ *                   taskTitle: "API Documentation"
+ *                   startTime: "2026-03-30T01:30:00Z"
  *       401:
  *         description: Authentication required
  *       404:
@@ -231,7 +361,7 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  * /api/workspaces/{id}/announcements:
  *   get:
  *     summary: Get workspace announcements
- *     description: Retrieve all announcements for a workspace
+ *     description: Retrieve all active announcements for a specific workspace, ordered by creation date (newest first).
  *     tags: [Workspaces]
  *     security:
  *       - bearerAuth: []
@@ -245,11 +375,21 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *     responses:
  *       200:
  *         description: Announcements retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f71675601"
+ *                   title: "Welcome to our new Workspace!"
+ *                   content: "Feel free to explore and add your first task."
+ *                   author: "69bce50b96fe109fe4e14ff6"
+ *                   createdAt: "2026-03-30T08:00:00Z"
  *       401:
  *         description: Authentication required
  *   post:
  *     summary: Create workspace announcement
- *     description: Create a new announcement for a workspace
+ *     description: Create a new announcement that will be visible to all workspace members.
  *     tags: [Workspaces]
  *     security:
  *       - bearerAuth: []
@@ -272,13 +412,24 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *             properties:
  *               title:
  *                 type: string
+ *                 example: "System Maintenance"
  *               content:
  *                 type: string
+ *                 example: "The system will be down for 2 hours this Sunday at midnight."
  *     responses:
  *       201:
  *         description: Announcement created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f71675602"
+ *                 title: "System Maintenance"
  *       401:
  *         description: Authentication required
+ *       403:
+ *         description: Insufficient permissions (Admins/Owners only)
  */
 router.get("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), getAnnouncements);
 router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), createAnnouncement);

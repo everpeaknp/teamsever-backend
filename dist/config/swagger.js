@@ -29,8 +29,8 @@ const options = {
         - Super admin dashboard
       `,
             contact: {
-                name: "API Support",
-                email: "support@example.com"
+                name: "Teamsever API Support",
+                email: "teamsever@gmail.com"
             },
             license: {
                 name: "MIT",
@@ -40,11 +40,11 @@ const options = {
         servers: [
             {
                 url: "http://localhost:5000",
-                description: "Development server"
+                description: "Local Development"
             },
             {
-                url: "https://api.example.com",
-                description: "Production server"
+                url: "https://teamsever-backend.vercel.app",
+                description: "Production"
             }
         ],
         components: {
@@ -947,20 +947,28 @@ const options = {
         ],
         tags: [
             {
-                name: "Auth",
-                description: "Authentication and user management"
+                name: "Analytics",
+                description: "🚀 PRIMARY DASHBOARD — use GET /api/workspaces/{id}/analytics for everything. Sub-endpoints (velocity, lead-time, burn-down) are for dedicated chart screens only."
             },
             {
                 name: "Workspaces",
-                description: "Workspace management and member operations"
+                description: "Workspace CRUD, Hierarchy (Spaces→Folders→Lists), Announcements, Logo, Clock-in"
+            },
+            {
+                name: "Auth",
+                description: "Register, Login, Google OAuth, Email Verification, Password Reset"
+            },
+            {
+                name: "Members",
+                description: "Workspace members — list, invite, role changes, removal"
             },
             {
                 name: "Invitations",
-                description: "Workspace invitation system"
+                description: "Invitation links — send, list, cancel, accept, verify token"
             },
             {
                 name: "Spaces",
-                description: "Space/Project management within workspaces"
+                description: "Spaces (Projects) inside a workspace — CRUD and member management"
             },
             {
                 name: "Space Invitations",
@@ -968,146 +976,124 @@ const options = {
             },
             {
                 name: "Space Members",
-                description: "Space-level member permission management"
-            },
-            {
-                name: "Lists",
-                description: "List management within spaces"
-            },
-            {
-                name: "List Members",
-                description: "List-level member permission management"
+                description: "Space-level member permissions"
             },
             {
                 name: "Folders",
-                description: "Folder management within spaces"
+                description: "Folders inside spaces — CRUD"
             },
             {
                 name: "Folder Members",
-                description: "Folder-level member permission management"
+                description: "Folder-level member permissions"
+            },
+            {
+                name: "Lists",
+                description: "Lists inside spaces — CRUD"
+            },
+            {
+                name: "List Members",
+                description: "List-level member permissions"
             },
             {
                 name: "Tasks",
-                description: "Task CRUD operations and management"
+                description: "Tasks inside lists — CRUD, subtasks, assignments, priorities, due dates"
             },
             {
                 name: "Task Dependencies",
-                description: "Task dependencies with cascading logic"
+                description: "Task dependency graph — FS/SS/FF/SF relationships with cascading Gantt logic"
             },
             {
                 name: "Recurring Tasks",
-                description: "Recurring task automation with cron"
-            },
-            {
-                name: "Activities",
-                description: "Task comments and activity tracking"
+                description: "Recurring task definitions — auto-processed by cron every hour"
             },
             {
                 name: "Activity",
-                description: "Activity tracking and comments management"
-            },
-            {
-                name: "Comments",
-                description: "Task comments management"
+                description: "Task comments, reactions, and audit activity feed"
             },
             {
                 name: "Attachments",
-                description: "File uploads via Cloudinary"
-            },
-            {
-                name: "Upload",
-                description: "File upload management"
+                description: "File uploads (Cloudinary) for tasks and workspace-level storage"
             },
             {
                 name: "Workspace Files",
-                description: "Workspace-wide file management"
-            },
-            {
-                name: "Analytics",
-                description: "Workspace analytics and reporting"
-            },
-            {
-                name: "Dashboard",
-                description: "Dashboard statistics and summaries"
+                description: "Workspace-wide file library — shared files not attached to a specific task"
             },
             {
                 name: "Custom Fields",
-                description: "Custom field definitions and values"
+                description: "Custom field definitions and per-task values"
             },
             {
                 name: "Custom Tables",
-                description: "Custom table management within spaces"
+                description: "Excel-style data tables inside spaces — columns, rows, cell colours"
             },
             {
                 name: "Time Tracking",
-                description: "Time entry management"
-            },
-            {
-                name: "Time Entries",
-                description: "Time tracking and time entry management"
-            },
-            {
-                name: "Notifications",
-                description: "Push notifications and notification center"
+                description: "Timer start/stop, manual time entries, admin oversight, team timesheets"
             },
             {
                 name: "Notification Center",
-                description: "User notification center management"
+                description: "In-app notifications (list, mark-read) + FCM device token registration"
             },
             {
                 name: "Chat",
-                description: "Real-time workspace chat"
+                description: "Real-time workspace group chat via Socket.io"
             },
             {
                 name: "Direct Messages",
-                description: "Private messaging between users"
+                description: "Private 1-to-1 messaging between workspace members"
             },
             {
                 name: "Documents",
-                description: "Document management and collaboration"
+                description: "Rich-text collaborative workspace documents"
             },
             {
                 name: "Plans",
-                description: "Subscription plan management"
+                description: "Subscription plan management — admin CRUD, user listing"
             },
             {
                 name: "Subscription",
-                description: "User subscription information and management"
+                description: "Current user subscription status, trial info, and expiry"
             },
             {
                 name: "Entitlements",
-                description: "Feature entitlement checking and usage tracking"
+                description: "Feature gate checking and resource usage limits"
+            },
+            {
+                name: "Payment",
+                description: "eSewa payment integration — initiate, verify callback, history"
+            },
+            {
+                name: "Currency",
+                description: "USD ↔ NPR live exchange rates"
             },
             {
                 name: "Super Admin",
-                description: "Super admin dashboard and system management"
-            },
-            {
-                name: "Members",
-                description: "Workspace member management"
+                description: "Super-admin panel — all users, financials, system settings"
             },
             {
                 name: "Feedback",
-                description: "User feedback submission and management"
+                description: "User feedback submission and admin review"
             },
             {
                 name: "Performance",
-                description: "User and team performance metrics"
+                description: "Individual and team performance analytics"
             },
             {
                 name: "Presence",
-                description: "User presence and online status"
+                description: "Real-time user online/offline presence"
             },
             {
                 name: "Search",
-                description: "Global search across tasks, spaces, and lists"
+                description: "Global full-text search across tasks, spaces, lists, and members"
+            },
+            {
+                name: "Users",
+                description: "User profile — view / update own profile"
             }
         ]
     },
     apis: [
-        "./src/routes/*.ts",
-        "./src/routes/*.js",
-        "./dist/routes/*.js"
+        "./src/routes/*.ts"
     ]
 };
 const swaggerSpec = (0, swagger_jsdoc_1.default)(options);

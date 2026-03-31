@@ -1,4 +1,4 @@
-﻿import { Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { AuthRequest } from "../types/express";
 
 const asyncHandler = require("../utils/asyncHandler");
@@ -11,8 +11,6 @@ const toggleWorkspaceClock = asyncHandler(
     const { workspaceId } = req.params;
     const { status } = req.body;
     const currentUserId = req.user!.id;
-
-    console.log('[toggleWorkspaceClock] Request:', { workspaceId, status, currentUserId });
 
     const validStatuses = ["active", "inactive"];
     if (!status || !validStatuses.includes(status)) {
@@ -36,8 +34,6 @@ const toggleWorkspaceClock = asyncHandler(
     workspace.markModified('members');
     await workspace.save();
 
-    console.log('[toggleWorkspaceClock] Updated workspace member status to:', status);
-
     let timeEntry = null;
 
     if (status === "active") {
@@ -50,8 +46,6 @@ const toggleWorkspaceClock = asyncHandler(
         description: "Workspace clock in"
       });
 
-      console.log('[toggleWorkspaceClock] Created time entry:', timeEntry._id);
-
       return res.status(200).json({
         success: true,
         message: "Clocked in",
@@ -60,7 +54,6 @@ const toggleWorkspaceClock = asyncHandler(
     }
 
     // Clock out - stop running timer
-    console.log('[toggleWorkspaceClock] Looking for running timer...');
     
     const runningEntry = await TimeEntry.findOne({
       user: currentUserId,
@@ -69,22 +62,11 @@ const toggleWorkspaceClock = asyncHandler(
       isDeleted: false
     });
 
-    console.log('[toggleWorkspaceClock] Found running entry:', runningEntry ? runningEntry._id : 'none');
-
     if (runningEntry) {
       runningEntry.endTime = new Date();
       runningEntry.isRunning = false;
       await runningEntry.save();
       timeEntry = runningEntry;
-      
-      console.log('[toggleWorkspaceClock] Stopped timer:', {
-        id: timeEntry._id,
-        duration: timeEntry.duration,
-        startTime: timeEntry.startTime,
-        endTime: timeEntry.endTime
-      });
-    } else {
-      console.log('[toggleWorkspaceClock] No running timer found to stop');
     }
 
     res.status(200).json({

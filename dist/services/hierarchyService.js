@@ -224,16 +224,66 @@ class HierarchyService {
                                 as: 'lists'
                             }
                         },
-                        // Project space fields
+                        // Lookup TOTAL Tasks for this Space
+                        {
+                            $lookup: {
+                                from: 'tasks',
+                                let: { spaceId: '$_id' },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $and: [
+                                                    { $eq: ['$space', '$$spaceId'] },
+                                                    { $eq: ['$isDeleted', false] }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $count: 'count'
+                                    }
+                                ],
+                                as: 'totalTasksResult'
+                            }
+                        },
+                        // Lookup COMPLETED Tasks for this Space
+                        {
+                            $lookup: {
+                                from: 'tasks',
+                                let: { spaceId: '$_id' },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $and: [
+                                                    { $eq: ['$space', '$$spaceId'] },
+                                                    { $eq: ['$isDeleted', false] },
+                                                    { $eq: ['$status', 'done'] }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $count: 'count'
+                                    }
+                                ],
+                                as: 'completedTasksResult'
+                            }
+                        },
+                        // Project space fields with pre-calculated counts
                         {
                             $project: {
                                 _id: 1,
                                 name: 1,
                                 description: 1,
                                 status: 1,
+                                color: 1, // Ensure color is included for UI
                                 folders: 1,
                                 lists: 1,
-                                createdAt: 1
+                                createdAt: 1,
+                                totalTasks: { $ifNull: [{ $arrayElemAt: ['$totalTasksResult.count', 0] }, 0] },
+                                completedTasks: { $ifNull: [{ $arrayElemAt: ['$completedTasksResult.count', 0] }, 0] }
                             }
                         }
                     ],

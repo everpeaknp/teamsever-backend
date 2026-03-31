@@ -2,6 +2,7 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface IChatMessage extends Document {
   workspace: Types.ObjectId;
+  channel: Types.ObjectId;
   sender: Types.ObjectId;
   content: string;
   type: "text" | "system";
@@ -17,6 +18,12 @@ const chatMessageSchema = new Schema<IChatMessage>(
     workspace: {
       type: Schema.Types.ObjectId,
       ref: "Workspace",
+      required: true,
+      index: true,
+    },
+    channel: {
+      type: Schema.Types.ObjectId,
+      ref: "ChatChannel",
       required: true,
       index: true,
     },
@@ -58,8 +65,9 @@ const chatMessageSchema = new Schema<IChatMessage>(
 );
 
 // Compound indexes for efficient queries
+chatMessageSchema.index({ channel: 1, createdAt: -1 });
+chatMessageSchema.index({ channel: 1, isDeleted: 1, createdAt: -1 });
 chatMessageSchema.index({ workspace: 1, createdAt: -1 });
-chatMessageSchema.index({ workspace: 1, isDeleted: 1, createdAt: -1 });
 
 const ChatMessage = model<IChatMessage>("ChatMessage", chatMessageSchema);
 

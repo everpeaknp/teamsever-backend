@@ -79,6 +79,7 @@ timeEntrySchema.index({ workspace: 1, isDeleted: 1 });
 timeEntrySchema.index({ project: 1, isDeleted: 1 });
 timeEntrySchema.index({ startTime: 1 });
 timeEntrySchema.index({ endTime: 1 });
+timeEntrySchema.index({ user: 1, workspace: 1, isRunning: 1, isDeleted: 1 }); // Performance check for active timers
 
 // Calculate duration before saving if endTime is set
 timeEntrySchema.pre("save", function (this: ITimeEntry) {

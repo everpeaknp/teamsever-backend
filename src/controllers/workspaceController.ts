@@ -45,11 +45,9 @@ const getMyWorkspaces = asyncHandler(async (req: AuthRequest, res: Response, nex
 // @route   GET /api/workspaces/:id
 // @access  Private
 const getWorkspace = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  console.log('[WorkspaceController] getWorkspace called', { workspaceId: req.params.id });
   
   const workspace = await workspaceService.getWorkspaceById(req.params.id, req.user!.id);
 
-  console.log('[WorkspaceController] Workspace retrieved successfully', { workspaceId: workspace._id });
 
   res.status(200).json({
     success: true,
@@ -185,14 +183,6 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
       const resolvedFeatures = await PlanInheritanceService.resolveFeatures(planToUse);
       const maxCustomRoles = resolvedFeatures.maxCustomRoles ?? 0;
       
-      console.log('[updateMemberCustomRole] Custom role limit check:', {
-        ownerId,
-        planName: planToUse.name,
-        currentCount: currentCustomRoleCount,
-        maxAllowed: maxCustomRoles,
-        resolvedFeatures: JSON.stringify(resolvedFeatures, null, 2)
-      });
-      
       // Check if limit is reached
       if (maxCustomRoles !== -1 && currentCustomRoleCount >= maxCustomRoles) {
         return res.status(400).json({
@@ -223,14 +213,10 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
 // @route   GET /api/workspaces/:id/hierarchy
 // @access  Private
 const getWorkspaceHierarchy = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  console.log('[WorkspaceController] getWorkspaceHierarchy called', { workspaceId: req.params.id });
   
   const hierarchy = await HierarchyService.getWorkspaceHierarchy(req.params.id);
 
-  console.log('[WorkspaceController] Hierarchy retrieved successfully', { 
-    workspaceId: req.params.id,
-    spacesCount: hierarchy.spaces.length 
-  });
+
 
   res.status(200).json({
     success: true,

@@ -175,7 +175,7 @@ const taskRouter = express.Router();
  * /api/tasks/{id}:
  *   get:
  *     summary: Get a single task
- *     description: Retrieves detailed information about a specific task
+ *     description: Returns full task details including assignee, custom fields, subtask count, and time tracking summary.
  *     tags: [Tasks]
  *     security:
  *       - bearerAuth: []
@@ -185,14 +185,35 @@ const taskRouter = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *         description: Task ID
  *     responses:
  *       200:
  *         description: Task details
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Task'
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716755f4"
+ *                 title: "Implement OAuth2"
+ *                 description: "Add JWT-based auth with refresh tokens"
+ *                 status: "in-progress"
+ *                 priority: "high"
+ *                 list:
+ *                   _id: "69bbf827a96fe78f716753d1"
+ *                   name: "Sprint 5"
+ *                 assignee:
+ *                   _id: "69bce50b96fe109fe4e14ff6"
+ *                   name: "Alice Smith"
+ *                   profilePicture: null
+ *                 dueDate: "2026-04-01T00:00:00Z"
+ *                 startDate: "2026-03-28T00:00:00Z"
+ *                 isMilestone: false
+ *                 isRecurring: false
+ *                 subtaskCount: 2
+ *                 totalTimeSpent: 7200
+ *                 totalTimeFormatted: "2h"
+ *                 customFieldValues: []
+ *                 createdAt: "2026-03-25T08:00:00Z"
  *       401:
  *         description: Unauthorized
  *       404:
@@ -303,7 +324,7 @@ const taskRouter = express.Router();
  *         description: Unauthorized
  *       404:
  *         description: Task not found
- */
+ * */
 taskRouter.get("/:id", protect, requirePermission("VIEW_TASK"), getTask);
 taskRouter.patch("/:id", protect, requirePermission("EDIT_TASK"), validate(updateTaskSchema), updateTask);
 taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask);

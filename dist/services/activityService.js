@@ -325,29 +325,28 @@ class ActivityService {
      * Get activities with filters
      */
     async getActivities(params) {
-        const { userId, workspaceId, spaceId, listId, limit = 50, skip = 0 } = params;
+        const { userId, performedBy, workspaceId, spaceId, listId, limit = 50, skip = 0, startDate, endDate } = params;
+        // Build query
+        const query = { isDeleted: false };
+        if (workspaceId)
+            query.workspace = workspaceId;
+        if (performedBy)
+            query.user = performedBy;
+        // Date filters
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate)
+                query.createdAt.$gte = new Date(startDate);
+            if (endDate)
+                query.createdAt.$lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+        }
         // If listId is provided, get all tasks in that list first
         if (listId) {
             const Task = require("../models/Task");
             const tasks = await Task.find({ list: listId, isDeleted: false }).select('_id');
             const taskIds = tasks.map((t) => t._id);
-            // Get activities for these tasks
-            const activities = await Activity.find({
-                task: { $in: taskIds },
-                isDeleted: false,
-            })
-                .populate("user", "name email avatar")
-                .populate("task", "title status")
-                .sort("-createdAt")
-                .limit(limit)
-                .skip(skip)
-                .lean();
-            return activities;
+            query.task = { $in: taskIds };
         }
-        // Build query for other filters
-        const query = { isDeleted: false };
-        if (workspaceId)
-            query.workspace = workspaceId;
         // Get activities
         const activities = await Activity.find(query)
             .populate("user", "name email avatar")

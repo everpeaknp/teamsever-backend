@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const workspaceFileService = require("../services/workspaceFileService");
 const asyncHandler = require("../utils/asyncHandler");
-const EntitlementService = require("../services/entitlementService").default;
+const EntitlementService = require("../services/entitlementService");
 const Workspace = require("../models/Workspace");
 /**
  * @desc    Generate Cloudinary upload signature
@@ -12,28 +12,17 @@ const Workspace = require("../models/Workspace");
 const initUpload = asyncHandler(async (req, res) => {
     const { workspaceId } = req.params;
     const userId = req.user.id;
-    console.log('\n' + '='.repeat(60));
-    console.log('FILE UPLOAD INIT - DEBUG INFO');
-    console.log('='.repeat(60));
-    console.log('Workspace ID:', workspaceId);
-    console.log('User ID:', userId);
     // Get workspace owner
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) {
-        console.log('ERROR: Workspace not found');
-        console.log('='.repeat(60) + '\n');
         return res.status(404).json({
             success: false,
             message: "Workspace not found"
         });
     }
     const ownerId = workspace.owner.toString();
-    console.log('Owner ID:', ownerId);
     // Check entitlement
-    console.log(`[FileUpload] Checking file upload entitlement for owner: ${ownerId}`);
     const entitlement = await EntitlementService.canUploadFile(ownerId);
-    console.log(`[FileUpload] Entitlement result:`, entitlement);
-    console.log('='.repeat(60) + '\n');
     if (!entitlement.allowed) {
         return res.status(403).json({
             success: false,

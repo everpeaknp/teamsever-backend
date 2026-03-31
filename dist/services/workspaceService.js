@@ -1,15 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const mongoose = require("mongoose");
 const Workspace = require("../models/Workspace");
+const User = require("../models/User");
+const Plan = require("../models/Plan");
+const Space = require("../models/Space");
+const Task = require("../models/Task");
+const TimeEntry = require("../models/TimeEntry");
+const Announcement = require("../models/Announcement");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
+const PlanInheritanceService = require("./planInheritanceService").default;
+const EntitlementService = require("./entitlementService").default;
+const HierarchyService = require("./hierarchyService").default;
+const analyticsService = require("./analyticsService");
 class WorkspaceService {
     async createWorkspace(data) {
         // Check workspace limit before creating
-        const User = require("../models/User");
-        const Plan = require("../models/Plan");
-        const PlanInheritanceService = require("./planInheritanceService").default;
         const user = await User.findById(data.owner).populate('subscription.planId');
         if (!user) {
             throw new AppError('User not found', 404);
@@ -28,7 +36,6 @@ class WorkspaceService {
             });
             if (!freePlan) {
                 // If no free plan exists, allow creation (backward compatibility)
-                console.log('[WorkspaceService] No free plan found, allowing workspace creation');
                 const workspace = await Workspace.create({
                     name: data.name,
                     owner: data.owner,
@@ -60,12 +67,6 @@ class WorkspaceService {
             owner: data.owner,
             isDeleted: false
         });
-        console.log('[WorkspaceService] Workspace limit check:', {
-            userId: data.owner,
-            currentCount: currentWorkspaceCount,
-            maxAllowed: maxWorkspaces,
-            planName: planToUse.name
-        });
         // Check if limit is reached (only if not unlimited)
         if (maxWorkspaces !== -1 && currentWorkspaceCount >= maxWorkspaces) {
             throw new AppError(`Workspace limit reached (${currentWorkspaceCount}/${maxWorkspaces}). Upgrade your plan to create more workspaces.`, 400, 'WORKSPACE_LIMIT_REACHED');
@@ -90,13 +91,10 @@ class WorkspaceService {
             metadata: { name: workspace.name }
         });
         // Invalidate usage cache for user
-        const EntitlementService = require("./entitlementService").default;
         EntitlementService.invalidateUsageCache(data.owner);
-        console.log('[WorkspaceService] Invalidated usage cache for user');
         return workspace;
     }
     async getUserWorkspaces(userId) {
-        const mongoose = require("mongoose");
         const userObjId = new mongoose.Types.ObjectId(userId);
         const workspaces = await Workspace.find({
             isDeleted: false,
@@ -104,16 +102,15 @@ class WorkspaceService {
         })
             .populate({
             path: "owner",
-            select: "name email avatar subscription",
+            select: "name email profilePicture subscription",
             populate: {
                 path: "subscription.planId",
                 model: "Plan"
             }
         })
-            .populate("members.user", "name email avatar")
+            .populate("members.user", "name email profilePicture")
             .sort("-createdAt");
         // Transform workspaces to include subscription at workspace level
-        const Plan = require("../models/Plan");
         const transformedWorkspaces = await Promise.all(workspaces.map(async (workspace) => {
             const workspaceObj = workspace.toObject();
             if (workspaceObj.owner && workspaceObj.owner.subscription && workspaceObj.owner.subscription.planId) {
@@ -152,13 +149,13 @@ class WorkspaceService {
         })
             .populate({
             path: "owner",
-            select: "name email avatar subscription",
+            select: "name email profilePicture subscription",
             populate: {
                 path: "subscription.planId",
                 model: "Plan"
             }
         })
-            .populate("members.user", "name email avatar");
+            .populate("members.user", "name email profilePicture");
         if (!workspace) {
             throw new AppError("Workspace not found", 404);
         }
@@ -170,7 +167,6 @@ class WorkspaceService {
         // Transform the response to include subscription at workspace level for easier access
         const workspaceObj = workspace.toObject();
         // Always try to get plan information
-        const Plan = require("../models/Plan");
         let planFeatures = null;
         let planToUse = null;
         if (workspaceObj.owner && workspaceObj.owner.subscription && workspaceObj.owner.subscription.planId) {
@@ -245,7 +241,6 @@ class WorkspaceService {
         }
         await softDelete(Workspace, workspaceId);
         // Invalidate usage cache for workspace owner
-        const EntitlementService = require('./entitlementService').default;
         EntitlementService.invalidateUsageCache(workspace.owner.toString());
         await logger.logActivity({
             userId,
@@ -293,58 +288,63 @@ class WorkspaceService {
         return workspace;
     }
     async getWorkspaceAnalytics(workspaceId, userId) {
-        // Dynamic requires to prevent circular dependencies
-        const Space = require("../models/Space");
-        const List = require("../models/List");
-        const Task = require("../models/Task");
-        const TimeEntry = require("../models/TimeEntry");
         // 1. Fetch Workspace & Members (populated for UI badges/avatars)
         const workspace = await Workspace.findOne({
             _id: workspaceId,
             isDeleted: false
         })
-            .populate("owner", "name email avatar")
-            .populate("members.user", "name email avatar")
+            .populate("owner", "name email profilePicture")
+            .populate("members.user", "name email profilePicture")
             .lean();
         if (!workspace) {
             throw new AppError("Workspace not found", 404);
         }
-        // 2. Security Check
-        const hasAccess = workspace.owner._id.toString() === userId ||
-            workspace.members.some((member) => member.user._id.toString() === userId);
-        if (!hasAccess) {
-            throw new AppError("You do not have access to this workspace", 403);
-        }
-        // 3. Fetch Data Tree (Spaces -> Lists -> Tasks)
-        const spaces = await Space.find({ workspace: workspaceId, isDeleted: false })
-            .select("_id name color status")
-            .lean();
-        const spaceIds = spaces.map((s) => s._id);
-        const lists = await List.find({ space: { $in: spaceIds }, isDeleted: false })
-            .select("_id space")
-            .lean();
-        const listIds = lists.map((l) => l._id);
-        const tasks = await Task.find({ list: { $in: listIds }, isDeleted: false })
-            .select("_id name status priority assignee space list workspace createdAt updatedAt")
-            .populate("assignee", "name email avatar")
+        // 2. Fetch stats (also performs security/access check)
+        const stats = await analyticsService.getWorkspaceOverview(workspaceId, userId);
+        // 3. Fetch Hierarchy Tree (Optimized single aggregation)
+        const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId);
+        // 3. Fetch Latest Announcements
+        const announcements = await Announcement.find({
+            workspace: workspaceId
+        })
+            .populate("author", "name email profilePicture")
+            .sort("-createdAt")
+            .limit(10)
             .lean();
         // 4. Fetch the specific running timer for the current user
-        // This allows the frontend to calculate the "ticking" seconds on refresh
         const currentRunningTimer = await TimeEntry.findOne({
             user: userId,
             workspace: workspaceId,
             isRunning: true,
             isDeleted: false
         })
-            .select("_id startTime isRunning description")
-            .sort("-startTime") // Get the most recent one if duplicates exist
+            .select("_id startTime isRunning description task")
+            .populate("task", "title")
+            .sort("-startTime")
+            .lean();
+        // 5. Fetch recent tasks across workspace (top 100 for immediate dashboard visibility)
+        const recentTasks = await Task.find({
+            workspace: workspaceId,
+            isDeleted: false
+        })
+            .select("_id title status priority assignee space list updatedAt")
+            .populate("assignee", "name email profilePicture")
+            .sort("-updatedAt")
+            .limit(100)
             .lean();
         return {
-            workspace,
-            spaces,
-            tasks,
+            workspace: {
+                id: workspaceId,
+                name: workspace.name,
+                logo: workspace.logo,
+                owner: workspace.owner
+            },
+            stats,
+            hierarchy: hierarchy.spaces,
             members: workspace.members,
-            currentRunningTimer // Crucial for persistence
+            tasks: recentTasks,
+            announcements,
+            currentRunningTimer
         };
     }
     async updateMemberCustomRole(workspaceId, memberId, customRoleTitle) {
@@ -364,7 +364,7 @@ class WorkspaceService {
         member.customRoleTitle = customRoleTitle;
         await workspace.save();
         // Populate the member user data for the response
-        await workspace.populate("members.user", "name email avatar");
+        await workspace.populate("members.user", "name email profilePicture");
         // Find and return the updated member
         const updatedMember = workspace.members.find((m) => m.user._id.toString() === memberId);
         return updatedMember;

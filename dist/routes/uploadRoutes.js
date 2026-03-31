@@ -17,7 +17,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   post:
  *     summary: Upload task attachment
  *     description: Upload a file attachment to a task
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -44,7 +44,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   get:
  *     summary: Get task attachments
  *     description: Retrieve all attachments for a task
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -67,7 +67,7 @@ router.get("/tasks/:taskId/attachments", protect, uploadController.getTaskAttach
  *   post:
  *     summary: Upload comment attachment
  *     description: Upload a file attachment to a comment
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -94,7 +94,7 @@ router.get("/tasks/:taskId/attachments", protect, uploadController.getTaskAttach
  *   get:
  *     summary: Get comment attachments
  *     description: Retrieve all attachments for a comment
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -117,7 +117,7 @@ router.get("/comments/:commentId/attachments", protect, uploadController.getComm
  *   post:
  *     summary: Upload DM attachment
  *     description: Upload a file attachment to a direct message
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -144,7 +144,7 @@ router.get("/comments/:commentId/attachments", protect, uploadController.getComm
  *   get:
  *     summary: Get conversation attachments
  *     description: Retrieve all attachments in a conversation
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -167,7 +167,7 @@ router.get("/dm/:conversationId/attachments", protect, uploadController.getConve
  *   delete:
  *     summary: Delete attachment
  *     description: Delete a file attachment
- *     tags: [Upload]
+ *     tags: [Attachments]
  *     security:
  *       - bearerAuth: []
  *     parameters:

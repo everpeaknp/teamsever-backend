@@ -36,8 +36,6 @@ const getWorkspaceSpaces = asyncHandler(async (req, res, next) => {
 // @route   GET /api/spaces/:id
 // @access  Private
 const getSpace = asyncHandler(async (req, res, next) => {
-    console.log('[SpaceController] getSpace called with params:', req.params);
-    console.log('[SpaceController] User ID:', req.user?.id);
     const space = await spaceService.getSpaceById(req.params.id, req.user.id);
     res.status(200).json({
         success: true,
@@ -48,7 +46,6 @@ const getSpace = asyncHandler(async (req, res, next) => {
 // @route   GET /api/spaces/:id/metadata
 // @access  Private
 const getSpaceMetadata = asyncHandler(async (req, res, next) => {
-    console.log('[SpaceController] getSpaceMetadata called with params:', req.params);
     const space = await spaceService.getSpaceMetadataById(req.params.id, req.user.id);
     res.status(200).json({
         success: true,
@@ -59,7 +56,6 @@ const getSpaceMetadata = asyncHandler(async (req, res, next) => {
 // @route   GET /api/spaces/:id/lists/metadata
 // @access  Private
 const getSpaceListsMetadata = asyncHandler(async (req, res, next) => {
-    console.log('[SpaceController] getSpaceListsMetadata called with params:', req.params);
     const lists = await spaceService.getSpaceListsMetadata(req.params.id, req.user.id);
     res.status(200).json({
         success: true,

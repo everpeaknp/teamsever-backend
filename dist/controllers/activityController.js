@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const activityService = require("../services/activityService");
 const WorkspaceActivity = require("../models/WorkspaceActivity");
 const Workspace = require("../models/Workspace");
+const TimeEntry = require("../models/TimeEntry");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 /**
@@ -10,9 +11,21 @@ const AppError = require("../utils/AppError");
  * GET /api/activities
  */
 const getActivities = asyncHandler(async (req, res) => {
-    console.log('[ActivityController] getActivities called', { query: req.query });
     const userId = req.user.id;
     const { workspaceId, spaceId, listId, limit, skip } = req.query;
+    // Basic access check if workspaceId is provided
+    let isAdmin = false;
+    let isOwner = false;
+    if (workspaceId) {
+        const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: false });
+        if (!workspace)
+            throw new AppError("Workspace not found", 404);
+        isOwner = workspace.owner.toString() === userId;
+        const member = workspace.members.find((m) => m.user.toString() === userId);
+        if (!member && !isOwner)
+            throw new AppError("Access denied", 403);
+        isAdmin = member?.role === 'admin' || member?.role === 'owner' || isOwner;
+    }
     const activities = await activityService.getActivities({
         userId,
         workspaceId,
@@ -20,8 +33,8 @@ const getActivities = asyncHandler(async (req, res) => {
         listId,
         limit: limit ? parseInt(limit) : 50,
         skip: skip ? parseInt(skip) : 0,
+        performedBy: (isAdmin || isOwner) ? undefined : userId // ENFORCE: Non-admins only see their own
     });
-    console.log('[ActivityController] Activities retrieved', { count: activities.length });
     res.status(200).json({
         success: true,
         count: activities.length,
@@ -127,7 +140,19 @@ const removeReaction = asyncHandler(async (req, res) => {
 const getUserActivity = asyncHandler(async (req, res) => {
     const { workspaceId } = req.params;
     const userId = req.user.id;
-    const { limit, skip } = req.query;
+    const { limit, skip, startDate, endDate } = req.query;
+    // Build date filter
+    const dateFilter = { isDeleted: false };
+    if (startDate || endDate) {
+        dateFilter.createdAt = {};
+        if (startDate)
+            dateFilter.createdAt.$gte = new Date(startDate);
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter.createdAt.$lte = end;
+        }
+    }
     // Verify user has access to workspace
     const workspace = await Workspace.findOne({
         _id: workspaceId,
@@ -149,84 +174,121 @@ const getUserActivity = asyncHandler(async (req, res) => {
     const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
     let workspaceActivities = [];
     let taskActivities = [];
+    let timeActivities = [];
     if (isOwner || isAdmin) {
         // Owners and admins see ALL activities
-        [workspaceActivities, taskActivities] = await Promise.all([
-            WorkspaceActivity.getWorkspaceActivity(workspaceId, {
-                limit: limitNum,
-                skip: skipNum,
-            }),
+        [workspaceActivities, taskActivities, timeActivities] = await Promise.all([
+            WorkspaceActivity.find({
+                workspace: workspaceId,
+                ...dateFilter
+            })
+                .populate("user", "name email avatar")
+                .populate("targetUser", "name email avatar")
+                .populate("space", "name")
+                .populate("list", "name")
+                .sort({ createdAt: -1 })
+                .limit(limitNum)
+                .skip(skipNum)
+                .lean(),
             activityService.getActivities({
                 userId,
                 workspaceId,
                 limit: limitNum,
                 skip: skipNum,
+                startDate,
+                endDate
+            }),
+            TimeEntry.find({
+                workspace: workspaceId,
+                ...(startDate || endDate ? {
+                    startTime: {
+                        ...(startDate ? { $gte: new Date(startDate) } : {}),
+                        ...(endDate ? { $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) } : {})
+                    }
+                } : {})
             })
+                .populate("user", "name email avatar")
+                .sort({ startTime: -1 })
+                .limit(limitNum)
+                .skip(skipNum)
+                .lean()
         ]);
+        // Transform time entries into activity format
+        timeActivities = timeActivities.map((entry) => ({
+            _id: entry._id,
+            type: entry.isRunning ? 'clock_in' : 'clock_out',
+            createdAt: entry.isRunning ? entry.startTime : (entry.endTime || entry.updatedAt),
+            user: entry.user,
+            workspace: entry.workspace,
+            description: entry.isRunning ? 'clocked in' : 'clocked out',
+            metadata: {
+                duration: entry.duration,
+                timeEntryId: entry._id
+            }
+        }));
     }
     else {
-        // Regular members only see activities for spaces/lists they have access to
-        const Space = require("../models/Space");
-        const List = require("../models/List");
-        const Task = require("../models/Task");
-        const { ListMember } = require("../models/ListMember");
-        // Get spaces where user is a member
-        const userSpaces = await Space.find({
-            workspace: workspaceId,
-            isDeleted: false,
-            'members.user': userId
-        }).select('_id').lean();
-        const userSpaceIds = userSpaces.map((s) => s._id.toString());
-        // Get lists where user is a member (via ListMember)
-        const userListMemberships = await ListMember.find({
-            user: userId,
-            workspace: workspaceId
-        }).select('list space').lean();
-        const userListIds = userListMemberships.map((lm) => lm.list.toString());
-        const additionalSpaceIds = [...new Set(userListMemberships.map((lm) => lm.space.toString()))];
-        // Combine space IDs (from space membership and list membership)
-        const allAccessibleSpaceIds = [...new Set([...userSpaceIds, ...additionalSpaceIds])];
-        // Get workspace activities filtered by accessible spaces/lists
-        const allWorkspaceActivities = await WorkspaceActivity.find({
-            workspace: workspaceId,
-            isDeleted: false,
-            $or: [
-                { space: { $in: allAccessibleSpaceIds } }, // Activities in accessible spaces
-                { list: { $in: userListIds } }, // Activities in accessible lists
-                { type: 'member_joined' }, // Always show member joins
-                { targetUser: userId } // Activities where user is the target (e.g., added to space/list)
-            ]
-        })
-            .populate("user", "name email avatar")
-            .populate("targetUser", "name email avatar")
-            .populate("space", "name")
-            .populate("list", "name")
-            .sort({ createdAt: -1 })
-            .limit(limitNum)
-            .skip(skipNum)
-            .lean();
-        workspaceActivities = allWorkspaceActivities;
-        // Get tasks in accessible lists
-        const tasksInAccessibleLists = await Task.find({
-            list: { $in: userListIds },
-            isDeleted: false
-        }).select('_id').lean();
-        const taskIds = tasksInAccessibleLists.map((t) => t._id);
-        // Get task activities for accessible tasks
-        const Activity = require("../models/Activity");
-        taskActivities = await Activity.find({
-            task: { $in: taskIds },
-            isDeleted: false
-        })
-            .populate("user", "name email avatar")
-            .populate("task", "title status")
-            .sort({ createdAt: -1 })
-            .limit(limitNum)
-            .skip(skipNum)
-            .lean();
+        // Regular members only see their personal logs (actions they performed or where they are the target)
+        [workspaceActivities, taskActivities, timeActivities] = await Promise.all([
+            WorkspaceActivity.find({
+                workspace: workspaceId,
+                isDeleted: false,
+                ...dateFilter,
+                $or: [
+                    { user: userId },
+                    { targetUser: userId }
+                ]
+            })
+                .populate("user", "name email avatar")
+                .populate("targetUser", "name email avatar")
+                .populate("space", "name")
+                .populate("list", "name")
+                .sort({ createdAt: -1 })
+                .limit(limitNum)
+                .skip(skipNum)
+                .lean(),
+            activityService.getActivities({
+                userId, // This service already filters by user ifuserId is provided? No, let's check
+                workspaceId,
+                limit: limitNum,
+                skip: skipNum,
+                startDate,
+                endDate,
+                performedBy: userId // We'll add this filter
+            }),
+            TimeEntry.find({
+                user: userId, // Only their own timers
+                workspace: workspaceId,
+                isDeleted: false,
+                ...(startDate || endDate ? {
+                    startTime: {
+                        ...(startDate ? { $gte: new Date(startDate) } : {}),
+                        ...(endDate ? { $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) } : {})
+                    }
+                } : {})
+            })
+                .populate("user", "name email avatar")
+                .sort({ startTime: -1 })
+                .limit(limitNum)
+                .skip(skipNum)
+                .lean()
+        ]);
+        // Transform time entries into activity format
+        timeActivities = timeActivities.map((entry) => ({
+            _id: entry._id,
+            type: entry.isRunning ? 'clock_in' : 'clock_out',
+            createdAt: entry.isRunning ? entry.startTime : (entry.endTime || entry.updatedAt),
+            user: entry.user,
+            workspace: entry.workspace,
+            description: entry.isRunning ? 'clocked in' : 'clocked out',
+            metadata: {
+                duration: entry.duration,
+                timeEntryId: entry._id
+            }
+        }));
     }
     // Combine and sort by createdAt
-    const allActivities = [...workspaceActivities, ...taskActivities].sort((a, b) => {
+    const allActivities = [...workspaceActivities, ...taskActivities, ...timeActivities].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     // Limit the combined results

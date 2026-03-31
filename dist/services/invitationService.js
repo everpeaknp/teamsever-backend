@@ -49,23 +49,16 @@ class InvitationService {
             // Populate invitation details for email
             await existingInvite.populate("invitedBy", "name email");
             await existingInvite.populate("workspaceId", "name");
-            // Resend invitation email (non-blocking)
+            // Resend invitation (non-blocking)
             setImmediate(async () => {
                 try {
                     const inviter = await User.findById(invitedBy);
-                    if (inviter) {
-                        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-                        const inviteUrl = `${frontendUrl}/join?token=${existingInvite.token}`;
-                        await emailService.sendWorkspaceInvitation({
-                            recipientEmail: email,
-                            recipientName: email.split('@')[0],
-                            inviterName: inviter.name,
-                            workspaceName: workspace.name,
-                            role: role,
-                            workspaceLink: inviteUrl
-                        });
-                        console.log(`Re-sent invitation email to ${email} for workspace ${workspace.name}`);
-                        // Re-send in-app notification if user is registered
+                    if (!inviter)
+                        return;
+                    const frontendUrl = process.env.FRONTEND_URL || "https://teamsever.vercel.app";
+                    const inviteUrl = `${frontendUrl}/join?token=${existingInvite.token}`;
+                    // 1. Re-send in-app notification FIRST (more reliable)
+                    try {
                         const existingUser = await User.findOne({ email: email.toLowerCase() });
                         if (existingUser) {
                             await notificationService.createNotification({
@@ -81,11 +74,30 @@ class InvitationService {
                                     inviterName: inviter.name,
                                 },
                             });
+                            console.log(`[InvitationService] In-app reminder sent to ${email}`);
                         }
                     }
+                    catch (notifError) {
+                        console.error("[InvitationService] Failed to resend in-app notification:", notifError);
+                    }
+                    // 2. Resend invitation email SECOND
+                    try {
+                        await emailService.sendWorkspaceInvitation({
+                            recipientEmail: email,
+                            recipientName: email.split('@')[0],
+                            inviterName: inviter.name,
+                            workspaceName: workspace.name,
+                            role: role,
+                            workspaceLink: inviteUrl
+                        });
+                        console.log(`[InvitationService] Email reminder sent to ${email}`);
+                    }
+                    catch (emailError) {
+                        console.error("[InvitationService] Failed to resend email (notification was already sent):", emailError);
+                    }
                 }
-                catch (emailError) {
-                    console.error("Failed to resend invitation email/notification:", emailError);
+                catch (error) {
+                    console.error("[InvitationService] Critical error in resend loop:", error);
                 }
             });
             return existingInvite;

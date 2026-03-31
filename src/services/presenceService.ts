@@ -165,8 +165,6 @@ class PresenceService {
           timestamp: new Date(),
         });
       });
-
-      console.log(`[Presence] Broadcasted user:online for ${userId} in workspace ${workspaceId}`);
     } catch (error) {
       console.error("[Presence] Failed to broadcast user:online:", error);
     }
@@ -215,8 +213,6 @@ class PresenceService {
           timestamp: new Date(),
         });
       });
-
-      console.log(`[Presence] Broadcasted user:offline for ${userId} in workspace ${workspaceId}`);
     } catch (error) {
       console.error("[Presence] Failed to broadcast user:offline:", error);
     }

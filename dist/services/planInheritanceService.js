@@ -16,29 +16,20 @@ class PlanInheritanceService {
             if (!plan) {
                 throw new Error('Plan is required');
             }
-            console.log(`[PlanInheritanceService] Resolving features for plan: ${plan.name}`);
-            console.log(`[PlanInheritanceService] Plan has parentPlanId: ${plan.parentPlanId}`);
-            console.log(`[PlanInheritanceService] Plan features before resolution:`, JSON.stringify(plan.features, null, 2));
             // Base case: no parent plan
             if (!plan.parentPlanId) {
-                console.log(`[PlanInheritanceService] No parent plan, returning features as-is`);
                 return plan.features;
             }
             // Get parent plan
             const parentPlan = await Plan.findById(plan.parentPlanId);
             if (!parentPlan) {
                 // Parent not found, return features as-is
-                console.warn(`[PlanInheritanceService] Parent plan ${plan.parentPlanId} not found for plan ${plan._id}`);
                 return plan.features;
             }
-            console.log(`[PlanInheritanceService] Found parent plan: ${parentPlan.name}`);
             // Recursively resolve parent features
             const parentFeatures = await this.resolveFeatures(parentPlan);
-            console.log(`[PlanInheritanceService] Parent features:`, JSON.stringify(parentFeatures, null, 2));
-            console.log(`[PlanInheritanceService] Child features:`, JSON.stringify(plan.features, null, 2));
             // Merge features (child overrides parent)
             const merged = this.mergeFeatures(parentFeatures, plan.features);
-            console.log(`[PlanInheritanceService] Merged features:`, JSON.stringify(merged, null, 2));
             return merged;
         }
         catch (error) {
@@ -72,11 +63,14 @@ class PlanInheritanceService {
             maxFiles: childFeatures.maxFiles ?? parentFeatures.maxFiles ?? -1,
             maxDocuments: childFeatures.maxDocuments ?? parentFeatures.maxDocuments ?? -1,
             maxDirectMessagesPerUser: childFeatures.maxDirectMessagesPerUser ?? parentFeatures.maxDirectMessagesPerUser ?? -1,
+            maxPrivateChannelsCount: childFeatures.maxPrivateChannelsCount ?? parentFeatures.maxPrivateChannelsCount ?? -1,
+            maxMembersPerPrivateChannel: childFeatures.maxMembersPerPrivateChannel ?? parentFeatures.maxMembersPerPrivateChannel ?? -1,
             // Boolean features: child overrides parent
             hasAccessControl: childFeatures.hasAccessControl ?? parentFeatures.hasAccessControl,
             hasGroupChat: childFeatures.hasGroupChat ?? parentFeatures.hasGroupChat,
             canUseCustomRoles: childFeatures.canUseCustomRoles ?? parentFeatures.canUseCustomRoles,
             canCreateTables: childFeatures.canCreateTables ?? parentFeatures.canCreateTables,
+            canCreatePrivateChannels: childFeatures.canCreatePrivateChannels ?? parentFeatures.canCreatePrivateChannels,
             // Announcement cooldown: child overrides parent
             announcementCooldown: childFeatures.announcementCooldown ?? parentFeatures.announcementCooldown,
             // Tier features: child overrides parent

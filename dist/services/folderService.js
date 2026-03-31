@@ -50,7 +50,6 @@ class FolderService {
         return folder;
     }
     async getFolders(spaceId, userId) {
-        console.log(`[FolderService] getFolders called with spaceId: ${spaceId}, userId: ${userId}`);
         // Import ListMember model
         const ListMember = require("../models/ListMember").ListMember;
         // Verify space exists
@@ -86,7 +85,6 @@ class FolderService {
             const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
             return memberId === userId;
         });
-        console.log(`[FolderService] User access:`, { isOwner, isAdmin });
         // Get folders with their lists
         const folders = await Folder.find({
             spaceId,
@@ -119,24 +117,20 @@ class FolderService {
         let accessibleListIds;
         // Only owners and admins can see all lists
         if (isOwner || isAdmin) {
-            // Full access - can see all lists
             accessibleListIds = allLists.map((list) => list._id.toString());
-            console.log(`[FolderService] User is owner/admin, has access to all ${accessibleListIds.length} lists`);
         }
         else {
-            // For regular members (including space members), filter to only lists where user is a list member
+            // Get lists where user has membership
             const userListMemberships = await ListMember.find({
                 user: userId,
-                space: spaceId
+                workspace: space.workspace
             }).select('list').lean();
             accessibleListIds = userListMemberships.map((lm) => lm.list.toString());
-            console.log(`[FolderService] User has access to ${accessibleListIds.length} lists via list membership`);
         }
         // Populate lists for each folder, filtering by access
         const foldersWithLists = await Promise.all(folders.map(async (folder) => {
             const folderLists = allLists.filter((list) => list.folderId?.toString() === folder._id.toString() &&
                 accessibleListIds.includes(list._id.toString()));
-            console.log(`[FolderService] Folder "${folder.name}" has ${folderLists.length} accessible lists`);
             return {
                 ...folder,
                 lists: folderLists
@@ -146,8 +140,6 @@ class FolderService {
         const filteredFolders = (isOwner || isAdmin)
             ? foldersWithLists
             : foldersWithLists.filter((folder) => folder.lists.length > 0);
-        console.log(`[FolderService] Returning ${filteredFolders.length} folders`);
-        console.log(`[FolderService] Folder names:`, filteredFolders.map((f) => ({ name: f.name, listCount: f.lists.length })));
         return filteredFolders;
     }
     async updateFolder(folderId, userId, updateData) {

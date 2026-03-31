@@ -24,6 +24,7 @@ if (typeof protect !== 'function') {
  * /api/search:
  *   get:
  *     summary: Global search across tasks, spaces, and lists
+ *     description: Performs a full-text search across the user's accessible tasks, spaces, and lists in the current workspace (if provided in headers).
  *     tags: [Search]
  *     security:
  *       - bearerAuth: []
@@ -33,31 +34,51 @@ if (typeof protect !== 'function') {
  *         schema:
  *           type: string
  *         required: true
- *         description: Search query string
+ *         description: Search query string (min 3 characters recommended)
  *     responses:
  *       200:
- *         description: Search results
+ *         description: Search results grouped by entity type
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Task'
+ *                     spaces:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Space'
+ *                     lists:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/List'
+ *             example:
+ *               success: true
+ *               data:
  *                 tasks:
- *                   type: array
- *                   items:
- *                     type: object
+ *                   - _id: "69bbf827a96fe78f716755f4"
+ *                     title: "Implement Authentication"
+ *                     status: "in-progress"
  *                 spaces:
- *                   type: array
- *                   items:
- *                     type: object
+ *                   - _id: "69bbf827a96fe78f716753c1"
+ *                     name: "Backend Development"
  *                 lists:
- *                   type: array
- *                   items:
- *                     type: object
+ *                   - _id: "69bbf827a96fe78f716753d2"
+ *                     name: "Q1 Roadmap"
+ *       400:
+ *         description: Missing or invalid search query
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Invalid token
  *       500:
- *         description: Server error
+ *         description: Search engine error
  */
 router.get("/", protect, handleGlobalSearch);
 module.exports = router;

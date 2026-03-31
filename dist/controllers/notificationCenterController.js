@@ -9,7 +9,6 @@ const AppError = require("../utils/AppError");
  * @access  Private
  */
 const getNotifications = asyncHandler(async (req, res) => {
-    console.log('[NotificationCenterController] getNotifications called', { query: req.query });
     const userId = req.user.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -19,7 +18,6 @@ const getNotifications = asyncHandler(async (req, res) => {
         limit,
         unreadOnly,
     });
-    console.log('[NotificationCenterController] Notifications retrieved', { count: result.notifications.length });
     res.status(200).json({
         success: true,
         data: result.notifications,

@@ -14,7 +14,6 @@ const AppError = require("../utils/AppError");
  */
 const getWorkspaceMembers = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    console.log('[MemberController] getWorkspaceMembers called', { workspaceId: req.params.workspaceId });
     
     const { workspaceId } = req.params;
 
@@ -27,17 +26,7 @@ const getWorkspaceMembers = asyncHandler(
       return next(new AppError("Workspace not found", 404));
     }
 
-    console.log('[MemberController] Workspace found:', {
-      name: workspace.name,
-      owner: workspace.owner,
-      totalMembers: workspace.members.length,
-      membersData: workspace.members.map((m: any) => ({
-        userId: m.user?._id || m.user,
-        role: m.role,
-        status: m.status,
-        hasUserData: !!m.user?.name
-      }))
-    });
+
 
     // Format response - return ALL members regardless of clock-in status
     // The status field is for time tracking (active/inactive = clocked in/out), not for member visibility
@@ -45,12 +34,7 @@ const getWorkspaceMembers = asyncHandler(
       .filter((member: any) => {
         // Only filter out if user data is missing (deleted users)
         const hasUserData = member.user && (member.user._id || member.user.name);
-        console.log('[MemberController] Filtering member:', {
-          userId: member.user?._id || member.user,
-          role: member.role,
-          status: member.status,
-          hasUserData
-        });
+
         return hasUserData;
       })
       .map((member: any) => ({
@@ -65,15 +49,10 @@ const getWorkspaceMembers = asyncHandler(
         profilePicture: member.user.profilePicture,
       }));
 
-    console.log('[MemberController] Active members retrieved', { 
-      count: members.length,
-      totalMembers: workspace.members.length,
-      members: members.map(m => ({ id: m._id, name: m.name, role: m.role }))
-    });
+
 
     // If no members found but workspace has an owner, include the owner
     if (members.length === 0 && workspace.owner) {
-      console.log('[MemberController] No members found, fetching owner');
       const owner = await User.findById(workspace.owner).select('name email avatar profilePicture');
       if (owner) {
         members.push({
@@ -86,7 +65,6 @@ const getWorkspaceMembers = asyncHandler(
           avatar: owner.avatar,
           profilePicture: owner.profilePicture,
         });
-        console.log('[MemberController] Added owner to members list');
       }
     }
 
@@ -227,8 +205,6 @@ const removeMember = asyncHandler(
     workspace.members.splice(memberIndex, 1);
     await workspace.save();
 
-    console.log('[RemoveMember] Member removed from workspace:', userId);
-    console.log('[RemoveMember] Remaining members:', workspace.members.length);
 
     // Emit socket event for real-time updates
     const io = require('../server').io;
@@ -293,7 +269,6 @@ const inviteMember = asyncHandler(
       
       // User is already a member of this workspace
       // Just update their role and resend invitation email
-      console.log('[InviteMember] User already exists in workspace, updating role and resending invitation:', user.email);
       workspace.members[existingMemberIndex].role = role;
       await workspace.save();
       
@@ -311,7 +286,6 @@ const inviteMember = asyncHandler(
           workspaceLink: workspaceLink
         });
         
-        console.log('[InviteMember] Invitation email resent to:', user.email);
       } catch (emailError) {
         console.error('[InviteMember] Failed to send invitation email:', emailError);
         // Don't fail the invitation if email fails
@@ -339,8 +313,6 @@ const inviteMember = asyncHandler(
 
     await workspace.save();
 
-    console.log('[InviteMember] New member added:', user.email);
-    console.log('[InviteMember] Active members:', workspace.members.filter((m: any) => m.status === 'active').length);
 
     // Send invitation email
     try {
@@ -356,7 +328,6 @@ const inviteMember = asyncHandler(
         workspaceLink: workspaceLink
       });
       
-      console.log('[InviteMember] Invitation email sent to:', user.email);
     } catch (emailError) {
       console.error('[InviteMember] Failed to send invitation email:', emailError);
       // Don't fail the invitation if email fails

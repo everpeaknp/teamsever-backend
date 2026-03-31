@@ -56,7 +56,7 @@ const router = express.Router({ mergeParams: true });
  *         description: Insufficient permissions
  *   get:
  *     summary: Get workspace invitations
- *     description: Returns all pending invitations for a workspace
+ *     description: Returns all pending (not yet accepted or cancelled) invitations for a workspace.
  *     tags: [Invitations]
  *     security:
  *       - bearerAuth: []
@@ -66,10 +66,22 @@ const router = express.Router({ mergeParams: true });
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *     responses:
  *       200:
- *         description: List of invitations
+ *         description: Pending invitations retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f71675a01"
+ *                   email: "charlie@example.com"
+ *                   role: "member"
+ *                   status: "pending"
+ *                   expiresAt: "2026-04-06T08:00:00Z"
+ *                   invitedBy:
+ *                     name: "Alice Smith"
+ *                   createdAt: "2026-03-30T08:00:00Z"
  *       401:
  *         description: Authentication required
  *       404:
@@ -143,14 +155,28 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  * @swagger
  * /api/invites/my-invitations:
  *   get:
- *     summary: Get my invitations
- *     description: Retrieve all pending invitations for current user
+ *     summary: Get my pending invitations
+ *     description: Returns all workspace invitations sent to the current user that are still pending (not yet accepted or declined).
  *     tags: [Invitations]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Invitations retrieved successfully
+ *         description: My invitations
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f71675a02"
+ *                   workspace:
+ *                     _id: "69bbf827a96fe78f716752bb"
+ *                     name: "Engineering Team"
+ *                   role: "member"
+ *                   invitedBy:
+ *                     name: "Alice Smith"
+ *                   token: "eyJhbGciOiJIUzI..."
+ *                   expiresAt: "2026-04-06T08:00:00Z"
  *       401:
  *         description: Authentication required
  */

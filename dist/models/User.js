@@ -68,7 +68,10 @@ const userSchema = new mongoose_1.default.Schema({
             maxColumnsLimit: { type: Number },
             maxFiles: { type: Number },
             maxDocuments: { type: Number },
-            maxDirectMessagesPerUser: { type: Number }
+            maxDirectMessagesPerUser: { type: Number },
+            canCreatePrivateChannels: { type: Boolean },
+            maxPrivateChannelsCount: { type: Number },
+            maxMembersPerPrivateChannel: { type: Number }
         }
     }
 }, { timestamps: true });

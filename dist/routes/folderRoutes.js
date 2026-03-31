@@ -54,8 +54,8 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *       403:
  *         description: Folder limit reached or insufficient permissions
  *   get:
- *     summary: Get folders
- *     description: Retrieve all folders in a space
+ *     summary: Get folders in a space
+ *     description: Retrieve all folders in a space, ordered by creation date.
  *     tags: [Folders]
  *     security:
  *       - bearerAuth: []
@@ -65,10 +65,21 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *         required: true
  *         schema:
  *           type: string
- *         description: Space ID
  *     responses:
  *       200:
- *         description: Folders retrieved successfully
+ *         description: Folders retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 - _id: "69bbf827a96fe78f716753a1"
+ *                   name: "Sprint 5"
+ *                   description: "Current sprint"
+ *                   color: "#6366f1"
+ *                   space: "69bbf827a96fe78f716753b2"
+ *                   listCount: 3
+ *                   createdAt: "2026-03-01T08:00:00Z"
  *       401:
  *         description: Authentication required
  *       404:
@@ -83,7 +94,7 @@ const folderRouter = express.Router();
  * /api/folders/{id}:
  *   get:
  *     summary: Get folder
- *     description: Get a single folder by ID
+ *     description: Returns a single folder with its lists.
  *     tags: [Folders]
  *     security:
  *       - bearerAuth: []
@@ -93,10 +104,26 @@ const folderRouter = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *         description: Folder ID
  *     responses:
  *       200:
- *         description: Folder retrieved successfully
+ *         description: Folder retrieved
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 _id: "69bbf827a96fe78f716753a1"
+ *                 name: "Sprint 5"
+ *                 description: "Current sprint folder"
+ *                 color: "#6366f1"
+ *                 space: "69bbf827a96fe78f716753b2"
+ *                 lists:
+ *                   - _id: "69bbf827a96fe78f716753c3"
+ *                     name: "Backend Tasks"
+ *                     taskCount: 12
+ *                   - _id: "69bbf827a96fe78f716753c4"
+ *                     name: "Frontend Tasks"
+ *                     taskCount: 8
  *       401:
  *         description: Authentication required
  *       404:
