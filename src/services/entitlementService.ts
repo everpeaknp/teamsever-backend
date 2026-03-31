@@ -8,6 +8,12 @@ const Task = require('../models/Task');
 const CustomTable = require('../models/CustomTable');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
+const WorkspaceFile = require('../models/WorkspaceFile');
+const Document = require('../models/Document');
+const Conversation = require('../models/Conversation');
+const DirectMessage = require('../models/DirectMessage');
+const ChatChannel = require('../models/ChatChannel');
+
 const PlanInheritanceService = require('./planInheritanceService').default;
 
 interface TotalUsage {
@@ -18,6 +24,7 @@ interface TotalUsage {
     totalTasks: number;
     totalTables: number;
     totalRows: number;
+    totalPrivateChannels: number;
 }
 
 // Cache for usage calculations (5-minute TTL)
@@ -55,7 +62,10 @@ const SUPER_PLAN_FEATURES = {
     maxColumnsLimit: -1,
     maxFiles: -1,
     maxDocuments: -1,
-    maxDirectMessagesPerUser: -1
+    maxDirectMessagesPerUser: -1,
+    canCreatePrivateChannels: true,
+    maxPrivateChannelsCount: -1,
+    maxMembersPerPrivateChannel: -1
 };
 
 const DEFAULT_FREE_FEATURES = {
@@ -78,7 +88,10 @@ const DEFAULT_FREE_FEATURES = {
     maxColumnsLimit: 0,
     maxFiles: 5,
     maxDocuments: 5,
-    maxDirectMessagesPerUser: 50
+    maxDirectMessagesPerUser: 50,
+    canCreatePrivateChannels: false,
+    maxPrivateChannelsCount: 0,
+    maxMembersPerPrivateChannel: 0
 };
 
 /**
@@ -93,13 +106,10 @@ class EntitlementService {
      */
     async getTotalUsage(ownerId: string): Promise<TotalUsage> {
         try {
-            console.log(`[EntitlementService] Calculating total usage for owner: ${ownerId}`);
-
             // Check cache first
             const cacheKey = `usage:${ownerId}`;
             const cached = usageCache.get(cacheKey);
             if (cached && Date.now() < cached.expires) {
-                console.log(`[EntitlementService] Returning cached usage for owner ${ownerId}`);
                 return cached.usage;
             }
 
@@ -185,7 +195,6 @@ class EntitlementService {
                 {
                     // Group to get totals
                     $group: {
-                        _id: null,
                         totalWorkspaces: { $sum: 1 },
                         totalSpaces: { $sum: '$spaceCount' },
                         totalLists: { $sum: '$listCount' },
@@ -194,6 +203,15 @@ class EntitlementService {
                     }
                 }
             ]);
+
+            // Query 1b: Get private channel count for these workspaces
+            const workspaces = await Workspace.find({ owner: ownerId, isDeleted: false }).select('_id');
+            const workspaceIds = workspaces.map((w: any) => w._id);
+            const totalPrivateChannels = await ChatChannel.countDocuments({
+                workspace: { $in: workspaceIds },
+                type: 'private',
+                isDeleted: false
+            });
 
             // If no workspaces, return zeros
             if (workspaceAggregation.length === 0) {
@@ -204,7 +222,8 @@ class EntitlementService {
                     totalFolders: 0,
                     totalTasks: 0,
                     totalTables: 0,
-                    totalRows: 0
+                    totalRows: 0,
+                    totalPrivateChannels: 0
                 };
                 
                 // Cache the result
@@ -315,10 +334,9 @@ class EntitlementService {
                 totalFolders,
                 totalTasks: workspaceResult.totalTasks,
                 totalTables,
-                totalRows
+                totalRows,
+                totalPrivateChannels
             };
-
-            console.log(`[EntitlementService] Total usage for owner ${ownerId}:`, usage);
 
             // Cache the result for 5 minutes
             usageCache.set(cacheKey, {
@@ -358,7 +376,6 @@ class EntitlementService {
     invalidateUsageCache(ownerId: string): void {
         const cacheKey = `usage:${ownerId}`;
         usageCache.delete(cacheKey);
-        console.log(`[EntitlementService] Invalidated usage cache for owner ${ownerId}`);
     }
 
     /**
@@ -376,7 +393,6 @@ class EntitlementService {
         });
         
         keysToDelete.forEach(key => entitlementCache.delete(key));
-        console.log(`[EntitlementService] Invalidated entitlement cache for user ${userId} (${keysToDelete.length} entries)`);
     }
 
     /**
@@ -390,7 +406,6 @@ class EntitlementService {
             
             // SUPER ADMIN BYPASS: Grant unlimited access
             if (user && user.isSuperUser) {
-                console.log(`[EntitlementService] Super Admin bypass for user: ${userId}`);
                 return {
                     name: 'Super Admin Unlimited',
                     features: SUPER_PLAN_FEATURES
@@ -408,7 +423,6 @@ class EntitlementService {
                 }
 
                 // If absolutely no plan found in DB, return a virtual free plan
-                console.warn(`[EntitlementService] No Free plan found in database, using hardcoded defaults for user: ${userId}`);
                 return {
                     name: 'Default Free',
                     features: DEFAULT_FREE_FEATURES
@@ -428,8 +442,6 @@ class EntitlementService {
                         plan.features[key] = value;
                     }
                 });
-                
-                console.log(`[EntitlementService] Applied feature overrides for user: ${userId}`);
             }
 
             return plan;
@@ -609,7 +621,6 @@ class EntitlementService {
             }
 
             // Get current column count for this table
-            const CustomTable = require('../models/CustomTable');
             const table = await CustomTable.findById(tableId);
             if (!table) {
                 return { allowed: false, reason: 'Table not found' };
@@ -638,58 +649,39 @@ class EntitlementService {
      */
     async canUploadFile(userId: string): Promise<{ allowed: boolean; reason?: string }> {
         try {
-            console.log(`[EntitlementService] canUploadFile called for user: ${userId}`);
-            
             const plan = await this.getUserPlan(userId);
             if (!plan) {
-                console.log(`[EntitlementService] No plan found for user: ${userId}`);
                 return { allowed: false, reason: 'No subscription plan found' };
             }
 
-            console.log(`[EntitlementService] User plan:`, plan.name);
-            console.log(`[EntitlementService] Raw plan features:`, JSON.stringify(plan.features, null, 2));
-
             const resolvedFeatures = await PlanInheritanceService.resolveFeatures(plan);
-            console.log(`[EntitlementService] Resolved features:`, JSON.stringify(resolvedFeatures, null, 2));
-            
             const maxFiles = resolvedFeatures.maxFiles;
-            
-            console.log(`[EntitlementService] Max files allowed: ${maxFiles}`);
             
             // -1 means unlimited
             if (maxFiles === -1) {
-                console.log(`[EntitlementService] Unlimited files allowed`);
                 return { allowed: true };
             }
             
             // 0 or undefined/null means feature not configured, default to unlimited
             if (maxFiles === undefined || maxFiles === null) {
-                console.log(`[EntitlementService] No file limit configured, allowing upload`);
                 return { allowed: true };
             }
 
             // Count files across all workspaces owned by user
-            const WorkspaceFile = require('../models/WorkspaceFile');
             const workspaces = await Workspace.find({ owner: userId, isDeleted: false }).select('_id');
             const workspaceIds = workspaces.map((w: any) => w._id);
-            
-            console.log(`[EntitlementService] User owns ${workspaces.length} workspaces`);
             
             const fileCount = await WorkspaceFile.countDocuments({
                 workspace: { $in: workspaceIds },
                 isDeleted: false
             });
 
-            console.log(`[EntitlementService] Current file count: ${fileCount}, Max: ${maxFiles}`);
-
             if (fileCount >= maxFiles) {
-                console.log(`[EntitlementService] File limit reached!`);
                 return { 
                     allowed: false, 
                     reason: `File limit reached (${fileCount}/${maxFiles})` 
                 };
             } else {
-                console.log(`[EntitlementService] Upload allowed (${fileCount}/${maxFiles})`);
                 return { allowed: true };
             }
         } catch (error) {
@@ -724,7 +716,6 @@ class EntitlementService {
             }
 
             // Count documents in workspaces owned by user
-            const Document = require('../models/Document');
             const workspaces = await Workspace.find({ owner: userId, isDeleted: false }).select('_id');
             const workspaceIds = workspaces.map((w: any) => w._id);
             
@@ -773,10 +764,6 @@ class EntitlementService {
                 return { allowed: true };
             }
 
-            // Find conversation between sender and recipient
-            const Conversation = require('../models/Conversation');
-            const DirectMessage = require('../models/DirectMessage');
-            
             // Sort participants for consistent ordering (same as service does)
             const participants = [senderId, recipientId].sort();
             
@@ -804,6 +791,81 @@ class EntitlementService {
             }
         } catch (error) {
             console.error(`[EntitlementService] Error checking direct message entitlement:`, error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Check if user can create a new private channel
+     * @param userId - The user's ID
+     * @returns Object with allowed status and optional reason
+     */
+    async canCreatePrivateChannel(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+        try {
+            const plan = await this.getUserPlan(userId);
+            if (!plan) {
+                return { allowed: false, reason: 'No subscription plan found' };
+            }
+
+            const resolvedFeatures = await PlanInheritanceService.resolveFeatures(plan);
+            
+            // Check if feature is enabled
+            if (!resolvedFeatures.canCreatePrivateChannels) {
+                return { 
+                    allowed: false, 
+                    reason: 'Private groups are not available in your current plan. Upgrade to unlock private team discussions.' 
+                };
+            }
+
+            // Check count limit
+            const maxCount = resolvedFeatures.maxPrivateChannelsCount;
+            if (maxCount === -1) return { allowed: true };
+
+            const usage = await this.getTotalUsage(userId);
+            if (usage.totalPrivateChannels >= maxCount) {
+                return { 
+                    allowed: false, 
+                    reason: `Private group limit reached (${usage.totalPrivateChannels}/${maxCount}). Upgrade for more private groups.` 
+                };
+            }
+
+            return { allowed: true };
+        } catch (error) {
+            console.error(`[EntitlementService] Error checking private channel creation entitlement:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Check if a member can be added to a private channel
+     * @param userId - The workspace owner's ID
+     * @param channelId - The channel ID
+     * @returns Object with allowed status and optional reason
+     */
+    async canAddMemberToPrivateChannel(userId: string, channelId: string): Promise<{ allowed: boolean; reason?: string }> {
+        try {
+            const plan = await this.getUserPlan(userId);
+            if (!plan) return { allowed: true }; // Fallback
+
+            const resolvedFeatures = await PlanInheritanceService.resolveFeatures(plan);
+            const maxMembers = resolvedFeatures.maxMembersPerPrivateChannel;
+            
+            if (maxMembers === -1) return { allowed: true };
+
+            const channel = await ChatChannel.findById(channelId);
+            if (!channel) return { allowed: false, reason: 'Channel not found' };
+
+            const currentMembers = channel.members?.length || 0;
+            if (currentMembers >= maxMembers) {
+                return { 
+                    allowed: false, 
+                    reason: `Member limit reached for this private group (${currentMembers}/${maxMembers}). Upgrade your plan to add more members.` 
+                };
+            }
+
+            return { allowed: true };
+        } catch (error) {
+            console.error(`[EntitlementService] Error checking private channel member limit:`, error);
             throw error;
         }
     }
