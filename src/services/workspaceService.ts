@@ -16,7 +16,8 @@ const analyticsService = require("./analyticsService");
 const activityService = require("./activityService");
 const performanceService = require("./performanceService");
 const stickyNoteService = require("./stickyNoteService");
-
+const PlanInheritanceService = require("./planInheritanceService").default;
+const EntitlementService = require("./entitlementService").default;
 interface CreateWorkspaceData {
   name: string;
   owner: string;
