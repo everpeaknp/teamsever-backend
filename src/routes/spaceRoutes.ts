@@ -75,6 +75,10 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Space limit reached or insufficient permissions
  *         content:
@@ -103,6 +107,10 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/SpaceListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
  *         content:
@@ -141,6 +149,10 @@ const spaceRouter = express.Router();
  *               $ref: "#/components/schemas/SpaceResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
  *         content:
@@ -190,8 +202,16 @@ const spaceRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
  *         content:
@@ -220,8 +240,16 @@ const spaceRouter = express.Router();
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
  *         content:
@@ -269,10 +297,22 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *                   type: number
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *
  * /api/spaces/{id}/lists/metadata:
  *   get:
@@ -312,10 +352,22 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *                     description: Parent folder ID if list is inside a folder
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceRouter.get("/:id/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceMetadata);
 spaceRouter.get("/:id/lists/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceListsMetadata);
@@ -352,12 +404,28 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *     responses:
  *       200:
  *         description: Member added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space or user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"), addMemberToSpace);
 
@@ -386,12 +454,28 @@ spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"),
  *     responses:
  *       200:
  *         description: Member removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space or user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SPACE_MEMBER"), removeMemberFromSpace);
 
@@ -427,12 +511,28 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  *     responses:
  *       200:
  *         description: Invitations sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceRouter.post("/:id/invite-external", protect, requirePermission("INVITE_MEMBER"), inviteExternalUsers);
 

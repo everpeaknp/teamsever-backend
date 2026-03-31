@@ -29,10 +29,22 @@ const router = express.Router({ mergeParams: true });
  *     responses:
  *       200:
  *         description: Table members retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Table not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   post:
  *     summary: Add table member override
  *     description: Add or update table-level permission override for a member
@@ -63,10 +75,22 @@ const router = express.Router({ mergeParams: true });
  *     responses:
  *       200:
  *         description: Table member added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", protect, getTableMembers);
 router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTableMember);
@@ -107,12 +131,28 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *     responses:
  *       200:
  *         description: Table member updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Table member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Remove table member override
  *     description: Remove table-level permission override for a member
@@ -135,12 +175,28 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *     responses:
  *       200:
  *         description: Table member override removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Table member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:userId", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), updateTableMember);
 router.delete("/:userId", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), removeTableMember);

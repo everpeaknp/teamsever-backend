@@ -44,10 +44,22 @@ router.use(protect);
  *     responses:
  *       201:
  *         description: Document created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/", documentController.createDocument);
 
@@ -63,8 +75,16 @@ router.post("/", documentController.createDocument);
  *     responses:
  *       200:
  *         description: Documents retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/me", documentController.getMyDocuments);
 
@@ -87,10 +107,22 @@ router.get("/me", documentController.getMyDocuments);
  *     responses:
  *       200:
  *         description: Documents retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
 
@@ -113,10 +145,22 @@ router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
  *     responses:
  *       200:
  *         description: Document hierarchy retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHierarchy);
 
@@ -139,10 +183,22 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *     responses:
  *       200:
  *         description: Document retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Document not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   patch:
  *     summary: Update document
  *     description: Update document content or metadata
@@ -170,12 +226,28 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *     responses:
  *       200:
  *         description: Document updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Document not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete document
  *     description: Delete a document
@@ -192,10 +264,22 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *     responses:
  *       200:
  *         description: Document deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Document not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id", documentController.getDocument);
 router.patch("/:id", documentController.updateDocument);

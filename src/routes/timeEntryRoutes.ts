@@ -56,10 +56,22 @@ router.use(protect);
  *     responses:
  *       200:
  *         description: Active timers retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/admin/workspace/:workspaceId/active", getWorkspaceActiveTimers);
 
@@ -81,10 +93,22 @@ router.get("/admin/workspace/:workspaceId/active", getWorkspaceActiveTimers);
  *     responses:
  *       200:
  *         description: Timesheets retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/admin/workspace/:workspaceId/timesheets", getTeamTimesheets);
 
@@ -106,10 +130,22 @@ router.get("/admin/workspace/:workspaceId/timesheets", getTeamTimesheets);
  *     responses:
  *       200:
  *         description: Time stats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/admin/workspace/:workspaceId/stats", getWorkspaceTimeStats);
 
@@ -131,10 +167,22 @@ router.get("/admin/workspace/:workspaceId/stats", getWorkspaceTimeStats);
  *     responses:
  *       200:
  *         description: Timer stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/admin/stop/:entryId", adminStopTimer);
 
@@ -156,10 +204,22 @@ router.post("/admin/stop/:entryId", adminStopTimer);
  *     responses:
  *       200:
  *         description: Orphaned timers cleaned up successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/admin/workspace/:workspaceId/cleanup-orphaned", cleanupOrphanedTimers);
 
@@ -186,10 +246,22 @@ router.post("/admin/workspace/:workspaceId/cleanup-orphaned", cleanupOrphanedTim
  *     responses:
  *       200:
  *         description: User timers stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/admin/workspace/:workspaceId/stop-user-timers/:userId", stopAllUserTimers);
 
@@ -224,8 +296,16 @@ router.post("/admin/workspace/:workspaceId/stop-user-timers/:userId", stopAllUse
  *     responses:
  *       201:
  *         description: Timer started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/start/:taskId", validate(startTimerSchema), startTimer);
 
@@ -247,8 +327,16 @@ router.post("/start/:taskId", validate(startTimerSchema), startTimer);
  *     responses:
  *       200:
  *         description: Timer stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/stop/:entryId", stopTimer);
 
@@ -283,8 +371,16 @@ router.post("/stop/:entryId", stopTimer);
  *     responses:
  *       201:
  *         description: Manual time entry added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/manual", validate(addManualTimeSchema), addManualTime);
 
@@ -314,6 +410,10 @@ router.post("/manual", validate(addManualTimeSchema), addManualTime);
  *                 workspace: "69bbf827a96fe78f716752bb"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/running", getRunningTimer);
 
@@ -354,6 +454,10 @@ router.get("/running", getRunningTimer);
  *                     isManual: true
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/task/:taskId", getTaskTimeSummary);
 
@@ -375,8 +479,16 @@ router.get("/task/:taskId", getTaskTimeSummary);
  *     responses:
  *       200:
  *         description: Project time summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/project/:projectId", getProjectTimeSummary);
 
@@ -398,8 +510,16 @@ router.get("/project/:projectId", getProjectTimeSummary);
  *     responses:
  *       200:
  *         description: Time entry deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete("/:entryId", deleteTimeEntry);
 

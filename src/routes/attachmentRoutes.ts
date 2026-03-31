@@ -49,8 +49,16 @@ const { protect } = require("../middlewares/authMiddleware");
  *                   description: Signed upload signature
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/tasks/:taskId/attachments/init-upload",
@@ -125,10 +133,22 @@ router.post(
  *               $ref: '#/components/schemas/Attachment'
  *       400:
  *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/tasks/:taskId/attachments/confirm",
@@ -163,8 +183,16 @@ router.post(
  *                 $ref: '#/components/schemas/Attachment'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/tasks/:taskId/attachments",
@@ -210,8 +238,16 @@ router.get(
  *                   example: "Attachment deleted successfully"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Attachment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete(
   "/attachments/:attachmentId",

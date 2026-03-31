@@ -40,6 +40,10 @@ router.use(protect);
  *               message: "FCM token registered"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/fcm-token", notificationController.registerFCMToken);
 
@@ -93,6 +97,10 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *               unread: 3
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", notificationCenterController.getNotifications);
 
@@ -116,6 +124,10 @@ router.get("/", notificationCenterController.getNotifications);
  *                 count: 5
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/unread-count", notificationCenterController.getUnreadCount);
 
@@ -138,6 +150,10 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  *               message: "5 notifications marked as read"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/read-all", notificationCenterController.markAllAsRead);
 
@@ -167,8 +183,16 @@ router.patch("/read-all", notificationCenterController.markAllAsRead);
  *               message: "Notification marked as read"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Notification not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:id/read", notificationCenterController.markAsRead);
 

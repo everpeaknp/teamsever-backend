@@ -87,12 +87,28 @@ const validate = (schema: any) => {
  *     responses:
  *       201:
  *         description: Feedback created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get all feedback submissions
  *     description: Retrieve all feedback (Super User only)
@@ -121,10 +137,22 @@ const validate = (schema: any) => {
  *     responses:
  *       200:
  *         description: Feedback list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Super user privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/", protect, validate(createFeedbackSchema), createFeedback);
 router.get("/", protect, validate(getFeedbackSchema), getAllFeedback);
@@ -148,12 +176,28 @@ router.get("/", protect, validate(getFeedbackSchema), getAllFeedback);
  *     responses:
  *       200:
  *         description: Feedback resolved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Super user privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Feedback not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:id/resolve", protect, resolveFeedback);
 

@@ -40,6 +40,10 @@ router.use(protect);
  *                     expiresAt: "2026-12-31T23:59:59Z"
  *       403:
  *         description: Forbidden - Super Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/users", getAdminUsers);
 
@@ -85,8 +89,16 @@ router.get("/users", getAdminUsers);
  *               message: "Subscription updated for John Doe"
  *       403:
  *         description: Forbidden - Super Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: User or Plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/users/:userId/subscription", updateUserSubscription);
 
@@ -113,6 +125,10 @@ router.patch("/users/:userId/subscription", updateUserSubscription);
  *                 signupsLast30Days: 120
  *       403:
  *         description: Forbidden - Super Admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/analytics", getFinancialAnalytics);
 
@@ -136,6 +152,10 @@ router.get("/analytics", getFinancialAnalytics);
  *                 whatsappContactNumber: "+9779876543210"
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   put:
  *     summary: Update global system settings
  *     description: Update system-wide configuration.
@@ -162,6 +182,10 @@ router.get("/analytics", getFinancialAnalytics);
  *               message: "Settings updated"
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/settings", getSystemSettings);
 router.put("/settings", updateSystemSettings);

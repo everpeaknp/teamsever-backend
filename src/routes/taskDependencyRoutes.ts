@@ -61,6 +61,10 @@ router.use(protect);
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/", validate(createTaskDependencySchema), createDependency);
 
@@ -89,6 +93,10 @@ router.post("/", validate(createTaskDependencySchema), createDependency);
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Dependency not found
  *         content:
@@ -123,6 +131,10 @@ router.delete("/:id", deleteDependency);
  *               $ref: "#/components/schemas/DependencyListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
  *         content:
@@ -157,6 +169,10 @@ router.get("/task/:taskId", getTaskDependencies);
  *               $ref: "#/components/schemas/TaskListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
  *         content:

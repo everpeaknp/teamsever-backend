@@ -66,10 +66,22 @@ const {
  *                       type: object
  *       400:
  *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post('/initiate', authMiddleware, initiatePayment);
 
@@ -114,10 +126,22 @@ router.post('/initiate', authMiddleware, initiatePayment);
  *                       type: object
  *       400:
  *         description: Invalid payment data or verification failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Transaction not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post('/verify', authMiddleware, verifyPayment);
 
@@ -145,6 +169,10 @@ router.post('/verify', authMiddleware, verifyPayment);
  *                     type: object
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get('/transactions', authMiddleware, getTransactions);
 
@@ -177,8 +205,16 @@ router.get('/transactions', authMiddleware, getTransactions);
  *                   type: object
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Transaction not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get('/transaction/:transactionId', authMiddleware, getTransaction);
 

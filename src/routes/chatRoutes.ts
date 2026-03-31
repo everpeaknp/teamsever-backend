@@ -55,10 +55,22 @@ const workspaceChatRouter = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Message sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error or channel not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Not a member of the workspace or private channel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 workspaceChatRouter
   .route("/")
@@ -83,6 +95,10 @@ workspaceChatRouter
  *     responses:
  *       200:
  *         description: List of accessible channels
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *   post:
  *     summary: Create new channel
  *     description: Create a new public or private chat channel. Only Admins/Owners can create channels.
@@ -120,8 +136,16 @@ workspaceChatRouter
  *     responses:
  *       201:
  *         description: Channel created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: Only admins can create channels
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 workspaceChatRouter
   .route("/channels")
@@ -164,8 +188,16 @@ workspaceChatRouter
  *     responses:
  *       200:
  *         description: Channel updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: Not authorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 workspaceChatRouter
   .route("/channels/:channelId")
@@ -204,6 +236,10 @@ const channelRouter = express.Router();
  *     responses:
  *       200:
  *         description: Messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  */
 channelRouter
   .route("/:channelId/messages")
@@ -226,6 +262,10 @@ channelRouter
  *     responses:
  *       200:
  *         description: Unread message count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  */
 channelRouter
   .route("/:channelId/unread")

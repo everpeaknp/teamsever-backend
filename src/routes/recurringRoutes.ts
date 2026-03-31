@@ -53,8 +53,16 @@ router.use(protect);
  *                         format: date-time
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/workspace/:workspaceId", getRecurringTasks);
 
@@ -98,8 +106,16 @@ router.get("/workspace/:workspaceId", getRecurringTasks);
  *                         description: Reference to the original recurring task
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Recurring task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:taskId/instances", getRecurringTaskInstances);
 
@@ -132,8 +148,16 @@ router.get("/:taskId/instances", getRecurringTaskInstances);
  *               $ref: '#/components/schemas/Task'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found or not a recurring task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:taskId/stop", stopRecurringTask);
 
@@ -198,6 +222,10 @@ router.post("/:taskId/stop", stopRecurringTask);
  *                         type: string
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/process", processRecurringTasks);
 

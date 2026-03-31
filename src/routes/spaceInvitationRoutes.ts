@@ -52,10 +52,22 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *     responses:
  *       200:
  *         description: Invitation sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get space invitations
  *     description: Retrieve all pending invitations for a space
@@ -72,10 +84,22 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *     responses:
  *       200:
  *         description: Invitations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceInvitationRouter.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), sendSpaceInvitation);
 spaceInvitationRouter.get("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), getSpaceInvitations);
@@ -105,12 +129,28 @@ spaceInvitationRouter.get("/", protect, requirePermission("MANAGE_SPACE_PERMISSI
  *     responses:
  *       200:
  *         description: Invitation cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Invitation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceInvitationRouter.delete("/:invitationId", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), cancelSpaceInvitation);
 
@@ -136,10 +176,22 @@ const invitationRouter = express.Router();
  *     responses:
  *       200:
  *         description: Invitation accepted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Invalid or expired invitation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
 
@@ -162,10 +214,22 @@ invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
  *     responses:
  *       200:
  *         description: Invitation declined successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Invalid or expired invitation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 invitationRouter.post("/decline/:token", protect, declineSpaceInvitation);
 
@@ -181,8 +245,16 @@ invitationRouter.post("/decline/:token", protect, declineSpaceInvitation);
  *     responses:
  *       200:
  *         description: Invitations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 invitationRouter.get("/my-invitations", protect, getMySpaceInvitations);
 

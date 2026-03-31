@@ -56,12 +56,28 @@ const router = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Invitation created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get workspace invitations
  *     description: Returns all pending (not yet accepted or cancelled) invitations for a workspace.
@@ -92,8 +108,16 @@ const router = express.Router({ mergeParams: true });
  *                   createdAt: "2026-03-30T08:00:00Z"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/", protect, requirePermission("INVITE_MEMBER"), validate(sendInviteSchema), sendInvite);
 router.get("/", protect, requirePermission("INVITE_MEMBER"), getWorkspaceInvitations);
@@ -123,12 +147,28 @@ router.get("/", protect, requirePermission("INVITE_MEMBER"), getWorkspaceInvitat
  *     responses:
  *       200:
  *         description: Invitation cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Invitation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete("/:invitationId", protect, requirePermission("INVITE_MEMBER"), cancelInvitation);
 
@@ -154,12 +194,28 @@ const inviteRouter = express.Router();
  *     responses:
  *       200:
  *         description: Invitation accepted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Invitation expired or already accepted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Invitation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 inviteRouter.post("/accept/:token", protect, acceptInvite);
 
@@ -191,6 +247,10 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *                   expiresAt: "2026-04-06T08:00:00Z"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 inviteRouter.get("/my-invitations", protect, getMyInvitations);
 
@@ -214,8 +274,16 @@ const publicInviteRouter = express.Router();
  *     responses:
  *       200:
  *         description: Invitation details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       404:
  *         description: Invitation not found or expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 publicInviteRouter.get("/verify/:token", verifyInvitation);
 

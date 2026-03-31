@@ -138,8 +138,16 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get all tasks in a list
  *     description: Retrieves all tasks within a specific list with optional filtering
@@ -179,8 +187,16 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/TaskListResponse"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 listTaskRouter.post("/", protect, checkTaskLimit, requirePermission("CREATE_TASK"), validate(createTaskSchema), createTask);
 listTaskRouter.get("/", protect, requirePermission("VIEW_TASK"), getListTasks);
@@ -212,6 +228,10 @@ const taskRouter = express.Router();
  *               $ref: "#/components/schemas/TaskResponse"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
  *         content:
@@ -292,8 +312,16 @@ const taskRouter = express.Router();
  *               $ref: "#/components/schemas/TaskResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
  *         content:
@@ -323,8 +351,16 @@ const taskRouter = express.Router();
  *                   example: "Task deleted successfully"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  * */
 taskRouter.get("/:id", protect, requirePermission("VIEW_TASK"), getTask);
 taskRouter.patch("/:id", protect, requirePermission("EDIT_TASK"), validate(updateTaskSchema), updateTask);
@@ -373,8 +409,16 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *               $ref: '#/components/schemas/Task'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Parent task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get all subtasks
  *     description: Retrieves all subtasks of a parent task
@@ -399,8 +443,16 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *                 $ref: '#/components/schemas/Task'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Parent task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 taskRouter.post("/:taskId/subtasks", protect, checkTaskLimit, requirePermission("CREATE_TASK"), validate(createSubtaskSchema), createSubtask);
 taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), getSubtasks);
@@ -466,10 +518,22 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *               $ref: '#/components/schemas/TaskDependency'
  *       400:
  *         description: Validation error or circular dependency detected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get task dependencies (blockers)
  *     description: Retrieves all tasks that the current task depends on (tasks blocking this one)
@@ -494,8 +558,16 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *                 $ref: '#/components/schemas/TaskDependency'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 taskRouter.post("/:taskId/dependencies", protect, requirePermission("EDIT_TASK"), validate(addDependencySchema), addDependency);
 taskRouter.get("/:taskId/dependencies", protect, requirePermission("VIEW_TASK"), getDependencies);
@@ -535,8 +607,16 @@ taskRouter.get("/:taskId/dependencies", protect, requirePermission("VIEW_TASK"),
  *                   example: "Dependency removed successfully"
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Dependency not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 taskRouter.delete("/:taskId/dependencies/:depId", protect, requirePermission("EDIT_TASK"), removeDependency);
 
@@ -567,8 +647,16 @@ taskRouter.delete("/:taskId/dependencies/:depId", protect, requirePermission("ED
  *                 $ref: '#/components/schemas/TaskDependency'
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 taskRouter.get("/:taskId/dependents", protect, requirePermission("VIEW_TASK"), getDependents);
 

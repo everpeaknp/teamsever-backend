@@ -91,10 +91,22 @@ router.get("/", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceMember
  *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Email already a member or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Member limit reached or insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/invite", protect, checkMemberLimit, requirePermission("INVITE_MEMBER"), inviteMember);
 
@@ -135,6 +147,10 @@ router.post("/invite", protect, checkMemberLimit, requirePermission("INVITE_MEMB
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateMyStatus);
 
@@ -181,10 +197,22 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Remove member
  *     description: Remove a member from the workspace (Owner only).
@@ -212,10 +240,22 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Member not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:userId", protect, requirePermission("CHANGE_MEMBER_ROLE"), updateMemberRole);
 router.delete("/:userId", protect, requirePermission("REMOVE_MEMBER"), require("../middlewares/ownerOnly"), removeMember);

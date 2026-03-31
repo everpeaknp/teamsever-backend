@@ -78,10 +78,22 @@ if (typeof protect !== 'function') {
  *                     name: "Q1 Roadmap"
  *       400:
  *         description: Missing or invalid search query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Unauthorized - Invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       500:
  *         description: Search engine error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", protect, handleGlobalSearch);
 

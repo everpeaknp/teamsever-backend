@@ -132,6 +132,10 @@
  *                   example: "Invalid currency or amount"
  *       500:
  *         description: Conversion failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  * 
  * /api/currency/refresh:
  *   post:
@@ -168,10 +172,22 @@
  *                       example: "NPR"
  *       401:
  *         description: Unauthorized - Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Forbidden - Super admin privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       500:
  *         description: Failed to refresh exchange rate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 
 export {};

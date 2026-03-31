@@ -70,8 +70,16 @@ const customRoleRateLimiter = rateLimit({
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Workspace limit reached
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get all user workspaces
  *     description: Returns all workspaces where the user is a member, including member count and owner info.
@@ -87,6 +95,10 @@ const customRoleRateLimiter = rateLimit({
  *               $ref: "#/components/schemas/WorkspaceListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/", protect, checkWorkspaceLimit, createWorkspace);
 router.get("/", protect, getMyWorkspaces);
@@ -116,6 +128,10 @@ router.get("/", protect, getMyWorkspaces);
  *               $ref: "#/components/schemas/WorkspaceResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
  *         content:
@@ -154,8 +170,16 @@ router.get("/", protect, getMyWorkspaces);
  *               $ref: "#/components/schemas/WorkspaceResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
  *         content:
@@ -184,8 +208,16 @@ router.get("/", protect, getMyWorkspaces);
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Only owner can delete workspace
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
  *         content:
@@ -222,8 +254,16 @@ router.delete("/:id", protect, requirePermission("DELETE_WORKSPACE"), deleteWork
  *               $ref: "#/components/schemas/HierarchyResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceHierarchy);
 
@@ -275,8 +315,16 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *               $ref: "#/components/schemas/AnalyticsResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceAnalytics);
 
@@ -310,6 +358,10 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *                   items: { $ref: "#/components/schemas/Announcement" }
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   post:
  *     summary: Create workspace announcement
  *     description: Create a new announcement that will be visible to all workspace members.
@@ -351,8 +403,16 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *                 data: { $ref: "#/components/schemas/Announcement" }
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions (Admins/Owners only)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), getAnnouncements);
 router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), createAnnouncement);
@@ -382,10 +442,22 @@ router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), 
  *     responses:
  *       200:
  *         description: Announcement deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Announcement not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete("/:id/announcements/:announcementId", protect, requirePermission("VIEW_WORKSPACE"), deleteAnnouncement);
 
@@ -414,6 +486,10 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *               $ref: '#/components/schemas/ClockToggleResponse'
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  * /api/workspaces/{id}/sticky-note:
  *   patch:
  *     summary: Update personal sticky note
@@ -446,6 +522,10 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *               $ref: "#/components/schemas/StickyNoteResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:workspaceId/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
 router.patch("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.updateStickyNote);
@@ -487,12 +567,28 @@ router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), sti
  *     responses:
  *       200:
  *         description: Custom role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Owner privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       429:
  *         description: Rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch(
   "/:workspaceId/members/:memberId/custom-role",
@@ -533,10 +629,22 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *     responses:
  *       200:
  *         description: Logo uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Owner privileges required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch(
   "/:workspaceId/logo",

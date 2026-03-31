@@ -40,6 +40,10 @@ const { protect } = require("../middlewares/authMiddleware");
  *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/activities",
@@ -88,8 +92,16 @@ router.get(
  *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/tasks/:taskId/comments",
@@ -121,8 +133,16 @@ router.post(
  *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/tasks/:taskId/activity",
@@ -165,10 +185,22 @@ router.get(
  *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Not authorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Comment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete comment
  *     description: Delete a comment. Author or workspace admin can delete.
@@ -190,10 +222,22 @@ router.get(
  *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Not authorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Comment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.put(
   "/activities/:activityId",
@@ -242,6 +286,10 @@ router.delete(
  *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Remove emoji reaction
  *     description: Remove your emoji reaction from a comment.
@@ -275,6 +323,10 @@ router.delete(
  *               $ref: "#/components/schemas/ActivityResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/activities/:activityId/reactions",
@@ -325,8 +377,16 @@ router.delete(
  *               $ref: "#/components/schemas/ActivityListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/workspaces/:workspaceId/activity",

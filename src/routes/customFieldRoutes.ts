@@ -58,10 +58,22 @@ const customFieldRouter = express.Router();
  *     responses:
  *       201:
  *         description: Custom field created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCustomField);
 
@@ -99,12 +111,28 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *     responses:
  *       200:
  *         description: Custom field updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Custom field not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete custom field
  *     description: Remove a custom field definition
@@ -121,10 +149,22 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *     responses:
  *       200:
  *         description: Custom field deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Custom field not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 customFieldRouter.put("/:id", protect, validate(updateCustomFieldSchema), updateCustomField);
 customFieldRouter.delete("/:id", protect, deleteCustomField);
@@ -148,10 +188,22 @@ customFieldRouter.delete("/:id", protect, deleteCustomField);
  *     responses:
  *       200:
  *         description: Custom fields retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 customFieldRouter.get("/workspace/:workspaceId", protect, getFieldsByWorkspace);
 
@@ -174,10 +226,22 @@ customFieldRouter.get("/workspace/:workspaceId", protect, getFieldsByWorkspace);
  *     responses:
  *       200:
  *         description: Custom fields retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Project not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 customFieldRouter.get("/project/:projectId", protect, getFieldsByProject);
 

@@ -31,8 +31,16 @@ router.use(protect);
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/me/workspace/:workspaceId", performanceController.getMyPerformance);
 
@@ -59,8 +67,16 @@ router.get("/me/workspace/:workspaceId", performanceController.getMyPerformance)
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/user/:userId/workspace/:workspaceId", performanceController.getUserPerformance);
 
@@ -88,6 +104,10 @@ router.get("/user/:userId/workspace/:workspaceId", performanceController.getUser
  *               $ref: "#/components/schemas/PerformanceResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/team/workspace/:workspaceId", performanceController.getTeamPerformance);
 
@@ -115,6 +135,10 @@ router.get("/team/workspace/:workspaceId", performanceController.getTeamPerforma
  *               $ref: "#/components/schemas/PerformanceResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/workspace/:workspaceId/summary", performanceController.getWorkspacePerformanceSummary);
 

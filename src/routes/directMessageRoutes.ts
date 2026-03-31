@@ -37,6 +37,10 @@ router.use(protect);
  *                   unreadCount: 2
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", directMessageController.getConversations);
 
@@ -68,10 +72,22 @@ router.get("/", directMessageController.getConversations);
  *                 participants: [...]
  *       400:
  *         description: Bad Request (e.g. starting conversation with yourself)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Target user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:userId", directMessageController.startConversation);
 
@@ -103,8 +119,16 @@ router.post("/:userId", directMessageController.startConversation);
  *                 participants: [...]
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Conversation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:conversationId", directMessageController.getConversation);
 
@@ -158,10 +182,22 @@ router.get("/:conversationId", directMessageController.getConversation);
  *                 createdAt: "2026-03-30T12:05:00Z"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Subscription limit reached (if applicable)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/:userId/message",
@@ -216,8 +252,16 @@ router.post(
  *                 pages: 3
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Conversation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:conversationId/messages", directMessageController.getMessages);
 
@@ -247,8 +291,16 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  *               message: "Messages marked as read"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Conversation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:conversationId/read", directMessageController.markAsRead);
 

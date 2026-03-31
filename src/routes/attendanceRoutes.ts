@@ -68,8 +68,16 @@ router.use(protect);
  *                   description: "Development work"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/workspace/:workspaceId/report", getAttendanceReport);
 

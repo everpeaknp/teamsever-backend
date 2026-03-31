@@ -40,6 +40,10 @@ router.use(protect);
  *               $ref: "#/components/schemas/NotificationResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/fcm-token", notificationController.registerFCMToken);
 
@@ -76,8 +80,16 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *               $ref: "#/components/schemas/NotificationResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/register",
@@ -114,8 +126,16 @@ router.post(
  *               $ref: "#/components/schemas/NotificationResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete(
   "/unregister",
@@ -141,6 +161,10 @@ router.delete(
  *               $ref: "#/components/schemas/NotificationResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", notificationController.getDevices);
 

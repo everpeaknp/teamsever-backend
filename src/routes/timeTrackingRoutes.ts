@@ -38,6 +38,10 @@ router.use(protect);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/time/active", getActiveTimer);
 
@@ -66,8 +70,16 @@ router.get("/time/active", getActiveTimer);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       400:
  *         description: Timer already active — stop existing timer first
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:id/time/start", startTimer);
 
@@ -105,6 +117,10 @@ router.post("/:id/time/start", startTimer);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:id/time/stop", stopTimer);
 
@@ -153,6 +169,10 @@ router.post("/:id/time/stop", stopTimer);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:id/time/manual", addManualTimeLog);
 
@@ -181,6 +201,10 @@ router.post("/:id/time/manual", addManualTimeLog);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id/time/logs", getTimeLogs);
 
@@ -215,6 +239,10 @@ router.get("/:id/time/logs", getTimeLogs);
  *               $ref: "#/components/schemas/TimeTrackingResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete("/:id/time/logs/:logId", deleteTimeLog);
 

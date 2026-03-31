@@ -42,8 +42,16 @@ const { protect } = require("../middlewares/authMiddleware");
  *                   lastSeen: "2026-03-30T16:30:00Z"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/:workspaceId",
@@ -76,6 +84,10 @@ router.get(
  *               data: ["69bce50b96fe109fe4e14ff6", "69bcc46789cab60dfa45500"]
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/:workspaceId/online",
@@ -110,8 +122,16 @@ router.get(
  *                 lastSeen: "2026-03-30T17:05:00Z"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get(
   "/user/:userId",

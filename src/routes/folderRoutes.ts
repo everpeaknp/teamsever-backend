@@ -66,8 +66,16 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Folder limit reached or insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get folders in a space
  *     description: Retrieve all folders in a space, ordered by creation date.
@@ -89,6 +97,10 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/FolderListResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Space not found
  *         content:
@@ -126,6 +138,10 @@ const folderRouter = express.Router();
  *               $ref: "#/components/schemas/FolderResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Folder not found
  *         content:
@@ -167,10 +183,22 @@ const folderRouter = express.Router();
  *               $ref: "#/components/schemas/FolderResponse"
  *       400:
  *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Folder not found
  *         content:
@@ -199,8 +227,16 @@ const folderRouter = express.Router();
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Folder not found
  *         content:

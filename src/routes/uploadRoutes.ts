@@ -32,8 +32,16 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *     responses:
  *       201:
  *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get task attachments
  *     description: Retrieve all attachments for a task
@@ -49,8 +57,16 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *     responses:
  *       200:
  *         description: Attachments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/tasks/:taskId/attachments",
@@ -94,8 +110,16 @@ router.get(
  *     responses:
  *       201:
  *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get comment attachments
  *     description: Retrieve all attachments for a comment
@@ -111,8 +135,16 @@ router.get(
  *     responses:
  *       200:
  *         description: Attachments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/comments/:commentId/attachments",
@@ -156,8 +188,16 @@ router.get(
  *     responses:
  *       201:
  *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get conversation attachments
  *     description: Retrieve all attachments in a conversation
@@ -173,8 +213,16 @@ router.get(
  *     responses:
  *       200:
  *         description: Attachments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post(
   "/dm/:conversationId/attachments",
@@ -208,10 +256,22 @@ router.get(
  *     responses:
  *       200:
  *         description: Attachment deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Attachment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.delete(
   "/attachments/:attachmentId",

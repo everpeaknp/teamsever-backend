@@ -105,6 +105,10 @@ const router = express.Router();
  *                 name: "Pro Plan"
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get all plans
  *     description: Retrieve all subscription plans. Active plans are returned by default.
@@ -158,6 +162,10 @@ router.get("/", getPlans);
  *                 features: { ... }
  *       404:
  *         description: Plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   put:
  *     summary: Update a plan
  *     description: Update features, pricing, or status of an existing plan. Restricted to Super Admins.
@@ -184,10 +192,22 @@ router.get("/", getPlans);
  *     responses:
  *       200:
  *         description: Plan updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Deactivate or Delete a plan
  *     description: Marks a plan as inactive or removes it if no users are subscribed. Restricted to Super Admins.
@@ -203,8 +223,16 @@ router.get("/", getPlans);
  *     responses:
  *       200:
  *         description: Plan deactivated/deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/:id", getPlan);
 router.put("/:id", protect, validate(updatePlanSchema), updatePlan);

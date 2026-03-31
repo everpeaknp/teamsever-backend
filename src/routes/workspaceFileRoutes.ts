@@ -44,8 +44,16 @@ const { protect } = require("../middlewares/authMiddleware");
  *                       type: string
  *       403:
  *         description: Not a workspace member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: Workspace not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/init-upload", protect, workspaceFileController.initUpload);
 
@@ -104,10 +112,22 @@ router.post("/init-upload", protect, workspaceFileController.initUpload);
  *     responses:
  *       201:
  *         description: File saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       400:
  *         description: Invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Not a workspace member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/confirm", protect, workspaceFileController.confirmUpload);
 
@@ -162,6 +182,10 @@ router.post("/confirm", protect, workspaceFileController.confirmUpload);
  *                   type: object
  *       403:
  *         description: Not a workspace member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/", protect, workspaceFileController.getFiles);
 
@@ -184,10 +208,22 @@ router.get("/", protect, workspaceFileController.getFiles);
  *     responses:
  *       200:
  *         description: File retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       404:
  *         description: File not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       403:
  *         description: Not a workspace member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 const fileRouter = express.Router();
 fileRouter.get("/:id", protect, workspaceFileController.getFile);
@@ -211,10 +247,22 @@ fileRouter.get("/:id", protect, workspaceFileController.getFile);
  *     responses:
  *       200:
  *         description: File deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: No permission to delete
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *       404:
  *         description: File not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 fileRouter.delete("/:id", protect, workspaceFileController.deleteFile);
 
