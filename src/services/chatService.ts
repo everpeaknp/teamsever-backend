@@ -8,7 +8,7 @@ const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
 const notificationService = require("./notificationService");
-const entitlementService = require("./entitlementService");
+const entitlementService = require("./entitlementService").default;
 
 interface CreateMessageData {
   workspaceId: string;

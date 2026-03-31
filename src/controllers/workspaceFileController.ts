@@ -1,6 +1,6 @@
 const workspaceFileService = require("../services/workspaceFileService");
 const asyncHandler = require("../utils/asyncHandler");
-const EntitlementService = require("../services/entitlementService");
+const EntitlementService = require("../services/entitlementService").default;
 const Workspace = require("../models/Workspace");
 
 /**

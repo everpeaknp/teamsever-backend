@@ -352,7 +352,7 @@ const addColumn = asyncHandler(async (req: AuthRequest, res: Response, next: Nex
   }
 
   // Check entitlement (column limit)
-  const EntitlementService = require("../services/entitlementService");
+  const EntitlementService = require("../services/entitlementService").default;
   const entitlement = await EntitlementService.canAddColumn(req.user!.id, tableId);
   
   if (!entitlement.allowed) {

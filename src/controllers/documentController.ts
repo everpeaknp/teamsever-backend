@@ -1,7 +1,7 @@
 const Document = require("../models/Document");
 const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
-const EntitlementService = require("../services/entitlementService");
+const EntitlementService = require("../services/entitlementService").default;
 
 /**
  * Create a new document
