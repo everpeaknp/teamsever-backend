@@ -36,11 +36,12 @@ class DashboardService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!isOwner && !isMember) {
       throw new AppError("You do not have access to this workspace", 403);
     }
 

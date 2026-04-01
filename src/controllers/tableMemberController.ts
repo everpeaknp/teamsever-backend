@@ -102,14 +102,16 @@ const addTableMember = asyncHandler(async (req: any, res: any, next: any) => {
   }
 
   // Verify user is workspace member
-  const isWorkspaceMember = workspace.members.some((m: any) => m.user.toString() === userId);
-  if (!isWorkspaceMember) {
+  const isOwner = workspace.owner.toString() === userId;
+  const workspaceMember = workspace.members.find((m: any) => m.user.toString() === userId);
+  const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+  
+  if (!isOwner && !workspaceMember) {
     return next(new AppError("User must be a workspace member first", 400));
   }
 
   // Check if user is admin or owner - they don't need table permissions
-  const workspaceMember = workspace.members.find((m: any) => m.user.toString() === userId);
-  if (workspaceMember && (workspaceMember.role === 'admin' || workspaceMember.role === 'owner')) {
+  if (isOwner || isAdmin) {
     return next(new AppError("Admins and owners have full access by default and cannot be added to table members", 400));
   }
 

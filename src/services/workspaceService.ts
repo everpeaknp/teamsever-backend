@@ -11,11 +11,6 @@ const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
 
-const HierarchyService = require("./hierarchyService").default;
-const analyticsService = require("./analyticsService");
-const activityService = require("./activityService");
-const performanceService = require("./performanceService");
-const stickyNoteService = require("./stickyNoteService");
 const PlanInheritanceService = require("./planInheritanceService").default;
 const EntitlementService = require("./entitlementService").default;
 interface CreateWorkspaceData {
@@ -346,6 +341,13 @@ class WorkspaceService {
   }
 
   async getWorkspaceAnalytics(workspaceId: string, userId: string) {
+    // Import services inside the method to avoid circular dependencies
+    const HierarchyService = require("./hierarchyService").default;
+    const analyticsService = require("./analyticsService");
+    const activityService = require("./activityService");
+    const performanceService = require("./performanceService");
+    const stickyNoteService = require("./stickyNoteService");
+
     // 1. Fetch Workspace & Members (populated for UI badges/avatars)
     const workspace = await Workspace.findOne({
       _id: workspaceId,
@@ -411,13 +413,16 @@ class WorkspaceService {
     
     // 9. Fetch Team Performance (for admins/owners only)
     let teamPerformance = null;
+    const isOwner = workspace.owner._id.toString() === userId;
     const member = workspace.members.find((m: any) => m.user._id.toString() === userId);
-    if (member && (member.role === 'admin' || member.role === 'owner')) {
+    const isAdmin = member && (member.role === 'admin' || member.role === 'owner');
+    
+    if (isOwner || isAdmin) {
       teamPerformance = await performanceService.getTeamPerformance(workspaceId);
     }
 
     // 10. Fetch Velocity (last 30 days)
-    const velocity = await analyticsService.getVelocity(workspaceId, 30);
+    const velocity = await analyticsService.getVelocity(workspaceId, userId, 30);
 
     return {
       workspace: {

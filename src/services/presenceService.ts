@@ -67,11 +67,12 @@ class PresenceService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === requestingUserId;
     const isMember = workspace.members.some(
       (member: any) => member.user.toString() === requestingUserId
     );
 
-    if (!isMember) {
+    if (!isOwner && !isMember) {
       throw new AppError("You do not have access to this workspace", 403);
     }
 

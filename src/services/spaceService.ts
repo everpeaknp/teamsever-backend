@@ -39,11 +39,12 @@ class SpaceService {
     }
 
     // Verify user is workspace member
+    const isOwner = workspaceDoc.owner._id ? workspaceDoc.owner._id.toString() === owner : workspaceDoc.owner.toString() === owner;
     const isMember = workspaceDoc.members.some(
       (member: any) => member.user.toString() === owner
     );
 
-    if (!isMember) {
+    if (!isOwner && !isMember) {
       throw new AppError("You must be a workspace member to create a space", 403);
     }
 
@@ -182,11 +183,12 @@ class SpaceService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
     const isMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!isWorkspaceOwner && !isMember) {
       throw new AppError("You do not have access to this workspace", 403);
     }
 
@@ -275,11 +277,12 @@ class SpaceService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isWorkspaceMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isWorkspaceMember) {
+    if (!isOwner && !isWorkspaceMember) {
       throw new AppError("You do not have access to this space", 403);
     }
 
@@ -320,11 +323,12 @@ class SpaceService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isWorkspaceMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isWorkspaceMember) {
+    if (!isOwner && !isWorkspaceMember) {
       throw new AppError("You do not have access to this space", 403);
     }
 
@@ -358,11 +362,12 @@ class SpaceService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isWorkspaceMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isWorkspaceMember) {
+    if (!isOwner && !isWorkspaceMember) {
       throw new AppError("You do not have access to this space", 403);
     }
 

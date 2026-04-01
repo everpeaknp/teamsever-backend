@@ -34,16 +34,16 @@ class CustomFieldService {
       throw new AppError("Workspace not found", 404);
     }
 
-    // Check if user is workspace owner or admin
+    const isOwner = workspace.owner.toString() === userId;
     const member = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
 
-    if (!member) {
+    if (!isOwner && !member) {
       throw new AppError("You are not a member of this workspace", 403);
     }
 
-    const isWorkspaceAdmin = member.role === "owner" || member.role === "admin";
+    const isWorkspaceAdmin = isOwner || (member && (member.role === "owner" || member.role === "admin"));
 
     // If project specified, check if user is project owner
     if (projectId) {
@@ -147,11 +147,12 @@ class CustomFieldService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!isOwner && !isMember) {
       throw new AppError("You do not have access to this workspace", 403);
     }
 
@@ -192,11 +193,12 @@ class CustomFieldService {
       throw new AppError("Workspace not found", 404);
     }
 
+    const isOwner = workspace.owner.toString() === userId;
     const isMember = workspace.members.some(
       (member: any) => member.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!isOwner && !isMember) {
       throw new AppError("You do not have access to this project", 403);
     }
 
