@@ -17,7 +17,7 @@ router.use(protect);
  *   post:
  *     summary: Register FCM token
  *     description: Register Firebase Cloud Messaging token for web push notifications
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -53,7 +53,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *   post:
  *     summary: Register device
  *     description: Register a device for push notifications
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -103,7 +103,7 @@ router.post(
  *   delete:
  *     summary: Unregister device
  *     description: Unregister a device from push notifications
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -149,7 +149,7 @@ router.delete(
  *   get:
  *     summary: Get registered devices
  *     description: Retrieve all registered devices for the current user
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     responses:

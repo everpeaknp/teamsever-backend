@@ -10,7 +10,10 @@ const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-// All routes require authentication and super user privileges
+// Public route to get branding settings
+router.get("/settings", getSystemSettings);
+
+// All other routes require authentication and super user privileges
 router.use(protect);
 
 /**
@@ -19,7 +22,7 @@ router.use(protect);
  *   get:
  *     summary: Get all workspace admins/owners
  *     description: Retrieve all workspace owners with their full subscription details. Restricted to Super Admins only.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -53,7 +56,7 @@ router.get("/users", getAdminUsers);
  *   patch:
  *     summary: Update user subscription
  *     description: Manually override or update a user's subscription status and plan.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -108,7 +111,7 @@ router.patch("/users/:userId/subscription", updateUserSubscription);
  *   get:
  *     summary: Get system-wide financial analytics
  *     description: Retrieve global revenue, conversion rates, and user signup trends.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -138,7 +141,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   get:
  *     summary: Get global system settings
  *     description: Retrieve system-wide configuration settings like support contact numbers.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -159,7 +162,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   put:
  *     summary: Update global system settings
  *     description: Update system-wide configuration.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -187,7 +190,6 @@ router.get("/analytics", getFinancialAnalytics);
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/settings", getSystemSettings);
 router.put("/settings", updateSystemSettings);
 
 module.exports = router;

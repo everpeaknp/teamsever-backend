@@ -20,7 +20,7 @@ taskCommentRouter.use(protect);
  *   post:
  *     summary: Create comment
  *     description: Add a comment to a task
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -73,7 +73,7 @@ taskCommentRouter.use(protect);
  *   get:
  *     summary: Get task comments
  *     description: Retrieve all comments for a task
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -122,7 +122,7 @@ commentRouter.use(protect);
  *   get:
  *     summary: Get single comment
  *     description: Retrieve a specific comment by ID
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -154,7 +154,7 @@ commentRouter.use(protect);
  *   patch:
  *     summary: Edit comment
  *     description: Update a comment's content
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -209,7 +209,7 @@ commentRouter.use(protect);
  *   delete:
  *     summary: Delete comment
  *     description: Remove a comment from a task
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

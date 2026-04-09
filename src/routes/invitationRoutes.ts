@@ -15,7 +15,7 @@ const { sendInviteSchema } = require("../validators/invitationValidators");
 /**
  * @swagger
  * tags:
- *   name: "Workspace Management"
+ *   name: "2. Workspaces & Members"
  *   description: Workspace invitation system
  */
 
@@ -28,7 +28,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send workspace invitation
  *     description: Create an invitation link for a workspace
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -81,7 +81,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get workspace invitations
  *     description: Returns all pending (not yet accepted or cancelled) invitations for a workspace.
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -128,7 +128,7 @@ router.get("/", protect, requirePermission("INVITE_MEMBER"), getWorkspaceInvitat
  *   delete:
  *     summary: Cancel invitation
  *     description: Cancels a pending invitation (admin/owner only)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -181,7 +181,7 @@ const inviteRouter = express.Router();
  *   post:
  *     summary: Accept workspace invitation
  *     description: Accepts an invitation and adds the user to the workspace
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -225,7 +225,7 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *   get:
  *     summary: Get my pending invitations
  *     description: Returns all workspace invitations sent to the current user that are still pending (not yet accepted or declined).
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -263,7 +263,7 @@ const publicInviteRouter = express.Router();
  *   get:
  *     summary: Verify invitation token
  *     description: Retrieves invitation details by token (public endpoint)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     parameters:
  *       - in: path
  *         name: token

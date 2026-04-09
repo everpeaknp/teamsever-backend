@@ -33,7 +33,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create a new task
  *     description: Creates a new task within a specific list. Supports regular tasks, recurring tasks, and milestones.
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -151,7 +151,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get all tasks in a list
  *     description: Retrieves all tasks within a specific list with optional filtering
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -210,7 +210,7 @@ const taskRouter = express.Router();
  *   get:
  *     summary: Get a single task
  *     description: Returns full task details including assignee, custom fields, subtask count, and time tracking summary.
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -257,7 +257,7 @@ const taskRouter = express.Router();
  *       
  *       **Completion Tracking:**
  *       When status changes to 'done', completedAt timestamp is automatically set.
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -331,7 +331,7 @@ const taskRouter = express.Router();
  *   delete:
  *     summary: Delete a task
  *     description: Soft deletes a task (sets isDeleted flag). Also cleans up associated attachments from Cloudinary.
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -372,7 +372,7 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *   post:
  *     summary: Create a subtask
  *     description: Creates a subtask under a parent task
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -422,7 +422,7 @@ taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask)
  *   get:
  *     summary: Get all subtasks
  *     description: Retrieves all subtasks of a parent task
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -477,7 +477,7 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *       
  *       **Circular Dependency Protection:**
  *       The system prevents circular dependencies using a visited set during cascade operations.
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -537,7 +537,7 @@ taskRouter.get("/:taskId/subtasks", protect, requirePermission("VIEW_TASK"), get
  *   get:
  *     summary: Get task dependencies (blockers)
  *     description: Retrieves all tasks that the current task depends on (tasks blocking this one)
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -578,7 +578,7 @@ taskRouter.get("/:taskId/dependencies", protect, requirePermission("VIEW_TASK"),
  *   delete:
  *     summary: Remove a task dependency
  *     description: Removes a dependency relationship between two tasks
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -626,7 +626,7 @@ taskRouter.delete("/:taskId/dependencies/:depId", protect, requirePermission("ED
  *   get:
  *     summary: Get dependent tasks (blocked tasks)
  *     description: Retrieves all tasks that depend on the current task (tasks blocked by this one)
- *     tags: ["Task Management"]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

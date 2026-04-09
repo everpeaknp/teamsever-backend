@@ -16,7 +16,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get table members
  *     description: Retrieve all table members with their permission overrides
- *     tags: [Workspace Management]
+ *     tags: ["8. Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -48,7 +48,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add table member override
  *     description: Add or update table-level permission override for a member
- *     tags: [Workspace Management]
+ *     tags: ["8. Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -101,7 +101,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *   patch:
  *     summary: Update table member permissions
  *     description: Update table-level permission override for a member
- *     tags: [Workspace Management]
+ *     tags: ["8. Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -156,7 +156,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *   delete:
  *     summary: Remove table member override
  *     description: Remove table-level permission override for a member
- *     tags: [Workspace Management]
+ *     tags: ["8. Custom Tables"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

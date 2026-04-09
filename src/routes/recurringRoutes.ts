@@ -17,7 +17,7 @@ router.use(protect);
  *   get:
  *     summary: Get all recurring tasks in a workspace
  *     description: Retrieves all active recurring tasks within a workspace
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -76,7 +76,7 @@ router.get("/workspace/:workspaceId", getRecurringTasks);
  *       
  *       Each time a recurring task is processed by the cron job, a new instance is created
  *       with isRecurring=false and recurringTaskId pointing to the original task.
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -129,7 +129,7 @@ router.get("/:taskId/instances", getRecurringTaskInstances);
  *       
  *       This sets isRecurring=false and clears the nextOccurrence date.
  *       Existing instances are not affected.
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -184,7 +184,7 @@ router.post("/:taskId/stop", stopRecurringTask);
  *       - custom: adds interval days
  *       
  *       **Use Case:** Testing or immediate processing without waiting for cron
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     responses:

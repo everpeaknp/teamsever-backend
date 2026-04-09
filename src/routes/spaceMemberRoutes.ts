@@ -11,7 +11,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "Project Hierarchy"
+ *   name: "3. Project Hierarchy"
  *   description: "Space-level member permission management"
  */
 
@@ -23,7 +23,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space members
  *     description: Retrieve all space members with their permission overrides
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,7 +55,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add space member override
  *     description: Add or update space-level permission override for a member
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -108,7 +108,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addSpac
  *   patch:
  *     summary: Update space member permissions
  *     description: Update space-level permission override for a member
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +163,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addSpac
  *   delete:
  *     summary: Remove space member override
  *     description: Remove space-level permission override for a member
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

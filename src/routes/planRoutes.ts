@@ -21,7 +21,7 @@ const router = express.Router();
  *   post:
  *     summary: Create a new plan
  *     description: Create a new subscription plan with specific feature limits. Restricted to Super Admins.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -112,7 +112,7 @@ const router = express.Router();
  *   get:
  *     summary: Get all plans
  *     description: Retrieve all subscription plans. Active plans are returned by default.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     parameters:
  *       - in: query
  *         name: includeInactive
@@ -142,7 +142,7 @@ router.get("/", getPlans);
  *   get:
  *     summary: Get a single plan
  *     description: Retrieve full details of a specific subscription plan by its ID.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     parameters:
  *       - in: path
  *         name: id
@@ -169,7 +169,7 @@ router.get("/", getPlans);
  *   put:
  *     summary: Update a plan
  *     description: Update features, pricing, or status of an existing plan. Restricted to Super Admins.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -211,7 +211,7 @@ router.get("/", getPlans);
  *   delete:
  *     summary: Deactivate or Delete a plan
  *     description: Marks a plan as inactive or removes it if no users are subscribed. Restricted to Super Admins.
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

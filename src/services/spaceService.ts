@@ -286,7 +286,22 @@ class SpaceService {
       throw new AppError("You do not have access to this space", 403);
     }
 
-    return space;
+    // Fetch folders and lists for this space
+    const folderService = require("./folderService");
+    const listService = require("./listService");
+
+    const folders = await folderService.getFolders(spaceId, userId);
+    const allLists = await listService.getSpaceLists(spaceId, userId);
+    
+    // Filter to only include lists that are NOT in a folder (top-level lists)
+    const lists = allLists.filter((list: any) => !list.folderId);
+
+    return {
+      ...space,
+      folders,
+      lists
+    };
+
   }
 
   async getSpaceMetadataById(spaceId: string, userId: string) {

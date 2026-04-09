@@ -20,7 +20,7 @@ router.use(protect);
  *   post:
  *     summary: Create document
  *     description: Create a new document
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -69,7 +69,7 @@ router.post("/", documentController.createDocument);
  *   get:
  *     summary: Get my documents
  *     description: Retrieve all documents created by the current user
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -94,7 +94,7 @@ router.get("/me", documentController.getMyDocuments);
  *   get:
  *     summary: Get workspace documents
  *     description: Retrieve all documents in a workspace
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -132,7 +132,7 @@ router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
  *   get:
  *     summary: Get document hierarchy
  *     description: Retrieve document hierarchy for a workspace
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -170,7 +170,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   get:
  *     summary: Get document
  *     description: Retrieve a specific document by ID
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -202,7 +202,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   patch:
  *     summary: Update document
  *     description: Update document content or metadata
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -251,7 +251,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   delete:
  *     summary: Delete document
  *     description: Delete a document
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

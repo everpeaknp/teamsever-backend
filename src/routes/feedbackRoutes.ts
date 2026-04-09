@@ -56,7 +56,7 @@ const validate = (schema: any) => {
  *   post:
  *     summary: Submit feedback
  *     description: Create a new feedback submission (Workspace admin/owner only)
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -112,7 +112,7 @@ const validate = (schema: any) => {
  *   get:
  *     summary: Get all feedback submissions
  *     description: Retrieve all feedback (Super User only)
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +163,7 @@ router.get("/", protect, validate(getFeedbackSchema), getAllFeedback);
  *   patch:
  *     summary: Mark feedback as resolved
  *     description: Update feedback status to resolved (Super User only)
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

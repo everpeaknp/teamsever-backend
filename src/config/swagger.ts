@@ -348,7 +348,28 @@ const options: swaggerJsdoc.Options = {
             createdAt: {
               type: "string",
               format: "date-time"
+            },
+            folders: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  _id: { type: "string" },
+                  name: { type: "string" },
+                  color: { type: "string" },
+                  icon: { type: "string", nullable: true },
+                  lists: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/List" }
+                  }
+                }
+              }
+            },
+            lists: {
+              type: "array",
+              items: { $ref: "#/components/schemas/List" }
             }
+
           }
         },
         List: {
@@ -1396,48 +1417,48 @@ const options: swaggerJsdoc.Options = {
     ],
     tags: [
       {
-        name: "Dashboard & Analytics",
-        description: "🚀 PRIMARY DASHBOARD — ALL-IN-ONE data source for Flutter. Use GET /api/workspaces/{id}/analytics for the main screen."
+        name: "0. ⭐ PRIMARY DASHBOARD",
+        description: "🚀 ALL-IN-ONE data source for Flutter. Use GET /api/workspaces/{id}/analytics for the main screen."
       },
       {
-        name: "Auth & User",
+        name: "1. Auth & Identity",
         description: "Registration, Login, Password Reset, and User Profile management"
       },
       {
-        name: "Workspace Management",
-        description: "Core Workspace CRUD, Settings, Logo, and Members"
+        name: "2. Workspaces & Members",
+        description: "Core Workspace CRUD, Settings, Logo, Members, and Invitations"
       },
       {
-        name: "Project Hierarchy",
+        name: "3. Project Hierarchy",
         description: "Organizational structure: Spaces, Folders, and Lists"
       },
       {
-        name: "Task Management",
-        description: "Tasks, Subtasks, Dependencies (Gantt logic), and Recurring tasks"
+        name: "4. Task Management",
+        description: "Tasks, Subtasks, Dependencies (Gantt logic), Recurring tasks, and Custom Fields"
       },
       {
-        name: "Attendance & Reporting",
-        description: "Clock-in/out tracking and detailed attendance reports (CSV/Excel)"
+        name: "5. Collaboration & Chat",
+        description: "Real-time Chat (Group & DM), Presence, Announcements, and Activity Tracking"
       },
       {
-        name: "Attachments & Media",
-        description: "Task attachments, Workspace files, and Cloudinary uploads"
+        name: "6. Files & Documents",
+        description: "Task attachments, Workspace files, Cloudinary uploads, and Document management"
       },
       {
-        name: "Custom Tables",
-        description: "Excel-like custom tables and database management"
+        name: "7. Time & Attendance",
+        description: "Clock-in/out tracking, Timesheets, and Attendance reports"
       },
       {
-        name: "Productivity",
-        description: "Sticky Notes, Time Tracking (Task timers), and Performance metrics"
+        name: "8. Custom Tables",
+        description: "Excel-like dynamic tables, Database management, and Table specific members"
       },
       {
-        name: "Collaboration",
-        description: "Chat (Group & DM), Comments, Activity Feed, and Presence"
-      },
-      {
-        name: "System & Admin",
+        name: "9. System & Administration",
         description: "Plans, Subscriptions, Payments, Entitlements, and Super-Admin panel"
+      },
+      {
+        name: "10. Utilities & Search",
+        description: "Global Search, Notifications Center, and User Feedback"
       }
     ]
   },

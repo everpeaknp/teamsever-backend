@@ -13,7 +13,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "Project Hierarchy"
+ *   name: "3. Project Hierarchy"
  *   description: "Space invitation management"
  */
 
@@ -26,7 +26,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send space invitation
  *     description: Invite a user to join a space
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -71,7 +71,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space invitations
  *     description: Retrieve all pending invitations for a space
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -110,7 +110,7 @@ spaceInvitationRouter.get("/", protect, requirePermission("MANAGE_SPACE_PERMISSI
  *   delete:
  *     summary: Cancel space invitation
  *     description: Cancel a pending space invitation
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +163,7 @@ const invitationRouter = express.Router();
  *   post:
  *     summary: Accept space invitation
  *     description: Accept a space invitation using token
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,7 +201,7 @@ invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
  *   post:
  *     summary: Decline space invitation
  *     description: Decline a space invitation using token
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -239,7 +239,7 @@ invitationRouter.post("/decline/:token", protect, declineSpaceInvitation);
  *   get:
  *     summary: Get my space invitations
  *     description: Retrieve all pending space invitations for current user
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     responses:

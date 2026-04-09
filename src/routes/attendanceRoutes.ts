@@ -19,7 +19,7 @@ router.use(protect);
  *   get:
  *     summary: Get attendance report
  *     description: Retrieve detailed attendance / clock-in records for a workspace. Admins can filter by userId; regular users only see their own. Supports "Lifetime" view if dates are omitted.
- *     tags: ["Attendance & Reporting"]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -87,7 +87,7 @@ router.get("/workspace/:workspaceId/report", getAttendanceReport);
  *   get:
  *     summary: Export attendance report (CSV)
  *     description: Download a CSV file containing attendance records based on filters.
- *     tags: ["Attendance & Reporting"]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -131,7 +131,7 @@ router.get("/workspace/:workspaceId/export", exportAttendanceCSV);
  *   get:
  *     summary: Export attendance report (Excel)
  *     description: Download a native Excel (.xlsx) file containing attendance records.
- *     tags: ["Attendance & Reporting"]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

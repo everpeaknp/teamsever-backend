@@ -20,7 +20,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *       - Faster uploads (direct to CDN)
  *       - Reduced server load
  *       - Better user experience
- *     tags: ["Attachments & Media"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -83,7 +83,7 @@ router.post(
  *       - Thumbnail generation for images
  *       - File size and MIME type extraction
  *       - Secure URL generation
- *     tags: ["Attachments & Media"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -162,7 +162,7 @@ router.post(
  *   get:
  *     summary: Get all attachments for a task
  *     description: Retrieves all file attachments associated with a task from Cloudinary
- *     tags: ["Attachments & Media"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -215,7 +215,7 @@ router.get(
  *       
  *       **Automatic Cleanup:**
  *       When a task is hard-deleted, all attachments are automatically removed.
- *     tags: ["Attachments & Media"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

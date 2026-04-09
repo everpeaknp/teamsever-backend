@@ -28,7 +28,7 @@ if (typeof protect !== 'function') {
  *   get:
  *     summary: Global search across tasks, spaces, and lists
  *     description: Performs a full-text search across the user's accessible tasks, spaces, and lists in the current workspace (if provided in headers).
- *     tags: ["Productivity"]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

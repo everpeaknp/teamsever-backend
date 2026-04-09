@@ -15,7 +15,7 @@ router.use(protect);
  *   post:
  *     summary: Register FCM device token
  *     description: Register a Firebase Cloud Messaging (FCM) token for push notifications. Call this when the app launches and gets a valid FCM token from Firebase.
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -53,7 +53,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *   get:
  *     summary: Get notifications
  *     description: Retrieve the current user's in-app notifications, newest first.
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -110,7 +110,7 @@ router.get("/", notificationCenterController.getNotifications);
  *   get:
  *     summary: Get unread notification count
  *     description: Returns the count of unread notifications. Use this to display the badge number on the notification bell icon.
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -137,7 +137,7 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  *   patch:
  *     summary: Mark all notifications as read
  *     description: Marks all the current user's unread notifications as read. Useful when user opens the notification panel.
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -163,7 +163,7 @@ router.patch("/read-all", notificationCenterController.markAllAsRead);
  *   patch:
  *     summary: Mark notification as read
  *     description: Mark a single notification as read.
- *     tags: [Collaboration]
+ *     tags: ["10. Utilities & Search"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

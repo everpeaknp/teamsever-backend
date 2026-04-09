@@ -22,7 +22,7 @@ const workspaceChatRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send chat message
  *     description: Send a message to a specific channel within a workspace. If channelId is omitted, it defaults to the #General channel.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -83,7 +83,7 @@ workspaceChatRouter
  *   get:
  *     summary: List accessible channels
  *     description: Retrieve all public channels and any private channels the user is a member of.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -102,7 +102,7 @@ workspaceChatRouter
  *   post:
  *     summary: Create new channel
  *     description: Create a new public or private chat channel. Only Admins/Owners can create channels.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -158,7 +158,7 @@ workspaceChatRouter
  *   patch:
  *     summary: Update channel details
  *     description: Rename channel, change description or visibility. Only Admins/Owners or the creator can update.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -216,7 +216,7 @@ const channelRouter = express.Router();
  *   get:
  *     summary: Get message history for a channel
  *     description: Retrieve paginated chat history. User must have access to the channel.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -250,7 +250,7 @@ channelRouter
  * /api/chat/channels/{channelId}/unread:
  *   get:
  *     summary: Get unread count
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

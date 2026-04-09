@@ -14,7 +14,7 @@ router.use(protect);
  *   get:
  *     summary: Get all conversations
  *     description: Retrieve all direct message conversations for the current user, including last message, participants, and unread count.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -50,7 +50,7 @@ router.get("/", directMessageController.getConversations);
  *   post:
  *     summary: Start conversation
  *     description: Start a new conversation with a user or retrieve the existing one if it already exists.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -97,7 +97,7 @@ router.post("/:userId", directMessageController.startConversation);
  *   get:
  *     summary: Get conversation details
  *     description: Retrieve a specific conversation by its ID, including full participant details.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -140,7 +140,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *     description: |
  *       Sends a message to another user. If no conversation exists, it creates one automatically.
  *       **Note:** Message content cannot be empty unless attachments are provided.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -211,7 +211,7 @@ router.post(
  *   get:
  *     summary: Get conversation messages
  *     description: Retrieve paginated messages in a conversation, newest first.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -271,7 +271,7 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  *   patch:
  *     summary: Mark conversation as read
  *     description: Marks all unread messages in the conversation as read for the current user.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

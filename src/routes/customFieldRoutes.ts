@@ -28,7 +28,7 @@ const customFieldRouter = express.Router();
  *   post:
  *     summary: Create custom field
  *     description: Create a new custom field definition for a workspace
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -83,7 +83,7 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *   put:
  *     summary: Update custom field
  *     description: Update an existing custom field definition
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -136,7 +136,7 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *   delete:
  *     summary: Delete custom field
  *     description: Remove a custom field definition
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -175,7 +175,7 @@ customFieldRouter.delete("/:id", protect, deleteCustomField);
  *   get:
  *     summary: Get workspace custom fields
  *     description: Retrieve all custom fields for a workspace
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -213,7 +213,7 @@ customFieldRouter.get("/workspace/:workspaceId", protect, getFieldsByWorkspace);
  *   get:
  *     summary: Get project custom fields
  *     description: Retrieve all custom fields for a project
- *     tags: [Task Management]
+ *     tags: ["4. Task Management"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

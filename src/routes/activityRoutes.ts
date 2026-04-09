@@ -11,7 +11,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *     description: |
  *       Retrieve activity logs with optional filters.
  *       **Access Control:** Owners/Admins see all workspace activity; regular members see only their own logs.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -57,7 +57,7 @@ router.get(
  *   post:
  *     summary: Add comment to task
  *     description: Post a new comment on a task. Supports @mentions by including user IDs in the `mentions` array.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -115,7 +115,7 @@ router.post(
  *   get:
  *     summary: Get task activity feed
  *     description: Returns all activity (comments, status changes, assignments) for a specific task, newest first.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -156,7 +156,7 @@ router.get(
  *   put:
  *     summary: Edit comment
  *     description: Edit an existing comment. Only the comment author can edit it.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -204,7 +204,7 @@ router.get(
  *   delete:
  *     summary: Delete comment
  *     description: Delete a comment. Author or workspace admin can delete.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -256,7 +256,7 @@ router.delete(
  *   post:
  *     summary: Add emoji reaction
  *     description: Add an emoji reaction to a comment. If the same emoji already exists from the user, it toggles off.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -293,7 +293,7 @@ router.delete(
  *   delete:
  *     summary: Remove emoji reaction
  *     description: Remove your emoji reaction from a comment.
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -349,7 +349,7 @@ router.delete(
  *       **Access Control:**
  *       - **Owners/Admins:** See all workspace activity
  *       - **Members:** See only their own personal activity
- *     tags: [Collaboration]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

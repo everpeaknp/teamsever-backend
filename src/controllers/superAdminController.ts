@@ -284,19 +284,19 @@ const getFinancialAnalytics = asyncHandler(async (req: any, res: any) => {
  * @access  Private (Super User only)
  */
 const getSystemSettings = asyncHandler(async (req: any, res: any) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: "Not authenticated"
-    });
-  }
-  
   try {
     let settings = await SystemSettings.findOne();
     
     if (!settings) {
+      // Only authenticated users can trigger default settings creation
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated and no system settings found"
+        });
+      }
+
       // Create default settings if they don't exist
-      // Only super admin can trigger this if it's the first time
       settings = await SystemSettings.create({
         whatsappContactNumber: "+1234567890",
         systemName: "Teamsever",

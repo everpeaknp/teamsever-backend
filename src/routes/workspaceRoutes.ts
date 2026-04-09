@@ -40,7 +40,7 @@ const customRoleRateLimiter = rateLimit({
  *   post:
  *     summary: Create a new workspace
  *     description: Creates a new workspace with the authenticated user as owner
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -83,7 +83,7 @@ const customRoleRateLimiter = rateLimit({
  *   get:
  *     summary: Get all user workspaces
  *     description: Returns all workspaces where the user is a member, including member count and owner info.
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -109,7 +109,7 @@ router.get("/", protect, getMyWorkspaces);
  *   get:
  *     summary: Get a single workspace
  *     description: Returns full workspace details including members, settings, and subscription status.
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -141,7 +141,7 @@ router.get("/", protect, getMyWorkspaces);
  *   put:
  *     summary: Update workspace
  *     description: Updates workspace properties (owner/admin only)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -189,7 +189,7 @@ router.get("/", protect, getMyWorkspaces);
  *   delete:
  *     summary: Delete workspace
  *     description: Deletes a workspace (owner only)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -235,7 +235,7 @@ router.delete("/:id", protect, requirePermission("DELETE_WORKSPACE"), deleteWork
  *   get:
  *     summary: Get workspace hierarchy (optimized)
  *     description: Returns complete workspace structure (Spaces -> Folders -> Lists) with task counts in a single query
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -296,7 +296,7 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *       | `performance` | Performance metrics for the user (and team for admins) |
  *
  *       **Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.
- *     tags: ["Dashboard & Analytics"]
+ *     tags: ["0. ⭐ PRIMARY DASHBOARD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -334,7 +334,7 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *   get:
  *     summary: Get workspace announcements
  *     description: Retrieve all active announcements for a specific workspace, ordered by creation date (newest first).
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -365,7 +365,7 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *   post:
  *     summary: Create workspace announcement
  *     description: Create a new announcement that will be visible to all workspace members.
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -423,7 +423,7 @@ router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), 
  *   delete:
  *     summary: Delete workspace announcement
  *     description: Delete an announcement from a workspace
- *     tags: ["Collaboration"]
+ *     tags: ["5. Collaboration & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -467,7 +467,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *   post:
  *     summary: Toggle workspace clock
  *     description: Clock in or clock out of workspace
- *     tags: ["Attendance & Reporting"]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -494,7 +494,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *   patch:
  *     summary: Update personal sticky note
  *     description: Save the user's personal sticky note content for this workspace.
- *     tags: ["Productivity"]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -537,7 +537,7 @@ router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), sti
  *   patch:
  *     summary: Update member custom role
  *     description: Update custom role for a workspace member (Owner only)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -606,7 +606,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   patch:
  *     summary: Upload workspace logo
  *     description: Upload a new logo for the workspace (Owner only)
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -13,7 +13,7 @@ const router = express.Router();
  *   get:
  *     summary: Check if user can perform a specific action
  *     description: Validates entitlement for actions like useCustomRoles, createTable, addRow
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -74,7 +74,7 @@ router.get("/check", protect, checkEntitlement);
  *   get:
  *     summary: Get aggregated usage and limits
  *     description: Returns total usage across all owned workspaces and plan limits
- *     tags: ["System & Admin"]
+ *     tags: ["9. System & Administration"]
  *     security:
  *       - bearerAuth: []
  *     responses:

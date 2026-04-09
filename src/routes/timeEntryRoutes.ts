@@ -44,7 +44,7 @@ router.use(protect);
  *   get:
  *     summary: Get workspace active timers (Admin)
  *     description: Get all active timers in workspace (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -81,7 +81,7 @@ router.get("/admin/workspace/:workspaceId/active", getWorkspaceActiveTimers);
  *   get:
  *     summary: Get team timesheets (Admin)
  *     description: Get team timesheets for workspace (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -118,7 +118,7 @@ router.get("/admin/workspace/:workspaceId/timesheets", getTeamTimesheets);
  *   get:
  *     summary: Get workspace time stats (Admin)
  *     description: Get workspace time statistics (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -155,7 +155,7 @@ router.get("/admin/workspace/:workspaceId/stats", getWorkspaceTimeStats);
  *   post:
  *     summary: Admin force-stop timer
  *     description: Force stop a running timer (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -192,7 +192,7 @@ router.post("/admin/stop/:entryId", adminStopTimer);
  *   post:
  *     summary: Cleanup orphaned timers (Admin)
  *     description: Cleanup orphaned timers in workspace (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -229,7 +229,7 @@ router.post("/admin/workspace/:workspaceId/cleanup-orphaned", cleanupOrphanedTim
  *   post:
  *     summary: Stop all user timers (Admin)
  *     description: Stop all running timers for a user (Admin only)
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -275,7 +275,7 @@ router.post("/admin/workspace/:workspaceId/stop-user-timers/:userId", stopAllUse
  *   post:
  *     summary: Start timer
  *     description: Start a time tracking timer for a task
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -315,7 +315,7 @@ router.post("/start/:taskId", validate(startTimerSchema), startTimer);
  *   post:
  *     summary: Stop timer
  *     description: Stop a running timer
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -346,7 +346,7 @@ router.post("/stop/:entryId", stopTimer);
  *   post:
  *     summary: Add manual time entry
  *     description: Add a manual time entry for a task
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -390,7 +390,7 @@ router.post("/manual", validate(addManualTimeSchema), addManualTime);
  *   get:
  *     summary: Get my running timer
  *     description: Returns the user's currently active timer. Returns null data if no timer is running. Check this on app startup to restore the timer UI.
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -423,7 +423,7 @@ router.get("/running", getRunningTimer);
  *   get:
  *     summary: Get task time summary
  *     description: Returns total time logged for a task plus a breakdown of individual entries.
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -467,7 +467,7 @@ router.get("/task/:taskId", getTaskTimeSummary);
  *   get:
  *     summary: Get project time summary
  *     description: Get time tracking summary for a project
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -498,7 +498,7 @@ router.get("/project/:projectId", getProjectTimeSummary);
  *   delete:
  *     summary: Delete time entry
  *     description: Delete a time entry
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -15,7 +15,7 @@ const { createListSchema, updateListSchema } = require("../validators/listValida
 /**
  * @swagger
  * tags:
- *   name: "Project Hierarchy"
+ *   name: "3. Project Hierarchy"
  *   description: "List management within spaces"
  */
 
@@ -28,7 +28,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create list
  *     description: Create a new list in a space
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -81,7 +81,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get lists in a space
  *     description: Retrieve all lists in a space (not inside a folder).
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -122,7 +122,7 @@ const listRouter = express.Router();
  *   get:
  *     summary: Get list
  *     description: Get a single list with its tasks count and metadata.
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -153,7 +153,7 @@ const listRouter = express.Router();
  *   patch:
  *     summary: Update list
  *     description: Update list details
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -210,7 +210,7 @@ const listRouter = express.Router();
  *   delete:
  *     summary: Delete list
  *     description: Delete a list and its contents
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

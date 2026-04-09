@@ -12,7 +12,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "Project Hierarchy"
+ *   name: "3. Project Hierarchy"
  *   description: "Project management within workspaces"
  */
 
@@ -25,7 +25,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create project
  *     description: Create a new project in a workspace
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -64,7 +64,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get all projects
  *     description: Retrieve all projects in a workspace
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -100,7 +100,7 @@ const projectRouter = express.Router();
  *   get:
  *     summary: Get project
  *     description: Retrieve a specific project by ID
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -132,7 +132,7 @@ const projectRouter = express.Router();
  *   patch:
  *     summary: Update project
  *     description: Update project details
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -175,7 +175,7 @@ const projectRouter = express.Router();
  *   delete:
  *     summary: Delete project
  *     description: Delete a project
- *     tags: ["Project Hierarchy"]
+ *     tags: ["3. Project Hierarchy"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

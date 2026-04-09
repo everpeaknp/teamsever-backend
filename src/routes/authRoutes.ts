@@ -9,7 +9,7 @@ const router = express.Router();
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user account with email and password
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     requestBody:
  *       required: true
  *       content:
@@ -57,7 +57,7 @@ router.post("/register", registerUser);
  *   post:
  *     summary: Login user
  *     description: Authenticates user and returns JWT token
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     requestBody:
  *       required: true
  *       content:
@@ -98,7 +98,7 @@ router.post("/login", loginUser);
  *   post:
  *     summary: Google OAuth authentication
  *     description: Authenticate user with Google OAuth token
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     requestBody:
  *       required: true
  *       content:
@@ -133,7 +133,7 @@ router.post("/google", googleAuth);
  *   post:
  *     summary: Request password reset
  *     description: Sends a password reset email if the account exists (always returns 200 on success to prevent enumeration)
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     requestBody:
  *       required: true
  *       content:
@@ -175,7 +175,7 @@ router.post("/forgot-password", requestPasswordReset);
  *   post:
  *     summary: Reset password
  *     description: Resets the password using a valid reset token
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     requestBody:
  *       required: true
  *       content:

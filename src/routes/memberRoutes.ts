@@ -18,7 +18,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get workspace members
  *     description: Returns all members of a workspace with their roles and status.
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -56,7 +56,7 @@ router.get("/", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceMember
  *   post:
  *     summary: Invite member directly
  *     description: Adds an existing user to the workspace by email (skips invitation link). Use the Invitations endpoints for external users.
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -116,7 +116,7 @@ router.post("/invite", protect, checkMemberLimit, requirePermission("INVITE_MEMB
  *   patch:
  *     summary: Update my status
  *     description: Update the current user's status label within the workspace (e.g. "In a meeting", "Focus mode").
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -160,7 +160,7 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  *   patch:
  *     summary: Update member role
  *     description: Change a member's role (Admin/Owner only).
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -216,7 +216,7 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  *   delete:
  *     summary: Remove member
  *     description: Remove a member from the workspace (Owner only).
- *     tags: ["Workspace Management"]
+ *     tags: ["2. Workspaces & Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

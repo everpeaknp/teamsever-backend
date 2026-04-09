@@ -18,7 +18,7 @@ const router = express.Router();
  *   get:
  *     summary: Get current user profile
  *     description: Retrieve the profile details of the authenticated user.
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -43,7 +43,7 @@ router.get("/profile", protect, getMyProfile);
  *   patch:
  *     summary: Update user profile
  *     description: Update name, job title, department, bio, and profile picture. Uses multipart/form-data for file uploads.
- *     tags: ["Auth & User"]
+ *     tags: ["1. Auth & Identity"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

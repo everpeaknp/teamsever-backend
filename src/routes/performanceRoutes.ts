@@ -19,7 +19,7 @@ router.use(protect);
  *   get:
  *     summary: Get my performance
  *     description: Retrieve current user's performance metrics
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -50,7 +50,7 @@ router.get("/me/workspace/:workspaceId", performanceController.getMyPerformance)
  *   get:
  *     summary: Get user performance
  *     description: Retrieve specific user's performance metrics
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,7 +86,7 @@ router.get("/user/:userId/workspace/:workspaceId", performanceController.getUser
  *   get:
  *     summary: Get team performance
  *     description: Retrieve team performance metrics
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -117,7 +117,7 @@ router.get("/team/workspace/:workspaceId", performanceController.getTeamPerforma
  *   get:
  *     summary: Get workspace performance summary
  *     description: Retrieve workspace performance summary
- *     tags: [Productivity]
+ *     tags: ["7. Time & Attendance"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -10,7 +10,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   post:
  *     summary: Upload task attachment
  *     description: Upload a file attachment to a task
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -45,7 +45,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *   get:
  *     summary: Get task attachments
  *     description: Retrieve all attachments for a task
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -88,7 +88,7 @@ router.get(
  *   post:
  *     summary: Upload comment attachment
  *     description: Upload a file attachment to a comment
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,7 +123,7 @@ router.get(
  *   get:
  *     summary: Get comment attachments
  *     description: Retrieve all attachments for a comment
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -166,7 +166,7 @@ router.get(
  *   post:
  *     summary: Upload DM attachment
  *     description: Upload a file attachment to a direct message
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,7 +201,7 @@ router.get(
  *   get:
  *     summary: Get conversation attachments
  *     description: Retrieve all attachments in a conversation
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -244,7 +244,7 @@ router.get(
  *   delete:
  *     summary: Delete attachment
  *     description: Delete a file attachment
- *     tags: [Workspace Management]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
