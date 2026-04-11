@@ -452,11 +452,14 @@ const options: swaggerJsdoc.Options = {
           type: "object",
           properties: {
             success: { type: "boolean", example: true },
-            message: { type: "string" },
             data: {
               type: "object",
               properties: {
+                _id: { type: "string" },
+                workspace: { type: "string" },
+                user: { type: "string" },
                 content: { type: "string" },
+                createdAt: { type: "string", format: "date-time" },
                 updatedAt: { type: "string", format: "date-time" }
               }
             }
@@ -1459,6 +1462,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: "10. Utilities & Search",
         description: "Global Search, Notifications Center, and User Feedback"
+      },
+      {
+        name: "11. Personal Tools & Notes",
+        description: "Personalize your workspace with sticky notes and custom tools"
       }
     ]
   },

@@ -6,13 +6,6 @@ const { checkMessageLimit } = require("../middlewares/messageLimitMiddleware");
 const validate = require("../utils/validation");
 const { sendMessageSchema, createChannelSchema } = require("../validators/chatValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Chat
- *   description: Multi-channel workspace chat and direct messaging
- */
-
 // Workspace chat routes (prefixed with /api/workspaces/:workspaceId/chat)
 const workspaceChatRouter = express.Router({ mergeParams: true });
 

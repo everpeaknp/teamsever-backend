@@ -14,13 +14,6 @@ const {
 
 /**
  * @swagger
- * tags:
- *   name: Payment
- *   description: eSewa payment integration for plan upgrades
- */
-
-/**
- * @swagger
  * /api/payment/initiate:
  *   post:
  *     summary: Initiate eSewa payment for plan upgrade

@@ -491,10 +491,30 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  * /api/workspaces/{id}/sticky-note:
+ *   get:
+ *     summary: Get personal sticky note
+ *     description: Retrieve the user's personal sticky note content for this workspace. Returns a blank note if none exists.
+ *     tags: ["11. Personal Tools & Notes"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     responses:
+ *       200:
+ *         description: Sticky note retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/StickyNoteResponse"
  *   patch:
  *     summary: Update personal sticky note
  *     description: Save the user's personal sticky note content for this workspace.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["11. Personal Tools & Notes"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -527,7 +547,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.post("/:workspaceId/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
+router.post("/:id/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
 router.patch("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.updateStickyNote);
 router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.getStickyNote);
 
@@ -647,7 +667,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
  *               $ref: "#/components/schemas/ApiError"
  */
 router.patch(
-  "/:workspaceId/logo",
+  "/:id/logo",
   protect,
   requireWorkspaceOwner,
   uploadSingle,

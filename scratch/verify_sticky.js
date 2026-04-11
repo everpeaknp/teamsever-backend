@@ -37,45 +37,51 @@ async function verifyStickyNote() {
         const workspaceId = workspace._id.toString();
         const userId = user._id.toString();
 
-        // Test Service directly
-        console.log('\n🧪 Testing StickyNoteService.getStickyNote...');
-        const note = await stickyNoteService.getStickyNote(workspaceId, userId);
-        console.log('✅ Service.getStickyNote works:', note.content === "" ? "(blank)" : note.content);
-
-        console.log('\n🧪 Testing StickyNoteService.updateStickyNote...');
-        const updatedNote = await stickyNoteService.updateStickyNote(workspaceId, userId, "Test Content " + Date.now());
-        console.log('✅ Service.updateStickyNote works:', updatedNote.content);
-
-        // Verify parameter naming in controllers
-        const stickyNoteController = require('../src/controllers/stickyNoteController');
+        // Test Service sequence
+        console.log('\n🧪 Testing Full Cycle (GET -> PATCH -> GET)...');
         
-        console.log('\n🧪 Simulating controller call with req.params.id (as in routes)...');
-        // Mock req, res, next
+        console.log('1. Initial GET...');
+        const initialNote = await stickyNoteService.getStickyNote(workspaceId, userId);
+        console.log(`   Initial Content: "${initialNote.content}"`);
+        console.log(`   Initial Workspace ID: ${initialNote.workspace}`);
+
+        const testContent = "Test Content " + Date.now();
+        console.log(`\n2. Performing PATCH with: "${testContent}"...`);
+        await stickyNoteService.updateStickyNote(workspaceId, userId, testContent);
+
+        console.log('\n3. Verifying with final GET...');
+        const finalNote = await stickyNoteService.getStickyNote(workspaceId, userId);
+        console.log(`   Final Content: "${finalNote.content}"`);
+        console.log(`   Final Workspace ID: ${finalNote.workspace}`);
+
+        if (finalNote.content === testContent && finalNote.workspace.toString() === workspaceId) {
+            console.log('\n✅ PERSISTENCE SUCCESS: Content and Workspace ID are correct.');
+        } else {
+            console.log('\n❌ PERSISTENCE FAILURE: Content or Workspace ID dismatch.');
+            console.log(`   Expected Workspace: ${workspaceId}, Got: ${finalNote.workspace}`);
+        }
+
+        // Verify Controller Param Mapping
+        console.log('\n🧪 Verifying Controller Parameter Mapping...');
+        const stickyNoteController = require('../src/controllers/stickyNoteController');
         const mockReq = {
-            params: { id: workspaceId }, // Route uses :id
+            params: { workspaceId: workspaceId }, // This is what we fixed in routes
             user: { id: userId },
-            body: { content: "Controller Test Content" }
+            body: { content: "Controller Content " + Date.now() }
         };
         const mockRes = {
-            status: function(code) { 
-                this.statusCode = code; 
-                return this; 
-            },
-            json: function(data) { 
-                this.data = data; 
-                return this; 
-            }
+            status: function() { return this; },
+            json: function(data) { this.data = data; return this; }
         };
-        const mockNext = (err) => { if (err) console.error('❌ Controller Error:', err); };
+        const mockNext = (err) => { if (err) console.error('Controller Error:', err); };
 
-        try {
-            await stickyNoteController.updateStickyNote(mockReq, mockRes, mockNext);
-            console.log('Controller Response Data:', mockRes.data);
-            if (!mockRes.data || !mockRes.data.data || !mockRes.data.data.workspace) {
-                 console.log('⚠️ Controller probably failed to find workspaceId from req.params');
-            }
-        } catch (e) {
-            console.log('❌ Controller crashed:', e.message);
+        await stickyNoteController.updateStickyNote(mockReq, mockRes, mockNext);
+        
+        if (mockRes.data?.data?.workspace?.toString() === workspaceId) {
+            console.log('✅ CONTROLLER SUCCESS: Correct workspaceId extracted from req.params.');
+        } else {
+            console.log('❌ CONTROLLER FAILURE: workspaceId is still null or incorrect in controller response.');
+            console.log('   Response Data:', JSON.stringify(mockRes.data, null, 2));
         }
 
         await mongoose.disconnect();

@@ -4,13 +4,8 @@ const { getAttendanceReport, exportAttendanceCSV, exportAttendanceExcel } = requ
 const { protect } = require("../middlewares/authMiddleware");
 
 /**
- * @swagger
- * tags:
- *   name: Attendance
- *   description: Attendance and clock-in reporting
+ * All routes require authentication
  */
-
-// All routes require authentication
 router.use(protect);
 
 /**

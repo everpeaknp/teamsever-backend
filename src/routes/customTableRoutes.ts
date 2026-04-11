@@ -20,13 +20,6 @@ const { requirePermission } = require("../permissions/permission.middleware");
 const { checkTableLimit, checkRowLimit } = require("../middlewares/subscriptionMiddleware");
 const rateLimit = require("express-rate-limit");
 
-/**
- * @swagger
- * tags:
- *   name: Custom Tables
- *   description: Custom table management within spaces
- */
-
 // Rate limiters
 const createTableLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute

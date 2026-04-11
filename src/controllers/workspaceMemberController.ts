@@ -8,7 +8,7 @@ const AppError = require("../utils/AppError");
 
 const toggleWorkspaceClock = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const { workspaceId } = req.params;
+    const { id: workspaceId } = req.params;
     const { status } = req.body;
     const currentUserId = req.user!.id;
 

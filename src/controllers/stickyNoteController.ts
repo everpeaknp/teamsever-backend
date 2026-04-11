@@ -6,7 +6,7 @@ const stickyNoteService = require("../services/stickyNoteService");
  */
 exports.updateStickyNote = async (req: any, res: any, next: any) => {
   try {
-    const { workspaceId } = req.params;
+    const { id: workspaceId } = req.params;
     const userId = req.user.id;
     const { content } = req.body;
 
@@ -27,7 +27,7 @@ exports.updateStickyNote = async (req: any, res: any, next: any) => {
  */
 exports.getStickyNote = async (req: any, res: any, next: any) => {
   try {
-    const { workspaceId } = req.params;
+    const { id: workspaceId } = req.params;
     const userId = req.user.id;
 
     const note = await stickyNoteService.getStickyNote(workspaceId, userId);

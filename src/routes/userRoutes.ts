@@ -7,13 +7,6 @@ const router = express.Router();
 
 /**
  * @swagger
- * tags:
- *   name: Users
- *   description: User profile management
- */
-
-/**
- * @swagger
  * /api/users/profile:
  *   get:
  *     summary: Get current user profile

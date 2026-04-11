@@ -3,13 +3,6 @@ const router = express.Router();
 const performanceController = require("../controllers/performanceController");
 const { protect } = require("../middlewares/authMiddleware");
 
-/**
- * @swagger
- * tags:
- *   name: Performance
- *   description: User and team performance metrics
- */
-
 // All routes require authentication
 router.use(protect);
 

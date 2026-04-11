@@ -13,13 +13,6 @@ const {
   updateCustomFieldSchema
 } = require("../validators/customFieldValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Custom Fields
- *   description: Custom field definitions for workspaces
- */
-
 const customFieldRouter = express.Router();
 
 /**

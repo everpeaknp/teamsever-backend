@@ -230,7 +230,7 @@ const getWorkspaceHierarchy = asyncHandler(async (req: AuthRequest, res: Respons
 // @route   PATCH /api/workspaces/:id/logo
 // @access  Private (Workspace Owner Only)
 const uploadLogo = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { workspaceId } = req.params;
+  const { id: workspaceId } = req.params;
   const file = req.file;
 
   if (!file) {

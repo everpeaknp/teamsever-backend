@@ -10,13 +10,6 @@ const { protect } = require("../middlewares/authMiddleware");
 const validate = require("../utils/validation");
 const { createTaskDependencySchema } = require("../validators/taskDependencyValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Task Dependencies
- *   description: Task dependency management
- */
-
 // All routes require authentication
 router.use(protect);
 

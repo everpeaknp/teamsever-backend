@@ -5,13 +5,6 @@ const { protect } = require("../middlewares/authMiddleware");
 
 /**
  * @swagger
- * tags:
- *   name: Presence
- *   description: User presence and online status
- */
-
-/**
- * @swagger
  * /api/presence/{workspaceId}:
  *   get:
  *     summary: Get workspace presence

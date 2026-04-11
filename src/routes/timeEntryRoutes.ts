@@ -24,13 +24,6 @@ const {
   addManualTimeSchema
 } = require("../validators/timeEntryValidators");
 
-/**
- * @swagger
- * tags:
- *   name: Time Entries
- *   description: Time tracking and time entry management
- */
-
 // All routes require authentication
 router.use(protect);
 

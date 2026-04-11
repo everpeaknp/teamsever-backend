@@ -2,13 +2,6 @@ const express = require("express");
 const documentController = require("../controllers/documentController");
 const { protect } = require("../middlewares/authMiddleware");
 
-/**
- * @swagger
- * tags:
- *   name: Documents
- *   description: Document management and collaboration
- */
-
 const router = express.Router();
 
 // All routes require authentication
@@ -69,7 +62,7 @@ router.post("/", documentController.createDocument);
  *   get:
  *     summary: Get my documents
  *     description: Retrieve all documents created by the current user
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -94,7 +87,7 @@ router.get("/me", documentController.getMyDocuments);
  *   get:
  *     summary: Get workspace documents
  *     description: Retrieve all documents in a workspace
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -132,7 +125,7 @@ router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
  *   get:
  *     summary: Get document hierarchy
  *     description: Retrieve document hierarchy for a workspace
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -170,7 +163,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   get:
  *     summary: Get document
  *     description: Retrieve a specific document by ID
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -202,7 +195,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   patch:
  *     summary: Update document
  *     description: Update document content or metadata
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -251,7 +244,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   delete:
  *     summary: Delete document
  *     description: Delete a document
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6. Files & Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
