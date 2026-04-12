@@ -210,40 +210,63 @@ class SpaceService {
       .sort("-createdAt")
       .lean();
 
+    let spacesToReturn = [];
+
     // If user is owner or admin, return all spaces
     if (isOwner || isAdmin) {
-      return allSpaces;
+      spacesToReturn = allSpaces;
+    } else {
+      // Otherwise, filter to only spaces where user is a member OR has list access
+      
+      // Get spaces where user is a space member
+      const spacesAsMember = allSpaces.filter((space: any) => {
+        return space.members?.some((m: any) => {
+          const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
+          return memberId === userId;
+        });
+      });
+
+      // Get spaces where user has list access (but not space member)
+      const userListMemberships = await ListMember.find({
+        user: userId,
+        workspace: workspaceId
+      }).select('space').lean();
+
+      const spacesWithListAccess = [...new Set(userListMemberships.map((lm: any) => lm.space.toString()))];
+
+      // Combine both sets of spaces
+      const accessibleSpaceIds = new Set([
+        ...spacesAsMember.map((s: any) => s._id.toString()),
+        ...spacesWithListAccess
+      ]);
+
+      spacesToReturn = allSpaces.filter((space: any) => 
+        accessibleSpaceIds.has(space._id.toString())
+      );
     }
 
-    // Otherwise, filter to only spaces where user is a member OR has list access
-    
-    // Get spaces where user is a space member
-    const spacesAsMember = allSpaces.filter((space: any) => {
-      return space.members?.some((m: any) => {
-        const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
-        return memberId === userId;
-      });
-    });
+    // Fetch folders and lists for each space
+    const folderService = require("./folderService");
+    const listService = require("./listService");
 
-    // Get spaces where user has list access (but not space member)
-    const userListMemberships = await ListMember.find({
-      user: userId,
-      workspace: workspaceId
-    }).select('space').lean();
+    const spacesWithHierarchy = await Promise.all(
+      spacesToReturn.map(async (space: any) => {
+        const spaceId = space._id.toString();
+        const folders = await folderService.getFolders(spaceId, userId);
+        const allLists = await listService.getSpaceLists(spaceId, userId);
+        
+        // Filter to only include lists that are NOT in a folder (top-level lists)
+        const lists = allLists.filter((list: any) => !list.folderId);
 
-    const spacesWithListAccess = [...new Set(userListMemberships.map((lm: any) => lm.space.toString()))];
-
-    // Combine both sets of spaces
-    const accessibleSpaceIds = new Set([
-      ...spacesAsMember.map((s: any) => s._id.toString()),
-      ...spacesWithListAccess
-    ]);
-
-    const filteredSpaces = allSpaces.filter((space: any) => 
-      accessibleSpaceIds.has(space._id.toString())
+        return {
+          ...space,
+          folders,
+          lists
+        };
+      })
     );
 
-    return filteredSpaces;
+    return spacesWithHierarchy;
   }
 
   async getSpaceById(spaceId: string, userId: string) {
