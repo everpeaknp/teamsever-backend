@@ -61,6 +61,17 @@ class FolderService {
       spaceId
     });
 
+    // Also create FolderMember document for the creator
+    const FolderMember = require("../models/FolderMember");
+    await FolderMember.create({
+      user: userId,
+      folder: folder._id,
+      space: spaceId,
+      workspace: space.workspace,
+      permissionLevel: "FULL",
+      addedBy: userId
+    });
+
     // Log activity
     await logger.logActivity({
       userId,

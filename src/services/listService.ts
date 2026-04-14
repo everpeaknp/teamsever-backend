@@ -79,13 +79,32 @@ class ListService {
 
     console.log('[ListService] User is workspace member, creating list...');
 
-    // Create list
+    // Create list with creator as member
     const list = await List.create({
       name,
       space: spaceId,
       workspace: space.workspace,
       createdBy,
-      folderId: folderId || null
+      folderId: folderId || null,
+      members: [
+        {
+          user: createdBy,
+          role: "owner",
+          permissionLevel: "FULL"
+        }
+      ]
+    });
+
+    // Also create ListMember document for granular permissions
+    const { ListMember } = require("../models/ListMember");
+    await ListMember.create({
+      user: createdBy,
+      list: list._id,
+      folder: folderId || null,
+      space: spaceId,
+      workspace: space.workspace,
+      permissionLevel: "FULL",
+      addedBy: createdBy
     });
 
     console.log('[ListService] List created successfully:', list._id);

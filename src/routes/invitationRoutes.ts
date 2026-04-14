@@ -28,7 +28,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send workspace invitation
  *     description: Create an invitation link for a workspace
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -59,7 +59,11 @@ const router = express.Router({ mergeParams: true });
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Invitation sent to email@example.com" }
+ *                 data: { $ref: "#/components/schemas/Invitation" }
  *       400:
  *         description: Validation error
  *         content:
@@ -81,7 +85,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get workspace invitations
  *     description: Returns all pending (not yet accepted or cancelled) invitations for a workspace.
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -95,17 +99,13 @@ const router = express.Router({ mergeParams: true });
  *         description: Pending invitations retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675a01"
- *                   email: "charlie@example.com"
- *                   role: "member"
- *                   status: "pending"
- *                   expiresAt: "2026-04-06T08:00:00Z"
- *                   invitedBy:
- *                     name: "Alice Smith"
- *                   createdAt: "2026-03-30T08:00:00Z"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: "#/components/schemas/Invitation" }
  *       401:
  *         description: Authentication required
  *         content:
@@ -128,7 +128,7 @@ router.get("/", protect, requirePermission("INVITE_MEMBER"), getWorkspaceInvitat
  *   delete:
  *     summary: Cancel invitation
  *     description: Cancels a pending invitation (admin/owner only)
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -181,7 +181,7 @@ const inviteRouter = express.Router();
  *   post:
  *     summary: Accept workspace invitation
  *     description: Accepts an invitation and adds the user to the workspace
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -197,7 +197,17 @@ const inviteRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Successfully joined Team Workspace" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     workspace: { $ref: "#/components/schemas/Workspace" }
+ *                     role: { type: "string" }
+ *                     alreadyMember: { type: "boolean" }
+ *                     invitation: { $ref: "#/components/schemas/Invitation" }
  *       400:
  *         description: Invitation expired or already accepted
  *         content:
@@ -225,7 +235,7 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *   get:
  *     summary: Get my pending invitations
  *     description: Returns all workspace invitations sent to the current user that are still pending (not yet accepted or declined).
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -233,18 +243,13 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *         description: My invitations
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675a02"
- *                   workspace:
- *                     _id: "69bbf827a96fe78f716752bb"
- *                     name: "Engineering Team"
- *                   role: "member"
- *                   invitedBy:
- *                     name: "Alice Smith"
- *                   token: "eyJhbGciOiJIUzI..."
- *                   expiresAt: "2026-04-06T08:00:00Z"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: "#/components/schemas/Invitation" }
  *       401:
  *         description: Authentication required
  *         content:
@@ -263,7 +268,7 @@ const publicInviteRouter = express.Router();
  *   get:
  *     summary: Verify invitation token
  *     description: Retrieves invitation details by token (public endpoint)
- *     tags: ["2. Workspaces & Members"]
+ *     tags: ["2.3 Workspaces — Invitations"]
  *     parameters:
  *       - in: path
  *         name: token
@@ -277,7 +282,15 @@ const publicInviteRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     workspace: { type: "object", properties: { name: { type: "string" } } }
+ *                     invitedBy: { type: "string" }
+ *                     role: { type: "string" }
  *       404:
  *         description: Invitation not found or expired
  *         content:

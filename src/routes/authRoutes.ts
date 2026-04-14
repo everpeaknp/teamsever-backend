@@ -9,32 +9,13 @@ const router = express.Router();
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user account with email and password
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.1 Auth — Login & Registration"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *             properties:
- *               name:
- *                 type: string
- *                 description: User's full name
- *                 example: "John Doe"
- *               email:
- *                 type: string
- *                 format: email
- *                 description: User's email address
- *                 example: "john@example.com"
- *               password:
- *                 type: string
- *                 format: password
- *                 description: Password (min 6 characters)
- *                 example: "securePassword123"
+ *             $ref: "#/components/schemas/RegisterInput"
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -57,25 +38,13 @@ router.post("/register", registerUser);
  *   post:
  *     summary: Login user
  *     description: Authenticates user and returns JWT token
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.1 Auth — Login & Registration"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "john@example.com"
- *               password:
- *                 type: string
- *                 format: password
- *                 example: "securePassword123"
+ *             $ref: "#/components/schemas/LoginInput"
  *     responses:
  *       200:
  *         description: Login successful
@@ -98,7 +67,7 @@ router.post("/login", loginUser);
  *   post:
  *     summary: Google OAuth authentication
  *     description: Authenticate user with Google OAuth token
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.1 Auth — Login & Registration"]
  *     requestBody:
  *       required: true
  *       content:
@@ -133,27 +102,23 @@ router.post("/google", googleAuth);
  *   post:
  *     summary: Request password reset
  *     description: Sends a password reset email if the account exists (always returns 200 on success to prevent enumeration)
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.2 Auth — Password & Profile"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "john@example.com"
+ *             $ref: "#/components/schemas/PasswordResetRequestInput"
  *     responses:
  *       200:
  *         description: Reset email request accepted
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "If an account exists for this email, a reset link has been sent." }
  *       400:
  *         description: Validation error
  *         content:
@@ -175,31 +140,23 @@ router.post("/forgot-password", requestPasswordReset);
  *   post:
  *     summary: Reset password
  *     description: Resets the password using a valid reset token
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.2 Auth — Password & Profile"]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - token
- *               - password
- *             properties:
- *               token:
- *                 type: string
- *                 description: Reset token from email link
- *               password:
- *                 type: string
- *                 format: password
- *                 example: "newSecurePassword123"
+ *             $ref: "#/components/schemas/PasswordResetInput"
  *     responses:
  *       200:
  *         description: Password reset successful
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Password reset successfully" }
  *       400:
  *         description: Invalid/expired token or validation error
  *         content:

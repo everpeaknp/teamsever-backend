@@ -23,7 +23,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space members
  *     description: Retrieve all space members with their permission overrides
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.2 Hierarchy — Space Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,7 +55,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add space member override
  *     description: Add or update space-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.2 Hierarchy — Space Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -77,8 +77,10 @@ const router = express.Router({ mergeParams: true });
  *             properties:
  *               userId:
  *                 type: string
- *               permissions:
- *                 type: object
+ *                 example: "60d0fe4f5311236168a109ca"
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
+ *                 description: "Access level: FULL, EDIT, COMMENT, or VIEW"
  *     responses:
  *       200:
  *         description: Space member added successfully
@@ -108,7 +110,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addSpac
  *   patch:
  *     summary: Update space member permissions
  *     description: Update space-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.2 Hierarchy — Space Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -130,11 +132,10 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addSpac
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - permissions
  *             properties:
- *               permissions:
- *                 type: object
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
+ *                 description: "Access level: FULL, EDIT, COMMENT, or VIEW"
  *     responses:
  *       200:
  *         description: Space member updated successfully
@@ -163,7 +164,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addSpac
  *   delete:
  *     summary: Remove space member override
  *     description: Remove space-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.2 Hierarchy — Space Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

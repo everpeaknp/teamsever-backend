@@ -165,6 +165,18 @@ const addListMember = asyncHandler(
       listMember.addedBy = currentUserId;
       await listMember.save();
       
+      // Update nested members array in List for hierarchy performance
+      const listToUpdate = await List.findById(listId);
+      if (listToUpdate) {
+        const nestedMember = listToUpdate.members.find((m: any) => m.user.toString() === userId);
+        if (nestedMember) {
+          nestedMember.permissionLevel = permissionLevel;
+        } else {
+          listToUpdate.members.push({ user: userId, role: 'member', permissionLevel });
+        }
+        await listToUpdate.save();
+      }
+      
       spaceId = typeof list.space === 'object' ? list.space._id : list.space;
     } else {
       // Create new override - ensure all required fields are present
@@ -194,6 +206,13 @@ const addListMember = asyncHandler(
       
       try {
         listMember = await ListMember.create(createData);
+        
+        // Update nested members array in List
+        const listToUpdate = await List.findById(listId);
+        if (listToUpdate) {
+          listToUpdate.members.push({ user: userId, role: 'member', permissionLevel });
+          await listToUpdate.save();
+        }
       } catch (createError: any) {
         console.error('[addListMember] Create error:', createError);
         return next(new AppError(`Failed to create list member: ${createError.message}`, 500));
@@ -317,6 +336,12 @@ const removeListMember = asyncHandler(
       user: userId,
       list: listId,
     });
+
+    // Update nested members array in List
+    if (list) {
+      list.members = list.members.filter((m: any) => m.user.toString() !== userId);
+      await list.save();
+    }
 
     // Create workspace activity
     if (list) {

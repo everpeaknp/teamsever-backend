@@ -253,22 +253,25 @@ const acceptSpaceInvitation = asyncHandler(
       return next(new AppError("Space not found", 404));
     }
 
-    // Check if already a member
-    const isAlreadyMember = space.members.some(
-      (m: any) => {
-        const memberId = typeof m.user === 'string' ? m.user : m.user?.toString();
-        return memberId === userId;
-      }
+    // Add user to space or update their permission
+    const existingMember = space.members.find(
+      (m: any) => (typeof m.user === 'string' ? m.user : m.user?.toString()) === userId
     );
 
-    if (!isAlreadyMember) {
+    if (!existingMember) {
       space.members.push({
         user: userId,
         role: "member",
+        permissionLevel: invitation.permissionLevel || "EDIT",
         joinedAt: new Date()
       });
-      await space.save();
+    } else {
+      // Update permission level if it's explicitly set in invitation
+      if (invitation.permissionLevel) {
+        existingMember.permissionLevel = invitation.permissionLevel;
+      }
     }
+    await space.save();
 
     // Create space member permission override if specified
     if (invitation.permissionLevel) {

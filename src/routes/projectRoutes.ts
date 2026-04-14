@@ -25,7 +25,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create project
  *     description: Create a new project in a workspace
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.8 Hierarchy — Projects (Overview)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -40,14 +40,7 @@ const router = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
+ *             $ref: "#/components/schemas/ProjectCreateInput"
  *     responses:
  *       201:
  *         description: Project created successfully
@@ -64,7 +57,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get all projects
  *     description: Retrieve all projects in a workspace
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.8 Hierarchy — Projects (Overview)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -100,7 +93,7 @@ const projectRouter = express.Router();
  *   get:
  *     summary: Get project
  *     description: Retrieve a specific project by ID
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.8 Hierarchy — Projects (Overview)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -132,7 +125,7 @@ const projectRouter = express.Router();
  *   patch:
  *     summary: Update project
  *     description: Update project details
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.8 Hierarchy — Projects (Overview)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -147,12 +140,7 @@ const projectRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
+ *             $ref: "#/components/schemas/ProjectUpdateInput"
  *     responses:
  *       200:
  *         description: Project updated successfully
@@ -175,7 +163,7 @@ const projectRouter = express.Router();
  *   delete:
  *     summary: Delete project
  *     description: Delete a project
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.8 Hierarchy — Projects (Overview)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

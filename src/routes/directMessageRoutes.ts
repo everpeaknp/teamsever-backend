@@ -14,7 +14,7 @@ router.use(protect);
  *   get:
  *     summary: Get all conversations
  *     description: Retrieve all direct message conversations for the current user, including last message, participants, and unread count.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -50,7 +50,7 @@ router.get("/", directMessageController.getConversations);
  *   post:
  *     summary: Start conversation
  *     description: Start a new conversation with a user or retrieve the existing one if it already exists.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -97,7 +97,7 @@ router.post("/:userId", directMessageController.startConversation);
  *   get:
  *     summary: Get conversation details
  *     description: Retrieve a specific conversation by its ID, including full participant details.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -140,7 +140,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *     description: |
  *       Sends a message to another user. If no conversation exists, it creates one automatically.
  *       **Note:** Message content cannot be empty unless attachments are provided.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -155,19 +155,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *                 description: Message text
- *                 example: "Hey! Did you see the new update?"
- *               attachments:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Cloudinary URLs of attachments
+ *             $ref: "#/components/schemas/DMMessageInput"
  *     responses:
  *       201:
  *         description: Message sent successfully
@@ -211,7 +199,7 @@ router.post(
  *   get:
  *     summary: Get conversation messages
  *     description: Retrieve paginated messages in a conversation, newest first.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -271,7 +259,7 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  *   patch:
  *     summary: Mark conversation as read
  *     description: Marks all unread messages in the conversation as read for the current user.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

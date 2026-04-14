@@ -13,7 +13,7 @@ router.use(protect);
  *   post:
  *     summary: Create document
  *     description: Create a new document
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -21,19 +21,7 @@ router.use(protect);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - workspaceId
- *             properties:
- *               title:
- *                 type: string
- *               workspaceId:
- *                 type: string
- *               content:
- *                 type: string
- *               parentId:
- *                 type: string
+ *             $ref: "#/components/schemas/DocumentCreateInput"
  *     responses:
  *       201:
  *         description: Document created successfully
@@ -62,7 +50,7 @@ router.post("/", documentController.createDocument);
  *   get:
  *     summary: Get my documents
  *     description: Retrieve all documents created by the current user
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -87,7 +75,7 @@ router.get("/me", documentController.getMyDocuments);
  *   get:
  *     summary: Get workspace documents
  *     description: Retrieve all documents in a workspace
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -125,7 +113,7 @@ router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
  *   get:
  *     summary: Get document hierarchy
  *     description: Retrieve document hierarchy for a workspace
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +151,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   get:
  *     summary: Get document
  *     description: Retrieve a specific document by ID
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -195,7 +183,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   patch:
  *     summary: Update document
  *     description: Update document content or metadata
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -210,12 +198,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               content:
- *                 type: string
+ *             $ref: "#/components/schemas/DocumentUpdateInput"
  *     responses:
  *       200:
  *         description: Document updated successfully
@@ -244,7 +227,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  *   delete:
  *     summary: Delete document
  *     description: Delete a document
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

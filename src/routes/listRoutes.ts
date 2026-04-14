@@ -28,7 +28,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create list
  *     description: Create a new list in a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,16 +43,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
+ *             $ref: "#/components/schemas/ListCreateInput"
  *     responses:
  *       201:
  *         description: List created successfully
@@ -81,7 +72,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get lists in a space
  *     description: Retrieve all lists in a space (not inside a folder).
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -122,7 +113,7 @@ const listRouter = express.Router();
  *   get:
  *     summary: Get list
  *     description: Get a single list with its tasks count and metadata.
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -153,7 +144,7 @@ const listRouter = express.Router();
  *   patch:
  *     summary: Update list
  *     description: Update list details
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -168,14 +159,7 @@ const listRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
+ *             $ref: "#/components/schemas/ListUpdateInput"
  *     responses:
  *       200:
  *         description: List updated successfully
@@ -210,7 +194,7 @@ const listRouter = express.Router();
  *   delete:
  *     summary: Delete list
  *     description: Delete a list and its contents
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -226,7 +210,10 @@ const listRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { type: "object", properties: { _id: { type: "string" } } }
  *       401:
  *         description: Authentication required
  *         content:

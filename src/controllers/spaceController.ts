@@ -105,8 +105,8 @@ const deleteSpace = asyncHandler(async (req: AuthRequest, res: Response, next: N
 // @route   POST /api/spaces/:id/members
 // @access  Private
 const addMemberToSpace = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { userId, role } = req.body;
-  const space = await spaceService.addMemberToSpace(req.params.id, req.user!.id, userId, role);
+  const { userId, role, permissionLevel } = req.body;
+  const space = await spaceService.addMemberToSpace(req.params.id, req.user!.id, userId, role, permissionLevel);
 
   res.status(200).json({
     success: true,

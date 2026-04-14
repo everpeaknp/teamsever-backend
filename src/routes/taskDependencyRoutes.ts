@@ -19,7 +19,7 @@ router.use(protect);
  *   post:
  *     summary: Create task dependency
  *     description: Create a dependency relationship between two tasks
- *     tags: ["4. Task Management"]
+ *     tags: ["4.2 Tasks — Dependencies"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -67,7 +67,7 @@ router.post("/", validate(createTaskDependencySchema), createDependency);
  *   delete:
  *     summary: Delete task dependency
  *     description: Remove a dependency relationship between tasks
- *     tags: ["4. Task Management"]
+ *     tags: ["4.2 Tasks — Dependencies"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -105,7 +105,7 @@ router.delete("/:id", deleteDependency);
  *   get:
  *     summary: Get task dependencies
  *     description: Retrieve all dependencies for a task
- *     tags: ["4. Task Management"]
+ *     tags: ["4.2 Tasks — Dependencies"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -143,7 +143,7 @@ router.get("/task/:taskId", getTaskDependencies);
  *   get:
  *     summary: Get blocking tasks
  *     description: Retrieve all tasks that are blocking this task
- *     tags: ["4. Task Management"]
+ *     tags: ["4.2 Tasks — Dependencies"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

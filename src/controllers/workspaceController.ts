@@ -214,8 +214,14 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
 // @route   GET /api/workspaces/:id/hierarchy
 // @access  Private
 const getWorkspaceHierarchy = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  
-  const hierarchy = await HierarchyService.getWorkspaceHierarchy(req.params.id);
+  // Get user role for permission check
+  const Workspace = require('../models/Workspace');
+  const workspace = await Workspace.findById(req.params.id).select('owner members');
+  const isOwner = workspace.owner.toString() === req.user!.id;
+  const member = workspace.members.find((m: any) => m.user.toString() === req.user!.id);
+  const userRole = isOwner ? 'owner' : (member?.role || 'member');
+
+  const hierarchy = await HierarchyService.getWorkspaceHierarchy(req.params.id, req.user!.id, userRole);
 
 
 

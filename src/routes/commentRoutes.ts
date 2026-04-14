@@ -20,7 +20,7 @@ taskCommentRouter.use(protect);
  *   post:
  *     summary: Create comment
  *     description: Add a comment to a task
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -35,16 +35,7 @@ taskCommentRouter.use(protect);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *               mentions:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: "#/components/schemas/CommentCreateInput"
  *     responses:
  *       201:
  *         description: Comment created successfully
@@ -73,7 +64,7 @@ taskCommentRouter.use(protect);
  *   get:
  *     summary: Get task comments
  *     description: Retrieve all comments for a task
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -122,7 +113,7 @@ commentRouter.use(protect);
  *   get:
  *     summary: Get single comment
  *     description: Retrieve a specific comment by ID
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -154,7 +145,7 @@ commentRouter.use(protect);
  *   patch:
  *     summary: Edit comment
  *     description: Update a comment's content
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -169,12 +160,7 @@ commentRouter.use(protect);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
+ *             $ref: "#/components/schemas/CommentUpdateInput"
  *     responses:
  *       200:
  *         description: Comment updated successfully
@@ -209,7 +195,7 @@ commentRouter.use(protect);
  *   delete:
  *     summary: Delete comment
  *     description: Remove a comment from a task
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

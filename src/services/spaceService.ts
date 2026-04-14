@@ -80,9 +80,20 @@ class SpaceService {
           members: [
             {
               user: owner,
-              role: "owner"
+              role: "owner",
+              permissionLevel: "FULL"
             }
           ]
+        });
+
+        // Also create SpaceMember document for the owner
+        const SpaceMember = require("../models/SpaceMember");
+        await SpaceMember.create({
+          user: owner,
+          space: space._id,
+          workspace: workspace,
+          permissionLevel: "FULL",
+          addedBy: owner
         });
 
         await logger.logActivity({
@@ -137,9 +148,20 @@ class SpaceService {
       members: [
         {
           user: owner,
-          role: "owner"
+          role: "owner",
+          permissionLevel: "FULL"
         }
       ]
+    });
+
+    // Also create SpaceMember document for the owner
+    const SpaceMember = require("../models/SpaceMember");
+    await SpaceMember.create({
+      user: owner,
+      space: space._id,
+      workspace: workspace,
+      permissionLevel: "FULL",
+      addedBy: owner
     });
 
     // Log activity
@@ -521,22 +543,38 @@ class SpaceService {
       throw new AppError("Space not found", 404);
     }
 
-    // Check if user is space owner or admin
-    const member = space.members.find(
+    // Get workspace to check user role
+    const workspace = await Workspace.findById(space.workspace);
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    // Permission Check:
+    // 1. Workspace Owner bypass
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
+    
+    // 2. Workspace Admin check
+    const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
 
-    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+    // 3. Space Owner check (creator)
+    const isSpaceOwner = space.owner.toString() === userId;
+
+    // 4. Local Space Member check (admin/owner role within space)
+    const localMember = space.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isLocalAdmin = localMember?.role === 'admin' || localMember?.role === 'owner';
+
+    if (!isWorkspaceOwner && !isWorkspaceAdmin && !isSpaceOwner && !isLocalAdmin) {
       throw new AppError("Only space owner or admin can delete this space", 403);
     }
 
-    // Get workspace to find owner
-    const workspace = await Workspace.findById(space.workspace);
-    if (workspace) {
-      // Invalidate usage cache for workspace owner
-      const EntitlementService = require('./entitlementService').default;
-      EntitlementService.invalidateUsageCache(workspace.owner.toString());
-    }
+    // Invalidate usage cache for workspace owner
+    const EntitlementService = require('./entitlementService').default;
+    EntitlementService.invalidateUsageCache(workspace.owner.toString());
 
     await softDelete(Space, spaceId);
 
@@ -561,7 +599,7 @@ class SpaceService {
     return { message: "Space deleted successfully" };
   }
 
-  async addMemberToSpace(spaceId: string, userId: string, memberId: string, role: 'admin' | 'member' = 'member') {
+  async addMemberToSpace(spaceId: string, userId: string, memberId: string, role: 'admin' | 'member' = 'member', permissionLevel?: string) {
     const space = await Space.findOne({
       _id: spaceId,
       isDeleted: false
@@ -600,13 +638,29 @@ class SpaceService {
       throw new AppError("User is already a member of this space", 400);
     }
 
+    // Determine permission level: use passed level or default based on role
+    const finalPermissionLevel = permissionLevel || (role === 'admin' ? 'FULL' : 'EDIT');
+
     // Add member to space
     space.members.push({
       user: memberId,
-      role
+      role,
+      permissionLevel: finalPermissionLevel
     });
 
     await space.save();
+
+    // Also update SpaceMember collection for granular permissions
+    const SpaceMember = require("../models/SpaceMember");
+    await SpaceMember.findOneAndUpdate(
+      { space: spaceId, user: memberId },
+      { 
+        workspace: space.workspace,
+        permissionLevel: finalPermissionLevel,
+        addedBy: userId
+      },
+      { upsert: true, new: true }
+    );
 
     // Log activity
     await logger.logActivity({
@@ -675,6 +729,10 @@ class SpaceService {
     );
 
     await space.save();
+
+    // Also remove from SpaceMember collection for granular permissions consistency
+    const SpaceMember = require("../models/SpaceMember");
+    await SpaceMember.findOneAndDelete({ space: spaceId, user: memberId });
 
     // Log activity
     await logger.logActivity({
@@ -753,10 +811,24 @@ class SpaceService {
           }
           
           // Add to space directly
+          const permissionLevel = invite.role === 'admin' ? 'FULL' : 'EDIT';
           space.members.push({
             user: existingUser._id,
-            role: invite.role
+            role: invite.role,
+            permissionLevel
           });
+
+          // Sync with SpaceMember collection
+          const SpaceMember = require("../models/SpaceMember");
+          await SpaceMember.findOneAndUpdate(
+            { space: spaceId, user: existingUser._id },
+            { 
+              workspace: space.workspace,
+              permissionLevel,
+              addedBy: userId
+            },
+            { upsert: true }
+          );
           results.push({ email: invite.email, status: 'added' });
         } else {
           // Send invitation email

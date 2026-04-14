@@ -364,8 +364,13 @@ class WorkspaceService {
     // 2. Fetch stats (also performs security/access check)
     const stats = await analyticsService.getWorkspaceOverview(workspaceId, userId);
 
-    // 3. Fetch Hierarchy Tree (Optimized single aggregation)
-    const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId);
+    // Get user's role for permission check
+    const isOwner = workspace.owner._id.toString() === userId;
+    const memberObj = workspace.members.find((m: any) => m.user._id.toString() === userId);
+    const userRole = isOwner ? 'owner' : (memberObj?.role || 'member');
+
+    // 3. Fetch Hierarchy Tree (Optimized single aggregation with permission check)
+    const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, userRole);
 
     // 3. Fetch Latest Announcements
     const announcements = await Announcement.find({ 
@@ -413,16 +418,22 @@ class WorkspaceService {
     
     // 9. Fetch Team Performance (for admins/owners only)
     let teamPerformance = null;
-    const isOwner = workspace.owner._id.toString() === userId;
-    const member = workspace.members.find((m: any) => m.user._id.toString() === userId);
-    const isAdmin = member && (member.role === 'admin' || member.role === 'owner');
+    const isAdmin = isOwner || (memberObj && (memberObj.role === 'admin' || memberObj.role === 'owner'));
     
-    if (isOwner || isAdmin) {
+    if (isAdmin) {
       teamPerformance = await performanceService.getTeamPerformance(workspaceId);
     }
 
     // 10. Fetch Velocity (last 30 days)
     const velocity = await analyticsService.getVelocity(workspaceId, userId, 30);
+
+    // 11. Calculate Dynamic Availability for all members
+    const activeTimers = await TimeEntry.find({
+      workspace: workspaceId,
+      isRunning: true,
+      isDeleted: false
+    }).select("user");
+    const activeUserIds = new Set(activeTimers.map((t: any) => t.user.toString()));
 
     return {
       workspace: {
@@ -433,7 +444,14 @@ class WorkspaceService {
       },
       stats,
       hierarchy: hierarchy.spaces,
-      members: workspace.members,
+      members: workspace.members.map((member: any) => {
+        // Check if member has an active timer in this workspace
+        const hasActiveTimer = activeUserIds.has(member.user._id.toString());
+        return {
+          ...member,
+          status: hasActiveTimer ? "active" : "inactive"
+        };
+      }).sort((a: any, b: any) => (a.status === "active" ? -1 : 1)),
       tasks: recentTasks,
       announcements,
       currentRunningTimer,

@@ -11,7 +11,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *     description: |
  *       Retrieve activity logs with optional filters.
  *       **Access Control:** Owners/Admins see all workspace activity; regular members see only their own logs.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -57,7 +57,7 @@ router.get(
  *   post:
  *     summary: Add comment to task
  *     description: Post a new comment on a task. Supports @mentions by including user IDs in the `mentions` array.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -71,18 +71,7 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
- *                 example: "Great work! Can we also handle the edge case?"
- *               mentions:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["69bce50b96fe109fe4e14ff6"]
+ *             $ref: "#/components/schemas/CommentCreateInput"
  *     responses:
  *       201:
  *         description: Comment created
@@ -115,7 +104,7 @@ router.post(
  *   get:
  *     summary: Get task activity feed
  *     description: Returns all activity (comments, status changes, assignments) for a specific task, newest first.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -156,7 +145,7 @@ router.get(
  *   put:
  *     summary: Edit comment
  *     description: Edit an existing comment. Only the comment author can edit it.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -170,12 +159,7 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               content:
- *                 type: string
+ *             $ref: "#/components/schemas/CommentUpdateInput"
  *     responses:
  *       200:
  *         description: Comment updated/deleted
@@ -204,7 +188,7 @@ router.get(
  *   delete:
  *     summary: Delete comment
  *     description: Delete a comment. Author or workspace admin can delete.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -256,7 +240,7 @@ router.delete(
  *   post:
  *     summary: Add emoji reaction
  *     description: Add an emoji reaction to a comment. If the same emoji already exists from the user, it toggles off.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -293,7 +277,7 @@ router.delete(
  *   delete:
  *     summary: Remove emoji reaction
  *     description: Remove your emoji reaction from a comment.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -349,7 +333,7 @@ router.delete(
  *       **Access Control:**
  *       - **Owners/Admins:** See all workspace activity
  *       - **Members:** See only their own personal activity
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

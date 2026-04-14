@@ -23,7 +23,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get folder members
  *     description: Retrieve all folder members with their permission overrides
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.5 Hierarchy — Folder Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,7 +55,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add folder member override
  *     description: Add or update folder-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.5 Hierarchy — Folder Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -77,8 +77,10 @@ const router = express.Router({ mergeParams: true });
  *             properties:
  *               userId:
  *                 type: string
- *               permissions:
- *                 type: object
+ *                 example: "60d0fe4f5311236168a109ca"
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
+ *                 description: "Access level: FULL, EDIT, COMMENT, or VIEW"
  *     responses:
  *       200:
  *         description: Folder member added successfully
@@ -108,7 +110,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addFold
  *   patch:
  *     summary: Update folder member permissions
  *     description: Update folder-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.5 Hierarchy — Folder Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -130,11 +132,10 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addFold
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - permissions
  *             properties:
- *               permissions:
- *                 type: object
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
+ *                 description: "Access level: FULL, EDIT, COMMENT, or VIEW"
  *     responses:
  *       200:
  *         description: Folder member updated successfully
@@ -163,7 +164,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addFold
  *   delete:
  *     summary: Remove folder member override
  *     description: Remove folder-level permission override for a member
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.5 Hierarchy — Folder Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

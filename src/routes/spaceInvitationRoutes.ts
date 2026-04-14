@@ -26,7 +26,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send space invitation
  *     description: Invite a user to join a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -47,8 +47,10 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *             properties:
  *               email:
  *                 type: string
- *               permissions:
- *                 type: object
+ *                 example: "team-member@company.com"
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
+ *                 description: "Access level: FULL, EDIT, COMMENT, or VIEW"
  *     responses:
  *       200:
  *         description: Invitation sent successfully
@@ -71,7 +73,7 @@ const spaceInvitationRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space invitations
  *     description: Retrieve all pending invitations for a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -110,7 +112,7 @@ spaceInvitationRouter.get("/", protect, requirePermission("MANAGE_SPACE_PERMISSI
  *   delete:
  *     summary: Cancel space invitation
  *     description: Cancel a pending space invitation
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +165,7 @@ const invitationRouter = express.Router();
  *   post:
  *     summary: Accept space invitation
  *     description: Accept a space invitation using token
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -179,7 +181,16 @@ const invitationRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Space invitation accepted successfully" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     spaceId: { type: "string" }
+ *                     spaceName: { type: "string" }
+ *                     permissionLevel: { $ref: "#/components/schemas/PermissionLevel" }
  *       401:
  *         description: Authentication required
  *         content:
@@ -201,7 +212,7 @@ invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
  *   post:
  *     summary: Decline space invitation
  *     description: Decline a space invitation using token
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -217,7 +228,10 @@ invitationRouter.post("/accept/:token", protect, acceptSpaceInvitation);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Space invitation declined" }
  *       401:
  *         description: Authentication required
  *         content:
@@ -239,7 +253,7 @@ invitationRouter.post("/decline/:token", protect, declineSpaceInvitation);
  *   get:
  *     summary: Get my space invitations
  *     description: Retrieve all pending space invitations for current user
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.3 Hierarchy — Space Invitations"]
  *     security:
  *       - bearerAuth: []
  *     responses:

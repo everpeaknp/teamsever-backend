@@ -16,7 +16,7 @@ const router = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get table members
  *     description: Retrieve all table members with their permission overrides
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.2 Tables — Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -48,7 +48,7 @@ const router = express.Router({ mergeParams: true });
  *   post:
  *     summary: Add table member override
  *     description: Add or update table-level permission override for a member
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.2 Tables — Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -70,8 +70,9 @@ const router = express.Router({ mergeParams: true });
  *             properties:
  *               userId:
  *                 type: string
- *               permissions:
- *                 type: object
+ *                 example: "60d0fe4f5311236168a109ca"
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
  *     responses:
  *       200:
  *         description: Table member added successfully
@@ -101,7 +102,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *   patch:
  *     summary: Update table member permissions
  *     description: Update table-level permission override for a member
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.2 Tables — Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,11 +124,9 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - permissions
  *             properties:
- *               permissions:
- *                 type: object
+ *               permissionLevel:
+ *                 $ref: "#/components/schemas/PermissionLevel"
  *     responses:
  *       200:
  *         description: Table member updated successfully
@@ -156,7 +155,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *   delete:
  *     summary: Remove table member override
  *     description: Remove table-level permission override for a member
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.2 Tables — Members"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

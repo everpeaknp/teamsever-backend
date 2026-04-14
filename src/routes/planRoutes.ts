@@ -21,7 +21,7 @@ const router = express.Router();
  *   post:
  *     summary: Create a new plan
  *     description: Create a new subscription plan with specific feature limits. Restricted to Super Admins.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.1 Admin — Plans"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -98,11 +98,11 @@ const router = express.Router();
  *         description: Plan created successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716751aa"
- *                 name: "Pro Plan"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/Plan" }
  *       403:
  *         description: Forbidden
  *         content:
@@ -112,7 +112,7 @@ const router = express.Router();
  *   get:
  *     summary: Get all plans
  *     description: Retrieve all subscription plans. Active plans are returned by default.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.1 Admin — Plans"]
  *     parameters:
  *       - in: query
  *         name: includeInactive
@@ -125,13 +125,7 @@ const router = express.Router();
  *         description: List of plans retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f716751aa"
- *                   name: "Pro Plan"
- *                   pricePerMemberMonthly: 300
- *                   isActive: true
+ *             schema: { $ref: "#/components/schemas/PlanListResponse" }
  */
 router.post("/", protect, validate(createPlanSchema), createPlan);
 router.get("/", getPlans);
@@ -142,7 +136,7 @@ router.get("/", getPlans);
  *   get:
  *     summary: Get a single plan
  *     description: Retrieve full details of a specific subscription plan by its ID.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.1 Admin — Plans"]
  *     parameters:
  *       - in: path
  *         name: id
@@ -154,12 +148,11 @@ router.get("/", getPlans);
  *         description: Plan details retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 _id: "69bbf827a96fe78f716751aa"
- *                 name: "Pro Plan"
- *                 features: { ... }
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/Plan" }
  *       404:
  *         description: Plan not found
  *         content:
@@ -169,7 +162,7 @@ router.get("/", getPlans);
  *   put:
  *     summary: Update a plan
  *     description: Update features, pricing, or status of an existing plan. Restricted to Super Admins.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.1 Admin — Plans"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -211,7 +204,7 @@ router.get("/", getPlans);
  *   delete:
  *     summary: Deactivate or Delete a plan
  *     description: Marks a plan as inactive or removes it if no users are subscribed. Restricted to Super Admins.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.1 Admin — Plans"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

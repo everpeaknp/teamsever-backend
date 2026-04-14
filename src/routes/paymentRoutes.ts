@@ -17,7 +17,7 @@ const {
  * /api/payment/initiate:
  *   post:
  *     summary: Initiate eSewa payment for plan upgrade
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.3 Admin — Payments"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -40,23 +40,16 @@ const {
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string" }
  *                 data:
  *                   type: object
  *                   properties:
- *                     transactionId:
- *                       type: string
- *                     transactionUuid:
- *                       type: string
- *                     paymentRequest:
- *                       type: object
- *                     paymentUrl:
- *                       type: string
- *                     plan:
- *                       type: object
+ *                     transactionId: { type: "string" }
+ *                     transactionUuid: { type: "string" }
+ *                     paymentRequest: { type: "object" }
+ *                     paymentUrl: { type: "string" }
+ *                     plan: { $ref: "#/components/schemas/Plan" }
  *       400:
  *         description: Invalid request
  *         content:
@@ -83,7 +76,7 @@ router.post('/initiate', authMiddleware, initiatePayment);
  * /api/payment/verify:
  *   post:
  *     summary: Verify eSewa payment and activate plan
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.3 Admin — Payments"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -106,17 +99,13 @@ router.post('/initiate', authMiddleware, initiatePayment);
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string" }
  *                 data:
  *                   type: object
  *                   properties:
- *                     transaction:
- *                       type: object
- *                     subscription:
- *                       type: object
+ *                     transaction: { $ref: "#/components/schemas/Transaction" }
+ *                     subscription: { type: "object" }
  *       400:
  *         description: Invalid payment data or verification failed
  *         content:
@@ -143,7 +132,7 @@ router.post('/verify', authMiddleware, verifyPayment);
  * /api/payment/transactions:
  *   get:
  *     summary: Get user's payment transactions
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.3 Admin — Payments"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -152,14 +141,7 @@ router.post('/verify', authMiddleware, verifyPayment);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
+ *               $ref: "#/components/schemas/TransactionListResponse"
  *       401:
  *         description: Unauthorized
  *         content:
@@ -174,7 +156,7 @@ router.get('/transactions', authMiddleware, getTransactions);
  * /api/payment/transaction/{transactionId}:
  *   get:
  *     summary: Get transaction details
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.3 Admin — Payments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -192,10 +174,8 @@ router.get('/transactions', authMiddleware, getTransactions);
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/Transaction" }
  *       401:
  *         description: Unauthorized
  *         content:

@@ -14,7 +14,7 @@ router.use(protect);
  *   get:
  *     summary: Get attendance report
  *     description: Retrieve detailed attendance / clock-in records for a workspace. Admins can filter by userId; regular users only see their own. Supports "Lifetime" view if dates are omitted.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.3 Time — Attendance (Clock In/Out)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -50,17 +50,8 @@ router.use(protect);
  *         description: Report retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - id: "entry_1"
- *                   userName: "John Doe"
- *                   userEmail: "john@example.com"
- *                   date: "2026-03-30"
- *                   clockIn: "2026-03-30T09:00:00Z"
- *                   clockOut: "2026-03-30T17:00:00Z"
- *                   durationFormatted: "8h 0m"
- *                   description: "Development work"
+ *             schema:
+ *               $ref: "#/components/schemas/AttendanceReportResponse"
  *       401:
  *         description: Authentication required
  *         content:
@@ -82,7 +73,7 @@ router.get("/workspace/:workspaceId/report", getAttendanceReport);
  *   get:
  *     summary: Export attendance report (CSV)
  *     description: Download a CSV file containing attendance records based on filters.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.3 Time — Attendance (Clock In/Out)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -126,7 +117,7 @@ router.get("/workspace/:workspaceId/export", exportAttendanceCSV);
  *   get:
  *     summary: Export attendance report (Excel)
  *     description: Download a native Excel (.xlsx) file containing attendance records.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.3 Time — Attendance (Clock In/Out)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

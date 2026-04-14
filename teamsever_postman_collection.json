@@ -1,0 +1,4280 @@
+{
+  "info": {
+    "_postman_id": "teamsever-backend-v1",
+    "name": "Teamsever API",
+    "description": "Complete API collection for the Teamsever backend. All authenticated endpoints require a Bearer token. Set the `baseUrl` and `token` collection variables before use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "workspaceId", "value": "WORKSPACE_ID_HERE", "type": "string" },
+    { "key": "spaceId", "value": "SPACE_ID_HERE", "type": "string" },
+    { "key": "folderId", "value": "FOLDER_ID_HERE", "type": "string" },
+    { "key": "listId", "value": "LIST_ID_HERE", "type": "string" },
+    { "key": "taskId", "value": "TASK_ID_HERE", "type": "string" },
+    { "key": "userId", "value": "USER_ID_HERE", "type": "string" },
+    { "key": "tableId", "value": "TABLE_ID_HERE", "type": "string" },
+    { "key": "documentId", "value": "DOCUMENT_ID_HERE", "type": "string" },
+    { "key": "channelId", "value": "CHANNEL_ID_HERE", "type": "string" },
+    { "key": "conversationId", "value": "CONVERSATION_ID_HERE", "type": "string" },
+    { "key": "planId", "value": "PLAN_ID_HERE", "type": "string" },
+    { "key": "invitationToken", "value": "INVITATION_TOKEN_HERE", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Primary Dashboard",
+      "item": [
+        {
+          "name": "Get Workspace Analytics (Primary Dashboard)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "analytics"]
+            },
+            "description": "All-in-one dashboard endpoint. Returns workspace info, stats, hierarchy, members, tasks, announcements, running timer, sticky note, recent activity, and performance metrics."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Consolidated analytics data retrieved successfully\",\n  \"data\": {\n    \"workspace\": {\n      \"id\": \"ws_001\",\n      \"name\": \"Engineering\",\n      \"logo\": null,\n      \"owner\": { \"_id\": \"user_01\", \"name\": \"Alice\", \"email\": \"alice@example.com\" }\n    },\n    \"stats\": {\n      \"totalTasks\": 120,\n      \"completedTasks\": 45,\n      \"completionRate\": 37.5,\n      \"priorityBreakdown\": { \"urgent\": 5, \"high\": 20, \"medium\": 60, \"low\": 35 },\n      \"statusBreakdown\": { \"todo\": 75, \"in-progress\": 25, \"done\": 20 }\n    },\n    \"hierarchy\": [],\n    \"members\": [],\n    \"tasks\": [],\n    \"announcements\": [],\n    \"currentRunningTimer\": null,\n    \"stickyNote\": null,\n    \"recentActivity\": [],\n    \"performance\": { \"user\": null, \"team\": null },\n    \"velocity\": []\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Not authorized, no token\" }"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Workspace not found\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Auth and Identity",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"securePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n      \"_id\": \"64abc123\",\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\",\n      \"profilePicture\": null,\n      \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"User already exists with this email\" }"
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"securePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"user\": {\n      \"_id\": \"64abc123\",\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\",\n      \"profilePicture\": null\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Invalid email or password\" }"
+            }
+          ]
+        },
+        {
+          "name": "Google OAuth",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"GOOGLE_ID_TOKEN_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": { \"token\": \"eyJ...\", \"user\": { \"_id\": \"64abc123\", \"name\": \"John\", \"email\": \"john@example.com\" } }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Invalid Google token\" }"
+            }
+          ]
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"If an account with that email exists, a reset link has been sent\" }"
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"RESET_TOKEN_FROM_EMAIL\",\n  \"password\": \"newSecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Password reset successfully\" }"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Reset token is invalid or has expired\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "profile"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile retrieved successfully\",\n  \"data\": {\n    \"_id\": \"64abc123\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"profilePicture\": null,\n    \"jobTitle\": \"Senior Developer\",\n    \"department\": \"Engineering\",\n    \"bio\": \"Building great things.\",\n    \"createdAt\": \"2026-04-01T00:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Not authorized, no token\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "John Updated", "type": "text" },
+                { "key": "jobTitle", "value": "Tech Lead", "type": "text" },
+                { "key": "department", "value": "Platform", "type": "text" },
+                { "key": "bio", "value": "Scaling systems.", "type": "text" },
+                { "key": "removeAvatar", "value": "false", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Use multipart/form-data. Optionally include a 'file' field for a new profile picture."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile updated successfully\",\n  \"data\": { \"_id\": \"64abc123\", \"name\": \"John Updated\", \"email\": \"john@example.com\" }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Workspaces and Members",
+      "item": [
+        {
+          "name": "Create Workspace",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Engineering Team\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Workspace created successfully\",\n  \"data\": {\n    \"_id\": \"ws_001\",\n    \"name\": \"My Engineering Team\",\n    \"owner\": \"user_01\",\n    \"members\": [],\n    \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Workspace limit reached for your current plan\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get My Workspaces",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"ws_001\",\n      \"name\": \"My Engineering Team\",\n      \"owner\": \"user_01\",\n      \"memberCount\": 5,\n      \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Workspace operation successful\",\n  \"data\": {\n    \"_id\": \"ws_001\",\n    \"name\": \"My Engineering Team\",\n    \"owner\": \"user_01\",\n    \"members\": [],\n    \"subscription\": { \"status\": \"trial\", \"isPaid\": false },\n    \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Workspace not found\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Workspace",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering Hub\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Workspace updated successfully\", \"data\": { \"_id\": \"ws_001\", \"name\": \"Engineering Hub\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Workspace",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Workspace deleted successfully\" }"
+            }
+          ]
+        },
+        {
+          "name": "Upload Workspace Logo",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/logo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "logo"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Logo uploaded successfully\", \"data\": { \"logo\": \"https://res.cloudinary.com/...\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"user_01\",\n      \"name\": \"Alice\",\n      \"email\": \"alice@example.com\",\n      \"role\": \"owner\",\n      \"status\": \"active\",\n      \"isOwner\": true\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invite Member Directly",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"role\": \"member\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/invite",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members", "invite"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Invitation sent\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update My Status in Workspace",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"In a meeting\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/me/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members", "me", "status"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Status updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Member Role",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Role updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Member removed\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Member Custom Role",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customRole\": \"QA Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/{{userId}}/custom-role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "members", "{{userId}}", "custom-role"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Custom role updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Send Workspace Invitation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"charlie@example.com\",\n  \"role\": \"member\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/invites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "invites"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Invitation sent successfully\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/invites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "invites"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"inv_001\",\n      \"email\": \"charlie@example.com\",\n      \"role\": \"member\",\n      \"status\": \"pending\",\n      \"expiresAt\": \"2026-04-20T08:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/invites/INVITATION_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "invites", "INVITATION_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Invitation cancelled\" }"
+            }
+          ]
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invites/accept/{{invitationToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invites", "accept", "{{invitationToken}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Invitation accepted. You have joined the workspace.\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get My Pending Invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invites/my-invitations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invites", "my-invitations"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"inv_001\",\n      \"workspace\": { \"_id\": \"ws_001\", \"name\": \"Acme Corp\" },\n      \"role\": \"member\",\n      \"token\": \"eyJ...\",\n      \"expiresAt\": \"2026-04-20T08:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Invitation Token (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invites/verify/{{invitationToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invites", "verify", "{{invitationToken}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"workspace\": { \"name\": \"Acme Corp\" }, \"role\": \"member\", \"email\": \"charlie@example.com\" } }"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": false, \"message\": \"Invitation not found or expired\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Project Hierarchy",
+      "item": [
+        {
+          "name": "Get Workspace Hierarchy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/hierarchy",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "hierarchy"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Workspace hierarchy retrieved successfully\",\n  \"data\": {\n    \"spaces\": [\n      {\n        \"_id\": \"sp_001\",\n        \"name\": \"Backend\",\n        \"folders\": [],\n        \"standaloneLists\": []\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Space",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Development\",\n  \"description\": \"Backend services\",\n  \"color\": \"#3498db\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/spaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "spaces"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Space created successfully\",\n  \"data\": { \"_id\": \"sp_001\", \"name\": \"Backend Development\", \"workspace\": \"ws_001\" }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Spaces",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/spaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "spaces"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"sp_001\", \"name\": \"Backend Development\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Space",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Space operation successful\", \"data\": { \"_id\": \"sp_001\", \"name\": \"Backend\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Space Metadata",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/metadata",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "metadata"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"_id\": \"sp_001\", \"name\": \"Backend\", \"workspace\": \"ws_001\", \"membersCount\": 4 }"
+            }
+          ]
+        },
+        {
+          "name": "Get Space Lists Metadata",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/lists/metadata",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "lists", "metadata"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{ \"_id\": \"list_01\", \"name\": \"Sprint 1\", \"space\": \"sp_001\", \"workspace\": \"ws_001\", \"folder\": null }]"
+            }
+          ]
+        },
+        {
+          "name": "Update Space",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Services\",\n  \"color\": \"#27ae60\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Space updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Space",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Space deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Add Member to Space",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "members"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Member added to space\" }"
+            }
+          ]
+        },
+        {
+          "name": "Remove Member from Space",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/members/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "members", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Member removed from space\" }"
+            }
+          ]
+        },
+        {
+          "name": "Invite External Users to Space",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emails\": [\"external@example.com\", \"partner@example.com\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/invite-external",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "invite-external"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Invitations sent\" }"
+            }
+          ]
+        },
+        {
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q1 Planning\",\n  \"color\": \"#e74c3c\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "folders"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Folder created\", \"data\": { \"_id\": \"fld_001\", \"name\": \"Q1 Planning\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Folders in Space",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "folders"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"fld_001\", \"name\": \"Q1 Planning\", \"color\": \"#e74c3c\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Folder",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"fld_001\", \"name\": \"Q1 Planning\", \"lists\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q1 2026\",\n  \"color\": \"#8e44ad\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Folder updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Folder deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Create List",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1\",\n  \"color\": \"#1abc9c\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/lists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "lists"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"List created\", \"data\": { \"_id\": \"list_01\", \"name\": \"Sprint 1\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Lists in Space",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/lists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "lists"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"list_01\", \"name\": \"Sprint 1\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lists/{{listId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lists", "{{listId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"list_01\", \"name\": \"Sprint 1\", \"space\": \"sp_001\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update List",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lists/{{listId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lists", "{{listId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"List updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete List",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lists/{{listId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lists", "{{listId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"List deleted\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Task Management",
+      "item": [
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Implement JWT authentication\",\n  \"description\": \"Add JWT-based auth with refresh tokens\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"assignee\": \"{{userId}}\",\n  \"dueDate\": \"2026-05-01T00:00:00Z\",\n  \"startDate\": \"2026-04-14T00:00:00Z\",\n  \"isMilestone\": false,\n  \"isRecurring\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lists/{{listId}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lists", "{{listId}}", "tasks"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Task created successfully\",\n  \"data\": {\n    \"_id\": \"task_001\",\n    \"title\": \"Implement JWT authentication\",\n    \"status\": \"todo\",\n    \"priority\": \"high\",\n    \"list\": \"list_01\",\n    \"workspace\": \"ws_001\",\n    \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get List Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lists/{{listId}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lists", "{{listId}}", "tasks"],
+              "query": [
+                { "key": "status", "value": "todo", "disabled": true },
+                { "key": "priority", "value": "high", "disabled": true },
+                { "key": "assignee", "value": "", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"task_001\", \"title\": \"Implement JWT\", \"status\": \"todo\", \"priority\": \"high\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Task operation successful\",\n  \"data\": {\n    \"_id\": \"task_001\",\n    \"title\": \"Implement JWT authentication\",\n    \"description\": \"...\",\n    \"status\": \"in-progress\",\n    \"priority\": \"high\",\n    \"assignee\": { \"_id\": \"user_01\", \"name\": \"Alice\" },\n    \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in-progress\",\n  \"priority\": \"urgent\",\n  \"assignee\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Task updated\", \"data\": { \"_id\": \"task_001\", \"status\": \"in-progress\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Task deleted successfully\" }"
+            }
+          ]
+        },
+        {
+          "name": "Create Subtask",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Write unit tests\",\n  \"description\": \"Cover auth middleware\",\n  \"assignee\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/subtasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "subtasks"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"_id\": \"task_002\", \"title\": \"Write unit tests\", \"parentTask\": \"task_001\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Subtasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/subtasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "subtasks"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{ \"_id\": \"task_002\", \"title\": \"Write unit tests\" }]"
+            }
+          ]
+        },
+        {
+          "name": "Add Task Dependency",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dependencySource\": \"SOURCE_TASK_ID\",\n  \"type\": \"FS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/dependencies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "dependencies"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"_id\": \"dep_001\", \"dependencySource\": \"task_001\", \"dependencyTarget\": \"task_002\", \"type\": \"FS\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task Dependencies (Blockers)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/dependencies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "dependencies"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{ \"_id\": \"dep_001\", \"type\": \"FS\", \"dependencySource\": \"task_001\" }]"
+            }
+          ]
+        },
+        {
+          "name": "Remove Task Dependency",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/dependencies/DEPENDENCY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "dependencies", "DEPENDENCY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"message\": \"Dependency removed successfully\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task Dependents (Blocked Tasks)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/dependents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "dependents"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{ \"_id\": \"dep_002\", \"type\": \"FS\", \"dependencyTarget\": \"task_003\" }]"
+            }
+          ]
+        },
+        {
+          "name": "Create Custom Field",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"name\": \"Story Points\",\n  \"type\": \"number\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"cf_001\", \"name\": \"Story Points\", \"type\": \"number\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Custom Fields",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields/workspace/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields", "workspace", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"cf_001\", \"name\": \"Story Points\", \"type\": \"number\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Project Custom Fields",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields/project/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields", "project", "{{spaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Update Custom Field",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint Points\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields/CUSTOM_FIELD_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields", "CUSTOM_FIELD_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Custom field updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Custom Field",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields/CUSTOM_FIELD_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields", "CUSTOM_FIELD_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Custom field deleted\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Collaboration and Chat",
+      "item": [
+        {
+          "name": "Get Workspace Announcements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/announcements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "announcements"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"ann_001\", \"title\": \"System Maintenance\", \"content\": \"Down Sunday midnight\", \"createdAt\": \"2026-04-13T08:00:00.000Z\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Create Workspace Announcement",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"System Maintenance\",\n  \"content\": \"The system will be down for 2 hours this Sunday at midnight.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/announcements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "announcements"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"ann_001\", \"title\": \"System Maintenance\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Workspace Announcement",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/announcements/ANNOUNCEMENT_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "announcements", "ANNOUNCEMENT_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Announcement deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hey team, the deployment is done!\",\n  \"channelId\": \"{{channelId}}\",\n  \"mentions\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"msg_001\", \"content\": \"Hey team, the deployment is done!\", \"sender\": \"user_01\", \"createdAt\": \"2026-04-13T08:00:00.000Z\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat", "channels"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"_id\": \"ch_001\", \"name\": \"general\", \"type\": \"public\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"engineering\",\n  \"description\": \"Engineering discussions\",\n  \"type\": \"public\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat", "channels"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"ch_002\", \"name\": \"engineering\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Channel",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"eng-team\",\n  \"description\": \"Engineering team channel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat", "channels", "{{channelId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Channel updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/chat/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "chat", "unread"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"unread\": 12 } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Channel Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/channels/{{channelId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "channels", "{{channelId}}", "messages"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Channel Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/channels/{{channelId}}/unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "channels", "{{channelId}}", "unread"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"count\": 3 } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Chat Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/MESSAGE_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "MESSAGE_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Message deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get All DM Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"conv_001\",\n      \"participants\": [{ \"_id\": \"user_02\", \"name\": \"Bob\" }],\n      \"lastMessage\": { \"content\": \"See you tomorrow!\", \"createdAt\": \"2026-04-12T18:00:00.000Z\" },\n      \"unreadCount\": 2\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Start DM Conversation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dm/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"conv_001\", \"participants\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Get DM Conversation Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dm/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm", "{{conversationId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"conv_001\", \"participants\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Send Direct Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hey! Did you see the new update?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dm/{{userId}}/message",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm", "{{userId}}", "message"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"msg_dm_001\",\n    \"content\": \"Hey! Did you see the new update?\",\n    \"sender\": \"user_01\",\n    \"createdAt\": \"2026-04-13T08:05:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get DM Conversation Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dm/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm", "{{conversationId}}", "messages"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [],\n  \"pagination\": { \"total\": 0, \"page\": 1, \"limit\": 50, \"pages\": 0 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark DM Conversation as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dm/{{conversationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dm", "{{conversationId}}", "read"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Messages marked as read\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities"],
+              "query": [
+                { "key": "workspaceId", "value": "{{workspaceId}}" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Add Comment to Task",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Great work! Can we also handle the edge case?\",\n  \"mentions\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "comments"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"act_001\", \"content\": \"Great work!\", \"type\": \"comment\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task Activity Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/activity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "activity"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Edit Comment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/ACTIVITY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "ACTIVITY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"act_001\", \"content\": \"Updated comment text\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/ACTIVITY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "ACTIVITY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Comment deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Add Emoji Reaction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emoji\": \"thumbsup\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/ACTIVITY_ID/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "ACTIVITY_ID", "reactions"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"reactions\": [{ \"user\": \"user_01\", \"emoji\": \"thumbsup\" }] } }"
+            }
+          ]
+        },
+        {
+          "name": "Remove Emoji Reaction",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emoji\": \"thumbsup\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/ACTIVITY_ID/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "ACTIVITY_ID", "reactions"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"reactions\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Activity Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/activity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "activity"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Presence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presence/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presence", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [{ \"userId\": \"user_01\", \"status\": \"online\", \"lastSeen\": \"2026-04-13T08:00:00.000Z\" }] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Online Users in Workspace",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presence/{{workspaceId}}/online",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presence", "{{workspaceId}}", "online"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [\"user_01\", \"user_02\"] }"
+            }
+          ]
+        },
+        {
+          "name": "Get User Presence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presence/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presence", "user", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"status\": \"offline\", \"lastSeen\": \"2026-04-13T07:55:00.000Z\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Create Document",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Architecture Overview\",\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"content\": \"# Architecture\\n\\nOur system is composed of...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"doc_001\", \"title\": \"Architecture Overview\" } }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Files and Documents",
+      "item": [
+        {
+          "name": "Initialize Task Attachment Upload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/attachments/init-upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "attachments", "init-upload"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"uploadUrl\": \"https://api.cloudinary.com/v1_1/...\", \"uploadPreset\": \"ml_default\", \"signature\": \"abc123\" }"
+            }
+          ]
+        },
+        {
+          "name": "Confirm Task Attachment Upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cloudinaryUrl\": \"https://res.cloudinary.com/myapp/image/upload/v1234/file.png\",\n  \"cloudinaryPublicId\": \"myapp/file\",\n  \"fileName\": \"screenshot.png\",\n  \"fileSize\": 204800,\n  \"mimeType\": \"image/png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/attachments/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "attachments", "confirm"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"_id\": \"att_001\", \"fileName\": \"screenshot.png\", \"cloudinaryUrl\": \"https://...\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task Attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/{{taskId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "{{taskId}}", "attachments"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{ \"_id\": \"att_001\", \"fileName\": \"screenshot.png\", \"cloudinaryUrl\": \"https://...\" }]"
+            }
+          ]
+        },
+        {
+          "name": "Delete Attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/ATTACHMENT_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attachments", "ATTACHMENT_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"message\": \"Attachment deleted successfully\" }"
+            }
+          ]
+        },
+        {
+          "name": "Upload Task Attachment (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/tasks/{{taskId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "tasks", "{{taskId}}", "attachments"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"url\": \"https://...\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Upload Comment Attachment (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/comments/COMMENT_ID/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "comments", "COMMENT_ID", "attachments"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"url\": \"https://...\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Upload DM Attachment (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/dm/{{conversationId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "dm", "{{conversationId}}", "attachments"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"url\": \"https://...\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Upload Attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/attachments/ATTACHMENT_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "attachments", "ATTACHMENT_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Attachment deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Init Workspace File Upload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/files/init-upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "files", "init-upload"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"signature\": \"abc\", \"timestamp\": 1712944000, \"cloudName\": \"myapp\", \"apiKey\": \"key\", \"folder\": \"ws_files\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Confirm Workspace File Upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"secure_url\": \"https://res.cloudinary.com/...\",\n  \"public_id\": \"ws_files/doc\",\n  \"resource_type\": \"raw\",\n  \"format\": \"pdf\",\n  \"bytes\": 512000,\n  \"fileName\": \"report.pdf\",\n  \"fileType\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/files/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "files", "confirm"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"wf_001\", \"fileName\": \"report.pdf\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/files",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "files"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [], \"pagination\": { \"page\": 1, \"limit\": 20, \"total\": 0 } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace File by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspace-files/FILE_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspace-files", "FILE_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"wf_001\", \"fileName\": \"report.pdf\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Workspace File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspace-files/FILE_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspace-files", "FILE_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"File deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get My Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "me"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/workspace/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "workspace", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Document Hierarchy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/workspace/{{workspaceId}}/hierarchy",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "workspace", "{{workspaceId}}", "hierarchy"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"doc_001\", \"title\": \"Architecture Overview\", \"content\": \"...\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Document",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Architecture Overview v2\",\n  \"content\": \"# Architecture v2\\n\\nUpdated content...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Document updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Document deleted\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Time and Attendance",
+      "item": [
+        {
+          "name": "Toggle Workspace Clock (Clock In / Out)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/clock/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "clock", "toggle"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Clocked In",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Clocked in successfully\",\n  \"data\": {\n    \"status\": \"active\",\n    \"timeEntry\": {\n      \"_id\": \"te_001\",\n      \"startTime\": \"2026-04-13T09:00:00.000Z\",\n      \"endTime\": null,\n      \"isRunning\": true\n    }\n  }\n}"
+            },
+            {
+              "name": "200 OK - Clocked Out",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Clocked out successfully\",\n  \"data\": {\n    \"status\": \"inactive\",\n    \"timeEntry\": {\n      \"_id\": \"te_001\",\n      \"startTime\": \"2026-04-13T09:00:00.000Z\",\n      \"endTime\": \"2026-04-13T17:00:00.000Z\",\n      \"duration\": 28800,\n      \"isRunning\": false\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Start Task Timer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Working on authentication module\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/time/start/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "start", "{{taskId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"timer_001\", \"startTime\": \"2026-04-13T09:00:00.000Z\", \"isRunning\": true } }"
+            }
+          ]
+        },
+        {
+          "name": "Stop Task Timer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/stop/TIMER_ENTRY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "stop", "TIMER_ENTRY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"duration\": 3600, \"isRunning\": false } }"
+            }
+          ]
+        },
+        {
+          "name": "Add Manual Time Entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskId\": \"{{taskId}}\",\n  \"duration\": 3600,\n  \"description\": \"Manual entry for research\",\n  \"date\": \"2026-04-12\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/time/manual",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "manual"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"timer_002\", \"duration\": 3600, \"isManual\": true } }"
+            }
+          ]
+        },
+        {
+          "name": "Get My Running Timer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/running",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "running"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Timer Running",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"timer_001\",\n    \"task\": { \"_id\": \"task_001\", \"title\": \"Implement JWT\" },\n    \"startTime\": \"2026-04-13T09:00:00.000Z\",\n    \"elapsedSeconds\": 3600,\n    \"workspace\": \"ws_001\"\n  }\n}"
+            },
+            {
+              "name": "200 OK - No Timer",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": null }"
+            }
+          ]
+        },
+        {
+          "name": "Get Task Time Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/task/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "task", "{{taskId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"taskId\": \"task_001\",\n    \"totalSeconds\": 12600,\n    \"totalFormatted\": \"3h 30m\",\n    \"entries\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Project Time Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/project/{{spaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "project", "{{spaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"totalSeconds\": 86400, \"totalFormatted\": \"24h\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Time Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/TIMER_ENTRY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "TIMER_ENTRY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Time entry deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Attendance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/workspace/{{workspaceId}}/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "workspace", "{{workspaceId}}", "report"],
+              "query": [
+                { "key": "startDate", "value": "2026-04-01", "disabled": true },
+                { "key": "endDate", "value": "2026-04-13", "disabled": true },
+                { "key": "userId", "value": "", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"te_001\",\n      \"userName\": \"John Doe\",\n      \"date\": \"2026-04-13\",\n      \"clockIn\": \"2026-04-13T09:00:00.000Z\",\n      \"clockOut\": \"2026-04-13T17:00:00.000Z\",\n      \"durationFormatted\": \"8h 0m\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Export Attendance CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/workspace/{{workspaceId}}/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "workspace", "{{workspaceId}}", "export"],
+              "query": [
+                { "key": "startDate", "value": "2026-04-01" },
+                { "key": "endDate", "value": "2026-04-13" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "text/csv" }],
+              "body": "Name,Date,Clock In,Clock Out,Duration\nJohn Doe,2026-04-13,09:00,17:00,8h 0m"
+            }
+          ]
+        },
+        {
+          "name": "Export Attendance Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/workspace/{{workspaceId}}/export-excel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "workspace", "{{workspaceId}}", "export-excel"],
+              "query": [
+                { "key": "startDate", "value": "2026-04-01" },
+                { "key": "endDate", "value": "2026-04-13" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
+              "body": "(Excel binary file)"
+            }
+          ]
+        },
+        {
+          "name": "Get My Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/performance/me/workspace/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "performance", "me", "workspace", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"totalTasksFinished\": 15, \"averageTimePerTask\": 7200, \"deadlineSuccessRate\": 80, \"performanceNote\": \"Good\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get User Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/performance/user/{{userId}}/workspace/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "performance", "user", "{{userId}}", "workspace", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"totalTasksFinished\": 10, \"deadlineSuccessRate\": 75 } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Team Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/performance/team/workspace/{{workspaceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "performance", "team", "workspace", "{{workspaceId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"totalTasksFinished\": 80, \"averageTimePerTask\": 5400, \"deadlineSuccessRate\": 85 } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Performance Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/performance/workspace/{{workspaceId}}/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "performance", "workspace", "{{workspaceId}}", "summary"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": {} }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Active Timers (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/workspace/{{workspaceId}}/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "workspace", "{{workspaceId}}", "active"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Team Timesheets (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/workspace/{{workspaceId}}/timesheets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "workspace", "{{workspaceId}}", "timesheets"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Workspace Time Stats (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/workspace/{{workspaceId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "workspace", "{{workspaceId}}", "stats"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": {} }"
+            }
+          ]
+        },
+        {
+          "name": "Admin Force-Stop Timer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/stop/TIMER_ENTRY_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "stop", "TIMER_ENTRY_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Timer stopped\" }"
+            }
+          ]
+        },
+        {
+          "name": "Cleanup Orphaned Timers (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/workspace/{{workspaceId}}/cleanup-orphaned",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "workspace", "{{workspaceId}}", "cleanup-orphaned"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Orphaned timers cleaned up\" }"
+            }
+          ]
+        },
+        {
+          "name": "Stop All User Timers (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/time/admin/workspace/{{workspaceId}}/stop-user-timers/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "time", "admin", "workspace", "{{workspaceId}}", "stop-user-timers", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"All user timers stopped\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Custom Tables",
+      "item": [
+        {
+          "name": "Create Custom Table",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project Tracker\",\n  \"columns\": [\n    { \"title\": \"Task Name\", \"type\": \"text\" },\n    { \"title\": \"Status\", \"type\": \"text\" },\n    { \"title\": \"Points\", \"type\": \"number\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/tables",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "tables"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"tbl_001\", \"name\": \"Project Tracker\", \"columns\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Space Tables",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/spaces/{{spaceId}}/tables",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "spaces", "{{spaceId}}", "tables"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Table",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"tbl_001\", \"name\": \"Project Tracker\", \"columns\": [], \"rows\": [] } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Table",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint Tracker\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Table updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Table",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Table deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Add Column to Table",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Priority\",\n  \"type\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/columns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "columns"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"col_001\", \"title\": \"Priority\", \"type\": \"text\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Column",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Urgency Level\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/columns/COLUMN_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "columns", "COLUMN_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Column updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Column",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/columns/COLUMN_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "columns", "COLUMN_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Column deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Add Row to Table",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"COLUMN_ID_1\": \"Task A\",\n    \"COLUMN_ID_2\": \"In Progress\",\n    \"COLUMN_ID_3\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/rows",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "rows"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"row_001\", \"data\": {} } }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Row",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/rows/ROW_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "rows", "ROW_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Row deleted\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Cell Value",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"Done\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/rows/ROW_ID/cells/COLUMN_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "rows", "ROW_ID", "cells", "COLUMN_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Cell updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Cell Background Color",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/rows/ROW_ID/colors/COLUMN_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "rows", "ROW_ID", "colors", "COLUMN_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Cell color updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update Cell Text Color",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"#000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/rows/ROW_ID/text-colors/COLUMN_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "rows", "ROW_ID", "text-colors", "COLUMN_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Cell text color updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Export Table to Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tables/{{tableId}}/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tables", "{{tableId}}", "export"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }],
+              "body": "(Excel binary file)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. System and Administration",
+      "item": [
+        {
+          "name": "Get All Plans (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans"],
+              "query": [
+                { "key": "includeInactive", "value": "false", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"plan_001\",\n      \"name\": \"Free\",\n      \"pricePerMemberMonthly\": 0,\n      \"isActive\": true\n    },\n    {\n      \"_id\": \"plan_002\",\n      \"name\": \"Pro\",\n      \"pricePerMemberMonthly\": 300,\n      \"isActive\": true\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Plan by ID (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", "{{planId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"plan_002\", \"name\": \"Pro\", \"features\": {} } }"
+            }
+          ]
+        },
+        {
+          "name": "Create Plan (Super Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Enterprise\",\n  \"description\": \"Enterprise plan for large teams\",\n  \"baseCurrency\": \"NPR\",\n  \"pricePerMemberMonthly\": 500,\n  \"pricePerMemberAnnual\": 5000,\n  \"features\": {\n    \"maxWorkspaces\": -1,\n    \"maxMembers\": -1,\n    \"hasAccessControl\": true,\n    \"canCreateTables\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"_id\": \"plan_003\", \"name\": \"Enterprise\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update Plan (Super Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", "{{planId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Plan updated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Delete Plan (Super Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/{{planId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", "{{planId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Plan deactivated\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Subscription Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription", "info"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"isPaid\": false,\n    \"status\": \"trial\",\n    \"daysRemaining\": 14,\n    \"subscriptionExpired\": false,\n    \"plan\": { \"_id\": \"plan_001\", \"name\": \"Free\" },\n    \"usage\": { \"workspaces\": 1, \"spaces\": 2 }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Next Plan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription/next-plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription", "next-plan"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"hasNextPlan\": true, \"nextPlan\": { \"_id\": \"plan_002\", \"name\": \"Pro\", \"price\": 300 } } }"
+            }
+          ]
+        },
+        {
+          "name": "Initiate eSewa Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/initiate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "initiate"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"transactionId\": \"txn_001\",\n    \"transactionUuid\": \"uuid-abc\",\n    \"paymentUrl\": \"https://uat.esewa.com.np/api/epay/main\",\n    \"plan\": { \"name\": \"Pro\", \"price\": 300 }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify eSewa Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"BASE64_ENCODED_ESEWA_RESPONSE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "verify"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Payment verified, plan activated\", \"data\": { \"transaction\": {}, \"subscription\": {} } }"
+            }
+          ]
+        },
+        {
+          "name": "Get Payment Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "transactions"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/transaction/TRANSACTION_ID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "transaction", "TRANSACTION_ID"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": {} }"
+            }
+          ]
+        },
+        {
+          "name": "Check Entitlement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/entitlements/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "entitlements", "check"],
+              "query": [
+                { "key": "action", "value": "createTable" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"allowed\": true, \"currentUsage\": 2, \"limit\": 5 }"
+            }
+          ]
+        },
+        {
+          "name": "Get Usage and Limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/entitlements/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "entitlements", "usage"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"usage\": { \"totalWorkspaces\": 1, \"totalSpaces\": 3, \"totalTasks\": 25 }, \"limits\": { \"maxWorkspaces\": 2, \"maxSpaces\": 5 } }"
+            }
+          ]
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"category\": \"bug\",\n  \"priority\": \"high\",\n  \"message\": \"The task drag-and-drop is not working on mobile.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feedback"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Feedback submitted\", \"data\": { \"_id\": \"fb_001\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Get All Feedback (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feedback"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true },
+                { "key": "category", "value": "bug", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Resolve Feedback (Super Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/feedback/FEEDBACK_ID/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feedback", "FEEDBACK_ID", "resolve"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Feedback resolved\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Super Admin Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/super-admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "super-admin", "users"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        },
+        {
+          "name": "Update User Subscription (Super Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPaid\": true,\n  \"planId\": \"{{planId}}\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/super-admin/users/{{userId}}/subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "super-admin", "users", "{{userId}}", "subscription"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Subscription updated for John Doe\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Financial Analytics (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/super-admin/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "super-admin", "analytics"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"totalRevenue\": 150000, \"activePaidUsers\": 450, \"conversionRate\": 12.5 } }"
+            }
+          ]
+        },
+        {
+          "name": "Get System Settings (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/super-admin/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "super-admin", "settings"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"whatsappContactNumber\": \"+9779876543210\" } }"
+            }
+          ]
+        },
+        {
+          "name": "Update System Settings (Super Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"whatsappContactNumber\": \"+9779800000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/super-admin/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "super-admin", "settings"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Settings updated\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Utilities and Search",
+      "item": [
+        {
+          "name": "Global Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "search"],
+              "query": [
+                { "key": "q", "value": "authentication" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"tasks\": [{ \"_id\": \"task_001\", \"title\": \"Implement Authentication\", \"status\": \"in-progress\" }],\n    \"spaces\": [],\n    \"lists\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"FCM_DEVICE_TOKEN_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notification-center/fcm-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification-center", "fcm-token"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"FCM token registered\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get In-App Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notification-center",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification-center"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"notif_001\",\n      \"type\": \"task_assigned\",\n      \"title\": \"Task Assigned to You\",\n      \"message\": \"Alice assigned 'Implement OAuth2' to you\",\n      \"isRead\": false,\n      \"createdAt\": \"2026-04-13T08:00:00.000Z\"\n    }\n  ],\n  \"total\": 14,\n  \"unread\": 3\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Unread Notification Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notification-center/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification-center", "unread-count"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": { \"count\": 5 } }"
+            }
+          ]
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notification-center/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification-center", "read-all"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"5 notifications marked as read\" }"
+            }
+          ]
+        },
+        {
+          "name": "Mark Single Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notification-center/NOTIFICATION_ID/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification-center", "NOTIFICATION_ID", "read"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Notification marked as read\" }"
+            }
+          ]
+        },
+        {
+          "name": "Register Push Device",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"FCM_TOKEN_HERE\",\n  \"platform\": \"android\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "register"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Device registered\" }"
+            }
+          ]
+        },
+        {
+          "name": "Unregister Push Device",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"FCM_TOKEN_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unregister",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "unregister"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"message\": \"Device unregistered\" }"
+            }
+          ]
+        },
+        {
+          "name": "Get Registered Devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"success\": true, \"data\": [] }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11. Personal Tools and Notes",
+      "item": [
+        {
+          "name": "Get Sticky Note",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/sticky-note",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "sticky-note"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"sn_001\",\n    \"workspace\": \"ws_001\",\n    \"user\": \"user_01\",\n    \"content\": \"Remember to review the PR before end of day.\",\n    \"updatedAt\": \"2026-04-13T07:30:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Sticky Note",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Remember to review the PR before end of day.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/sticky-note",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "workspaces", "{{workspaceId}}", "sticky-note"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"sn_001\",\n    \"content\": \"Remember to review the PR before end of day.\",\n    \"updatedAt\": \"2026-04-13T08:01:00.000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -23,9 +23,21 @@ const updateSpaceSchema = z.object({
   }).passthrough()
 }).passthrough();
 
+const addMemberToSpaceSchema = z.object({
+  body: z.object({
+    userId: z.string(),
+    role: z.enum(["admin", "member"]).optional(),
+    permissionLevel: z.enum(["FULL", "EDIT", "COMMENT", "VIEW"]).optional()
+  }).passthrough(),
+  params: z.object({
+    id: z.string()
+  }).passthrough()
+}).passthrough();
+
 module.exports = {
   createSpaceSchema,
-  updateSpaceSchema
+  updateSpaceSchema,
+  addMemberToSpaceSchema
 };
 
 export {};

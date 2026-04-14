@@ -21,7 +21,7 @@ const customFieldRouter = express.Router();
  *   post:
  *     summary: Create custom field
  *     description: Create a new custom field definition for a workspace
- *     tags: ["4. Task Management"]
+ *     tags: ["4.4 Tasks — Custom Fields"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -29,25 +29,7 @@ const customFieldRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - workspaceId
- *               - name
- *               - type
- *             properties:
- *               workspaceId:
- *                 type: string
- *               name:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [text, number, date, dropdown, checkbox]
- *               options:
- *                 type: array
- *                 items:
- *                   type: string
- *               required:
- *                 type: boolean
+ *             $ref: "#/components/schemas/CustomFieldCreateInput"
  *     responses:
  *       201:
  *         description: Custom field created successfully
@@ -76,7 +58,7 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *   put:
  *     summary: Update custom field
  *     description: Update an existing custom field definition
- *     tags: ["4. Task Management"]
+ *     tags: ["4.4 Tasks — Custom Fields"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -129,7 +111,7 @@ customFieldRouter.post("/", protect, validate(createCustomFieldSchema), createCu
  *   delete:
  *     summary: Delete custom field
  *     description: Remove a custom field definition
- *     tags: ["4. Task Management"]
+ *     tags: ["4.4 Tasks — Custom Fields"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -168,7 +150,7 @@ customFieldRouter.delete("/:id", protect, deleteCustomField);
  *   get:
  *     summary: Get workspace custom fields
  *     description: Retrieve all custom fields for a workspace
- *     tags: ["4. Task Management"]
+ *     tags: ["4.4 Tasks — Custom Fields"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -206,7 +188,7 @@ customFieldRouter.get("/workspace/:workspaceId", protect, getFieldsByWorkspace);
  *   get:
  *     summary: Get project custom fields
  *     description: Retrieve all custom fields for a project
- *     tags: ["4. Task Management"]
+ *     tags: ["4.4 Tasks — Custom Fields"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

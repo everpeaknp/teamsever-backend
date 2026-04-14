@@ -9,7 +9,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *   get:
  *     summary: Get workspace presence
  *     description: Returns the online/offline status and last seen timestamp for all members of a specific workspace.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.4 Collaboration — Presence"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -24,15 +24,11 @@ const { protect } = require("../middlewares/authMiddleware");
  *         description: Presence data retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - userId: "69bce50b96fe109fe4e14ff6"
- *                   status: "online"
- *                   lastSeen: "2026-03-30T17:00:00Z"
- *                 - userId: "69bcc46789cab60dfa454499"
- *                   status: "offline"
- *                   lastSeen: "2026-03-30T16:30:00Z"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/WorkspacePresence" }
  *       401:
  *         description: Authentication required
  *         content:
@@ -58,7 +54,7 @@ router.get(
  *   get:
  *     summary: Get online users
  *     description: Returns a list of users who are currently connected via WebSockets in the specified workspace.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.4 Collaboration — Presence"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -94,7 +90,7 @@ router.get(
  *   get:
  *     summary: Get user presence
  *     description: Get the real-time presence status and last seen time for a specific user.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.4 Collaboration — Presence"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -108,11 +104,11 @@ router.get(
  *         description: User presence retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 status: "online"
- *                 lastSeen: "2026-03-30T17:05:00Z"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/UserPresence" }
  *       401:
  *         description: Authentication required
  *         content:

@@ -59,6 +59,11 @@ const listSchema = new mongoose.Schema(
           type: String,
           enum: ["owner", "admin", "member"],
           default: "member"
+        },
+        permissionLevel: {
+          type: String,
+          enum: ["FULL", "EDIT", "COMMENT", "VIEW"],
+          default: "EDIT"
         }
       }
     ],

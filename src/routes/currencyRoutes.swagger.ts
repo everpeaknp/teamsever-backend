@@ -8,7 +8,7 @@
  *   get:
  *     summary: Get current USD to NPR exchange rate
  *     description: Returns the current exchange rate with caching information. Uses stale-while-revalidate strategy (12-hour cache).
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.7 Admin — Currency"]
  *     responses:
  *       200:
  *         description: Exchange rate retrieved successfully
@@ -60,7 +60,7 @@
  *   post:
  *     summary: Convert amount between USD and NPR
  *     description: Converts a given amount from one currency to another using the current exchange rate
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.7 Admin — Currency"]
  *     requestBody:
  *       required: true
  *       content:
@@ -141,7 +141,7 @@
  *   post:
  *     summary: Force refresh exchange rate (Admin only)
  *     description: Forces a refresh of the cached exchange rate. Requires super admin privileges.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.7 Admin — Currency"]
  *     security:
  *       - bearerAuth: []
  *     responses:

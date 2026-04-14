@@ -77,11 +77,42 @@ const getUnreadCount = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+/**
+ * @desc    Create a notification manually
+ * @route   POST /api/notifications
+ * @access  Private
+ */
+const createNotification = asyncHandler(async (req: any, res: any) => {
+  const { recipientId, type, title, message, link, data = {} } = req.body;
+
+  if (!recipientId || !type || !title || !message) {
+    throw new AppError("Recipient ID, type, title, and message are required", 400);
+  }
+
+  // Map frontend field 'message' to backend 'body'
+  const notificationCount = await notificationService.createNotification({
+    recipientId,
+    type: type.toUpperCase(),
+    title,
+    body: message,
+    data: {
+      ...data,
+      link
+    }
+  });
+
+  res.status(201).json({
+    success: true,
+    data: notificationCount,
+  });
+});
+
 module.exports = {
   getNotifications,
   markAsRead,
   markAllAsRead,
   getUnreadCount,
+  createNotification
 };
 
 export {};

@@ -20,7 +20,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *       - Faster uploads (direct to CDN)
  *       - Reduced server load
  *       - Better user experience
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.2 Files — Task Attachments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -36,17 +36,7 @@ const { protect } = require("../middlewares/authMiddleware");
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 uploadUrl:
- *                   type: string
- *                   description: Cloudinary upload URL
- *                 uploadPreset:
- *                   type: string
- *                   description: Upload preset name
- *                 signature:
- *                   type: string
- *                   description: Signed upload signature
+ *               $ref: "#/components/schemas/AttachmentInitResponse"
  *       401:
  *         description: Unauthorized
  *         content:
@@ -83,7 +73,7 @@ router.post(
  *       - Thumbnail generation for images
  *       - File size and MIME type extraction
  *       - Secure URL generation
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.2 Files — Task Attachments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -98,32 +88,7 @@ router.post(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - cloudinaryUrl
- *               - cloudinaryPublicId
- *               - fileName
- *               - fileSize
- *               - mimeType
- *             properties:
- *               cloudinaryUrl:
- *                 type: string
- *                 description: URL from Cloudinary response
- *               cloudinaryPublicId:
- *                 type: string
- *                 description: Public ID from Cloudinary response
- *               fileName:
- *                 type: string
- *                 description: Original file name
- *               fileSize:
- *                 type: number
- *                 description: File size in bytes
- *               mimeType:
- *                 type: string
- *                 description: File MIME type
- *               thumbnailUrl:
- *                 type: string
- *                 description: Thumbnail URL (optional, for images)
+ *             $ref: "#/components/schemas/AttachmentConfirmInput"
  *     responses:
  *       201:
  *         description: Attachment saved successfully
@@ -162,7 +127,7 @@ router.post(
  *   get:
  *     summary: Get all attachments for a task
  *     description: Retrieves all file attachments associated with a task from Cloudinary
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.2 Files — Task Attachments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -215,7 +180,7 @@ router.get(
  *       
  *       **Automatic Cleanup:**
  *       When a task is hard-deleted, all attachments are automatically removed.
- *     tags: ["6. Files & Documents"]
+ *     tags: ["6.2 Files — Task Attachments"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -11,11 +11,11 @@ router.use(protect);
 
 /**
  * @swagger
- * /api/notification-center/fcm-token:
+ * /api/notifications/fcm-token:
  *   post:
  *     summary: Register FCM device token
  *     description: Register a Firebase Cloud Messaging (FCM) token for push notifications. Call this when the app launches and gets a valid FCM token from Firebase.
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -49,11 +49,11 @@ router.post("/fcm-token", notificationController.registerFCMToken);
 
 /**
  * @swagger
- * /api/notification-center:
+ * /api/notifications:
  *   get:
  *     summary: Get notifications
  *     description: Retrieve the current user's in-app notifications, newest first.
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -74,27 +74,15 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *         description: Notifications retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bbf827a96fe78f71675800"
- *                   type: "task_assigned"
- *                   title: "Task Assigned to You"
- *                   message: "Alice assigned 'Implement OAuth2' to you"
- *                   isRead: false
- *                   createdAt: "2026-03-30T08:00:00Z"
- *                   relatedTask: "69bbf827a96fe78f716755f4"
- *                   relatedWorkspace: "69bbf827a96fe78f716752bb"
- *                 - _id: "69bbf827a96fe78f71675801"
- *                   type: "comment_mention"
- *                   title: "You were mentioned"
- *                   message: "Bob mentioned you in a comment"
- *                   isRead: true
- *                   createdAt: "2026-03-29T15:30:00Z"
- *                   relatedTask: "69bbf827a96fe78f716755f5"
- *                   relatedWorkspace: "69bbf827a96fe78f716752bb"
- *               total: 14
- *               unread: 3
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: "#/components/schemas/Notification" }
+ *                 total: { type: "integer", example: 14 }
+ *                 unread: { type: "integer", example: 3 }
  *       401:
  *         description: Authentication required
  *         content:
@@ -106,11 +94,68 @@ router.get("/", notificationCenterController.getNotifications);
 
 /**
  * @swagger
- * /api/notification-center/unread-count:
+ * /api/notifications:
+ *   post:
+ *     summary: Create manual notification
+ *     description: Manually trigger an in-app and push notification for a specific user. Used by background services or administrative actions (e.g. workspace invites, task assignments).
+ *     tags: ["10.2 Utilities — Notification Center"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - recipientId
+ *               - type
+ *               - title
+ *               - message
+ *             properties:
+ *               recipientId:
+ *                 type: string
+ *                 example: "69bbf827a96fe78f716752aa"
+ *               type:
+ *                 type: string
+ *                 enum: [INVITE, TASK_ASSIGNED, MENTION, SYSTEM]
+ *                 example: "INVITE"
+ *               title:
+ *                 type: string
+ *                 example: "New Workspace Invite"
+ *               message:
+ *                 type: string
+ *                 example: "You have been invited to join 'Engineering Team'"
+ *               link:
+ *                 type: string
+ *                 example: "/workspace/69bbf827a96fe78f716752bb"
+ *               data:
+ *                 type: object
+ *                 description: Additional payload data for the notification
+ *     responses:
+ *       201:
+ *         description: Notification created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data: 1
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ */
+router.post("/", notificationCenterController.createNotification);
+
+/**
+ * @swagger
+ * /api/notifications/unread-count:
  *   get:
  *     summary: Get unread notification count
  *     description: Returns the count of unread notifications. Use this to display the badge number on the notification bell icon.
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -133,11 +178,11 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
 
 /**
  * @swagger
- * /api/notification-center/read-all:
+ * /api/notifications/read-all:
  *   patch:
  *     summary: Mark all notifications as read
  *     description: Marks all the current user's unread notifications as read. Useful when user opens the notification panel.
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -159,11 +204,11 @@ router.patch("/read-all", notificationCenterController.markAllAsRead);
 
 /**
  * @swagger
- * /api/notification-center/{id}/read:
+ * /api/notifications/{id}/read:
  *   patch:
  *     summary: Mark notification as read
  *     description: Mark a single notification as read.
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -15,7 +15,7 @@ const { protect } = require("../middlewares/authMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const { checkSpaceLimit } = require("../middlewares/subscriptionMiddleware");
 const validate = require("../utils/validation");
-const { createSpaceSchema, updateSpaceSchema } = require("../validators/spaceValidators");
+const { createSpaceSchema, updateSpaceSchema, addMemberToSpaceSchema } = require("../validators/spaceValidators");
 
 /**
  * @swagger
@@ -33,7 +33,7 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create space
  *     description: Create a new space in a workspace
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -48,18 +48,7 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
- *               icon:
- *                 type: string
+ *             $ref: "#/components/schemas/SpaceCreateInput"
  *     responses:
  *       201:
  *         description: Space created successfully
@@ -88,7 +77,7 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get workspace spaces
  *     description: Retrieve all spaces in a workspace
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -130,7 +119,7 @@ const spaceRouter = express.Router();
  *   get:
  *     summary: Get space
  *     description: Retrieve a specific space by ID
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -162,7 +151,7 @@ const spaceRouter = express.Router();
  *   patch:
  *     summary: Update space
  *     description: Update space details
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -177,16 +166,7 @@ const spaceRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
- *               icon:
- *                 type: string
+ *             $ref: "#/components/schemas/SpaceUpdateInput"
  *     responses:
  *       200:
  *         description: Space updated successfully
@@ -221,7 +201,7 @@ const spaceRouter = express.Router();
  *   delete:
  *     summary: Delete space
  *     description: Delete a space and its contents
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -237,7 +217,10 @@ const spaceRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { type: "object", properties: { _id: { type: "string" } } }
  *       401:
  *         description: Authentication required
  *         content:
@@ -265,7 +248,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *   get:
  *     summary: Get space metadata
  *     description: Returns lightweight metadata for a space (name, members count, settings) without full nested data
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -281,20 +264,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 workspace:
- *                   type: string
- *                 color:
- *                   type: string
- *                 icon:
- *                   type: string
- *                 membersCount:
- *                   type: number
+ *               $ref: "#/components/schemas/SpaceMetadataResponse"
  *       401:
  *         description: Authentication required
  *         content:
@@ -318,7 +288,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *   get:
  *     summary: Get space lists metadata
  *     description: Returns all lists within a space with lightweight metadata (no task data). Useful for sidebar/navigation rendering.
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -334,22 +304,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   space:
- *                     type: string
- *                   workspace:
- *                     type: string
- *                   folder:
- *                     type: string
- *                     nullable: true
- *                     description: Parent folder ID if list is inside a folder
+ *               $ref: "#/components/schemas/SpaceListMetadataResponse"
  *       401:
  *         description: Authentication required
  *         content:
@@ -380,7 +335,7 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *   post:
  *     summary: Add member to space
  *     description: Add a workspace member to a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -395,12 +350,7 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - userId
- *             properties:
- *               userId:
- *                 type: string
+ *             $ref: "#/components/schemas/SpaceMemberInput"
  *     responses:
  *       200:
  *         description: Member added successfully
@@ -427,7 +377,7 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"), addMemberToSpace);
+spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"), validate(addMemberToSpaceSchema), addMemberToSpace);
 
 /**
  * @swagger
@@ -435,7 +385,7 @@ spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"),
  *   delete:
  *     summary: Remove member from space
  *     description: Remove a member from a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -457,7 +407,7 @@ spaceRouter.post("/:id/members", protect, requirePermission("ADD_SPACE_MEMBER"),
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               $ref: "#/components/schemas/SpaceResponse"
  *       401:
  *         description: Authentication required
  *         content:
@@ -485,7 +435,7 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  *   post:
  *     summary: Invite external users to space
  *     description: Invite users who are not workspace members to a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.1 Hierarchy — Spaces"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -500,14 +450,7 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - emails
- *             properties:
- *               emails:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: "#/components/schemas/SpaceInviteInput"
  *     responses:
  *       200:
  *         description: Invitations sent successfully

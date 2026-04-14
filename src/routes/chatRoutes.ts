@@ -15,7 +15,7 @@ const workspaceChatRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Send chat message
  *     description: Send a message to a specific channel within a workspace. If channelId is omitted, it defaults to the #General channel.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -30,21 +30,7 @@ const workspaceChatRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - content
- *             properties:
- *               channelId:
- *                 type: string
- *                 description: Target channel ID (optional, defaults to #General)
- *               content:
- *                 type: string
- *                 description: Message text
- *               mentions:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: User IDs to mention
+ *             $ref: "#/components/schemas/ChatMessageInput"
  *     responses:
  *       201:
  *         description: Message sent successfully
@@ -76,7 +62,7 @@ workspaceChatRouter
  *   get:
  *     summary: List accessible channels
  *     description: Retrieve all public channels and any private channels the user is a member of.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -95,7 +81,7 @@ workspaceChatRouter
  *   post:
  *     summary: Create new channel
  *     description: Create a new public or private chat channel. Only Admins/Owners can create channels.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -109,23 +95,7 @@ workspaceChatRouter
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 description: Channel name (e.g., "Engineering")
- *               description:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [public, private]
- *               members:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Initial members for private channel
+ *             $ref: "#/components/schemas/ChatChannelCreateInput"
  *     responses:
  *       201:
  *         description: Channel created successfully
@@ -151,7 +121,7 @@ workspaceChatRouter
  *   patch:
  *     summary: Update channel details
  *     description: Rename channel, change description or visibility. Only Admins/Owners or the creator can update.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -169,15 +139,7 @@ workspaceChatRouter
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [public, private]
+ *             $ref: "#/components/schemas/ChatChannelUpdateInput"
  *     responses:
  *       200:
  *         description: Channel updated successfully
@@ -209,7 +171,7 @@ const channelRouter = express.Router();
  *   get:
  *     summary: Get message history for a channel
  *     description: Retrieve paginated chat history. User must have access to the channel.
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -243,7 +205,7 @@ channelRouter
  * /api/chat/channels/{channelId}/unread:
  *   get:
  *     summary: Get unread count
- *     tags: ["5. Collaboration & Chat"]
+ *     tags: ["5.2 Collaboration — Chat Channels"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

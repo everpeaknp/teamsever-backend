@@ -17,7 +17,7 @@ router.use(protect);
  *   get:
  *     summary: Get all recurring tasks in a workspace
  *     description: Retrieves all active recurring tasks within a workspace
- *     tags: ["4. Task Management"]
+ *     tags: ["4.3 Tasks — Recurring"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -33,24 +33,7 @@ router.use(protect);
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 allOf:
- *                   - $ref: '#/components/schemas/Task'
- *                   - type: object
- *                     properties:
- *                       isRecurring:
- *                         type: boolean
- *                         example: true
- *                       frequency:
- *                         type: string
- *                         example: "weekly"
- *                       interval:
- *                         type: number
- *                         example: 1
- *                       nextOccurrence:
- *                         type: string
- *                         format: date-time
+ *               $ref: "#/components/schemas/RecurringTaskListResponse"
  *       401:
  *         description: Unauthorized
  *         content:
@@ -76,7 +59,7 @@ router.get("/workspace/:workspaceId", getRecurringTasks);
  *       
  *       Each time a recurring task is processed by the cron job, a new instance is created
  *       with isRecurring=false and recurringTaskId pointing to the original task.
- *     tags: ["4. Task Management"]
+ *     tags: ["4.3 Tasks — Recurring"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -92,18 +75,7 @@ router.get("/workspace/:workspaceId", getRecurringTasks);
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 allOf:
- *                   - $ref: '#/components/schemas/Task'
- *                   - type: object
- *                     properties:
- *                       isRecurring:
- *                         type: boolean
- *                         example: false
- *                       recurringTaskId:
- *                         type: string
- *                         description: Reference to the original recurring task
+ *               $ref: "#/components/schemas/TaskListResponse"
  *       401:
  *         description: Unauthorized
  *         content:
@@ -129,7 +101,7 @@ router.get("/:taskId/instances", getRecurringTaskInstances);
  *       
  *       This sets isRecurring=false and clears the nextOccurrence date.
  *       Existing instances are not affected.
- *     tags: ["4. Task Management"]
+ *     tags: ["4.3 Tasks — Recurring"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -184,7 +156,7 @@ router.post("/:taskId/stop", stopRecurringTask);
  *       - custom: adds interval days
  *       
  *       **Use Case:** Testing or immediate processing without waiting for cron
- *     tags: ["4. Task Management"]
+ *     tags: ["4.3 Tasks — Recurring"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -193,33 +165,7 @@ router.post("/:taskId/stop", stopRecurringTask);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 processed:
- *                   type: number
- *                   description: Number of recurring tasks processed
- *                   example: 5
- *                 created:
- *                   type: number
- *                   description: Number of new task instances created
- *                   example: 5
- *                 errors:
- *                   type: number
- *                   description: Number of errors encountered
- *                   example: 0
- *                 details:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       taskId:
- *                         type: string
- *                       title:
- *                         type: string
- *                       success:
- *                         type: boolean
- *                       error:
- *                         type: string
+ *               $ref: "#/components/schemas/RecurringTaskProcessResponse"
  *       401:
  *         description: Unauthorized
  *         content:

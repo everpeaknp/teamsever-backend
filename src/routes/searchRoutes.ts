@@ -28,7 +28,7 @@ if (typeof protect !== 'function') {
  *   get:
  *     summary: Global search across tasks, spaces, and lists
  *     description: Performs a full-text search across the user's accessible tasks, spaces, and lists in the current workspace (if provided in headers).
- *     tags: ["10. Utilities & Search"]
+ *     tags: ["10.1 Utilities — Global Search"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -44,25 +44,7 @@ if (typeof protect !== 'function') {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     tasks:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Task'
- *                     spaces:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Space'
- *                     lists:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/List'
+ *             $ref: "#/components/schemas/GlobalSearchResponse"
  *             example:
  *               success: true
  *               data:

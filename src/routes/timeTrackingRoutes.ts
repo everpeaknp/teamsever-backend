@@ -26,7 +26,7 @@ router.use(protect);
  *   get:
  *     summary: Get my active timer
  *     description: Returns the currently running timer for the authenticated user, or null if no timer is running. Useful for showing a persistent timer widget at the top of the app.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -51,7 +51,7 @@ router.get("/time/active", getActiveTimer);
  *   post:
  *     summary: Start task timer
  *     description: Start a timer for a specific task. Only one timer can run at a time per user.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -89,7 +89,7 @@ router.post("/:id/time/start", startTimer);
  *   post:
  *     summary: Stop task timer
  *     description: Stop the active timer for a task and record the time entry.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -130,7 +130,7 @@ router.post("/:id/time/stop", stopTimer);
  *   post:
  *     summary: Log manual time
  *     description: Add a manual time entry for a task without using the timer. Useful for logging offline work.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -182,7 +182,7 @@ router.post("/:id/time/manual", addManualTimeLog);
  *   get:
  *     summary: Get task time logs
  *     description: Returns all time entries for a specific task.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -214,7 +214,7 @@ router.get("/:id/time/logs", getTimeLogs);
  *   delete:
  *     summary: Delete time log
  *     description: Delete a specific time log entry.
- *     tags: ["7. Time & Attendance"]
+ *     tags: ["7.2 Time — Tracking (Live Timer)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

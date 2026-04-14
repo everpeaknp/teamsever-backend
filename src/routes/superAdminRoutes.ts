@@ -22,7 +22,7 @@ router.use(protect);
  *   get:
  *     summary: Get all workspace admins/owners
  *     description: Retrieve all workspace owners with their full subscription details. Restricted to Super Admins only.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.5 Admin — Super Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -30,17 +30,8 @@ router.use(protect);
  *         description: List of admin users retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 - _id: "69bce50b96fe109fe4e14ff6"
- *                   name: "John Doe"
- *                   email: "john@example.com"
- *                   subscription:
- *                     plan: "Pro Plan"
- *                     status: "active"
- *                     isPaid: true
- *                     expiresAt: "2026-12-31T23:59:59Z"
+ *             schema:
+ *               $ref: "#/components/schemas/AdminUserListResponse"
  *       403:
  *         description: Forbidden - Super Admin privileges required
  *         content:
@@ -56,7 +47,7 @@ router.get("/users", getAdminUsers);
  *   patch:
  *     summary: Update user subscription
  *     description: Manually override or update a user's subscription status and plan.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.5 Admin — Super Admin"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -87,9 +78,8 @@ router.get("/users", getAdminUsers);
  *         description: Subscription updated successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Subscription updated for John Doe"
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *       403:
  *         description: Forbidden - Super Admin privileges required
  *         content:
@@ -111,7 +101,7 @@ router.patch("/users/:userId/subscription", updateUserSubscription);
  *   get:
  *     summary: Get system-wide financial analytics
  *     description: Retrieve global revenue, conversion rates, and user signup trends.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.5 Admin — Super Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -119,13 +109,8 @@ router.patch("/users/:userId/subscription", updateUserSubscription);
  *         description: Financial analytics data retrieved successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 totalRevenue: 150000
- *                 activePaidUsers: 450
- *                 conversionRate: 12.5
- *                 signupsLast30Days: 120
+ *             schema:
+ *               $ref: "#/components/schemas/FinancialAnalyticsResponse"
  *       403:
  *         description: Forbidden - Super Admin privileges required
  *         content:
@@ -141,7 +126,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   get:
  *     summary: Get global system settings
  *     description: Retrieve system-wide configuration settings like support contact numbers.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.5 Admin — Super Admin"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -149,10 +134,8 @@ router.get("/analytics", getFinancialAnalytics);
  *         description: System settings retrieved
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               data:
- *                 whatsappContactNumber: "+9779876543210"
+ *             schema:
+ *               $ref: "#/components/schemas/SystemSettingsResponse"
  *       403:
  *         description: Forbidden
  *         content:
@@ -162,7 +145,7 @@ router.get("/analytics", getFinancialAnalytics);
  *   put:
  *     summary: Update global system settings
  *     description: Update system-wide configuration.
- *     tags: ["9. System & Administration"]
+ *     tags: ["9.5 Admin — Super Admin"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -180,9 +163,8 @@ router.get("/analytics", getFinancialAnalytics);
  *         description: Settings updated successfully
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Settings updated"
+ *             schema:
+ *               $ref: "#/components/schemas/SystemSettingsResponse"
  *       403:
  *         description: Forbidden
  *         content:

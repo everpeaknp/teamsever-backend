@@ -26,7 +26,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create folder
  *     description: Create a new folder in a space
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -41,16 +41,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
+ *             $ref: "#/components/schemas/FolderCreateInput"
  *     responses:
  *       201:
  *         description: Folder created successfully
@@ -79,7 +70,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get folders in a space
  *     description: Retrieve all folders in a space, ordered by creation date.
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -120,7 +111,7 @@ const folderRouter = express.Router();
  *   get:
  *     summary: Get folder
  *     description: Returns a single folder with its lists.
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -151,7 +142,7 @@ const folderRouter = express.Router();
  *   put:
  *     summary: Update folder
  *     description: Update folder details
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -166,14 +157,7 @@ const folderRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               color:
- *                 type: string
+ *             $ref: "#/components/schemas/FolderUpdateInput"
  *     responses:
  *       200:
  *         description: Folder updated successfully
@@ -208,7 +192,7 @@ const folderRouter = express.Router();
  *   delete:
  *     summary: Delete folder
  *     description: Delete a folder and its contents
- *     tags: ["3. Project Hierarchy"]
+ *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -224,7 +208,10 @@ const folderRouter = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { type: "object", properties: { _id: { type: "string" } } }
  *       401:
  *         description: Authentication required
  *         content:

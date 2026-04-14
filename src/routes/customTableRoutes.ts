@@ -74,7 +74,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *   post:
  *     summary: Create custom table
  *     description: Create a new custom table in a space
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -89,24 +89,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 description: Table name
- *               columns:
- *                 type: array
- *                 description: Initial columns (optional)
- *                 items:
- *                   type: object
- *                   properties:
- *                     title:
- *                       type: string
- *                     type:
- *                       type: string
- *                       enum: [text, link, number]
+ *             $ref: "#/components/schemas/TableCreateInput"
  *     responses:
  *       201:
  *         description: Table created successfully
@@ -135,7 +118,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *   get:
  *     summary: Get space tables
  *     description: Retrieve all tables in a space
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -191,7 +174,7 @@ const tableRouter = express.Router();
  *   get:
  *     summary: Get table
  *     description: Retrieve a specific table by ID
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -223,7 +206,7 @@ const tableRouter = express.Router();
  *   patch:
  *     summary: Update table
  *     description: Update table name
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -279,7 +262,7 @@ const tableRouter = express.Router();
  *   delete:
  *     summary: Delete table
  *     description: Soft delete a table
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -343,7 +326,7 @@ tableRouter.delete(
  *   post:
  *     summary: Add column to table
  *     description: Add a new column to a custom table
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -358,19 +341,7 @@ tableRouter.delete(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - type
- *             properties:
- *               title:
- *                 type: string
- *                 maxLength: 100
- *                 description: Column title
- *               type:
- *                 type: string
- *                 enum: [text, link, number]
- *                 description: Column type
+ *             $ref: "#/components/schemas/TableColumnInput"
  *     responses:
  *       201:
  *         description: Column added successfully
@@ -416,7 +387,7 @@ tableRouter.post(
  *   patch:
  *     summary: Update column
  *     description: Update a column's title or type
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -481,7 +452,7 @@ tableRouter.post(
  *   delete:
  *     summary: Delete column
  *     description: Delete a column and its data from all rows
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -543,7 +514,7 @@ tableRouter.delete(
  *   post:
  *     summary: Add row to table
  *     description: Add a new row to a custom table
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -604,7 +575,7 @@ tableRouter.post(
  *   delete:
  *     summary: Delete row from table
  *     description: Delete a row from a custom table
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -659,7 +630,7 @@ tableRouter.delete(
  *   patch:
  *     summary: Update cell value
  *     description: Update a cell value with type validation
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -686,15 +657,7 @@ tableRouter.delete(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - value
- *             properties:
- *               value:
- *                 oneOf:
- *                   - type: string
- *                   - type: number
- *                 description: Cell value (validated based on column type)
+ *             $ref: "#/components/schemas/TableCellUpdateInput"
  *     responses:
  *       200:
  *         description: Cell updated successfully
@@ -741,7 +704,7 @@ tableRouter.patch(
  *   patch:
  *     summary: Update cell background color
  *     description: Update a cell's background color with hex format validation
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -824,7 +787,7 @@ tableRouter.patch(
  *   patch:
  *     summary: Update cell text color
  *     description: Update a cell's text color with hex format validation
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -907,7 +870,7 @@ tableRouter.patch(
  *   get:
  *     summary: Export table to Excel
  *     description: Export a custom table to Excel format with color preservation
- *     tags: ["8. Custom Tables"]
+ *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

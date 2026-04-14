@@ -11,7 +11,7 @@ const router = express.Router();
  *   get:
  *     summary: Get current user profile
  *     description: Retrieve the profile details of the authenticated user.
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.2 Auth — Password & Profile"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -36,36 +36,14 @@ router.get("/profile", protect, getMyProfile);
  *   patch:
  *     summary: Update user profile
  *     description: Update name, job title, department, bio, and profile picture. Uses multipart/form-data for file uploads.
- *     tags: ["1. Auth & Identity"]
+ *     tags: ["1.2 Auth — Password & Profile"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       content:
  *         multipart/form-data:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 example: "John Updated"
- *               jobTitle:
- *                 type: string
- *                 example: "Senior Developer"
- *               department:
- *                 type: string
- *                 example: "Platform Team"
- *               bio:
- *                 type: string
- *                 example: "Passionate about scalable systems."
- *               removeAvatar:
- *                 type: string
- *                 enum: ['true', 'false']
- *                 default: 'false'
- *                 description: Set to 'true' to delete the current profile picture
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: New profile picture file
+ *             $ref: "#/components/schemas/UserProfileUpdateInput"
  *     responses:
  *       200:
  *         description: Profile updated successfully
