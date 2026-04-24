@@ -23,12 +23,14 @@ const initializeSocketIO = (httpServer: any) => {
       credentials: true,
       methods: ["GET", "POST"]
     },
-    // Connection settings
+    // Connection settings - Heartbeat/Ping-Pong
     pingTimeout: 60000,
     pingInterval: 25000,
     // Upgrade settings
     transports: ["websocket" as const, "polling" as const],
-    allowUpgrades: true
+    allowUpgrades: true,
+    // Max buffer size for large file transfers if needed
+    maxHttpBufferSize: 1e7 // 10MB
   };
 
   const io = new Server(httpServer, socketOptions);
