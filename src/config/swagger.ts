@@ -1680,11 +1680,11 @@ const options: swaggerJsdoc.Options = {
           properties: {
             title: { type: "string" },
             description: { type: "string" },
-            status: { type: "string", enum: ["todo", "in-progress", "done"] },
+            status: { type: "string", enum: ["todo", "in-progress", "inprogress", "review", "done", "cancelled"], description: "Task status. Note: 'in-progress' is normalized to 'inprogress' internally." },
             priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
-            assignee: { type: "string" },
-            dueDate: { type: "string", format: "date-time" },
-            startDate: { type: "string", format: "date-time" },
+            assignee: { type: "string", nullable: true, description: "User ID of the assignee. Set to null to unassign." },
+            dueDate: { type: "string", format: "date-time", nullable: true, description: "Task due date. Set to null to clear." },
+            startDate: { type: "string", format: "date-time", nullable: true, description: "Task start date. Set to null to clear." },
             isMilestone: { type: "boolean" },
             isRecurring: { type: "boolean" },
             frequency: { type: "string", enum: ["daily", "weekly", "monthly", "custom"] },
@@ -1708,11 +1708,12 @@ const options: swaggerJsdoc.Options = {
           properties: {
             title: { type: "string" },
             description: { type: "string" },
-            status: { type: "string", enum: ["todo", "in-progress", "done"] },
+            status: { type: "string", enum: ["todo", "in-progress", "inprogress", "review", "done", "cancelled"], description: "Task status. Both 'in-progress' and 'inprogress' are accepted." },
             priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
-            assignee: { type: "string" },
-            dueDate: { type: "string", format: "date-time" },
-            startDate: { type: "string", format: "date-time" }
+            assignee: { type: "string", nullable: true, description: "User ID of the assignee. Set to null to unassign." },
+            assigneeId: { type: "string", nullable: true, description: "Alias for assignee user ID." },
+            dueDate: { type: "string", format: "date-time", nullable: true, description: "Task due date. Set to null to clear." },
+            startDate: { type: "string", format: "date-time", nullable: true, description: "Task start date. Set to null to clear." }
           }
         },
         TimeEntry: {
