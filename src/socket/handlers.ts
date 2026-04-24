@@ -12,51 +12,65 @@ const { checkMessageLimitForWorkspace } = require("../middlewares/messageLimitMi
  */
 const registerHandlers = (io, socket) => {
   const userId = socket.user!.id;
+  const userName = socket.user!.name;
 
   // Register socket connection with socket service
   socketService.addSocket(userId, socket.id);
 
-  // Join user's personal room for direct notifications
-  socket.join(`user:${userId}`);
+  // User Room Broadcasting
+  // Ensure all sessions of the same user join the same room
+  const userRoom = `user:${userId}`;
+  socket.join(userRoom);
 
-  // Emit user:online event to relevant users
-  try {
-    // Get user's workspaces to notify workspace members
-    const Workspace = require("../models/Workspace");
-    Workspace.find({
-      "members.user": userId,
-      isDeleted: false,
-    })
-      .select("_id members")
-      .lean()
-      .then((workspaces) => {
-        workspaces.forEach((workspace) => {
-          // Safety check: ensure members array exists
-          if (!workspace.members || !Array.isArray(workspace.members)) {
-            console.warn(`[Socket] Workspace ${workspace._id} has invalid members array`);
-            return;
-          }
-          
-          // Notify all workspace members that user is online
-          workspace.members.forEach((member) => {
-            const memberId = member.user.toString();
-            if (memberId !== userId) {
-              socketService.emitToUser(memberId, "user:online", {
-                userId,
-                userName: socket.user!.name,
-                workspaceId: workspace._id.toString(),
-                timestamp: new Date(),
-              });
-            }
-          });
-        });
-      })
-      .catch((error) => {
-        console.error("[Socket] Failed to emit user:online event:", error);
+  // Automatic Room Joining on Connect
+  // We'll join workspace, DM, and group rooms immediately
+  const initializeUserRooms = async () => {
+    try {
+      // 1. Join all workspace rooms user is a member of
+      const workspaces = await Workspace.find({
+        "members.user": userId,
+        isDeleted: false,
+      }).select("_id").lean();
+
+      workspaces.forEach(ws => {
+        const room = `workspace:${ws._id}`;
+        socket.join(room);
+        presenceManager.addUser(ws._id.toString(), userId);
+        presenceManager.emitPresenceUpdate(io, ws._id.toString());
+        
+        // Group Member Join Event
+        socket.to(room).emit("group:memberJoined", { userId, userName, timestamp: new Date() });
       });
-  } catch (error) {
-    console.error("[Socket] Failed to emit user:online event:", error);
-  }
+
+      // 2. Join DM rooms
+      const Conversation = require("../models/Conversation");
+      const conversations = await Conversation.find({
+        participants: userId,
+        isDeleted: false
+      }).select("_id").lean();
+
+      conversations.forEach(conv => {
+        socket.join(`dm:${conv._id}`);
+      });
+
+      // Inbox Update for unread counts
+      socket.emit("inbox:update", { unreadTotal: 0 }); // Trigger initial sync
+
+      // Online Presence
+      workspaces.forEach(workspace => {
+        socket.to(`workspace:${workspace._id}`).emit("user:online", {
+          userId,
+          userName,
+          timestamp: new Date()
+        });
+      });
+
+    } catch (error) {
+      console.error("[Socket] Failed to initialize user rooms:", error);
+    }
+  };
+
+  initializeUserRooms();
 
   /**
    * Join workspace room
@@ -64,20 +78,12 @@ const registerHandlers = (io, socket) => {
   socket.on("join_workspace", async (payload) => {
     try {
       const { workspaceId } = payload;
+      if (!workspaceId) return;
 
-      if (!workspaceId) {
-        socket.emit("error", { message: "Workspace ID is required" });
-        return;
-      }
-
-      // Verify user is workspace member
-      const { membership } = await chatService.validateWorkspaceMembership(workspaceId, userId);
-
-      // Join workspace room
+      await chatService.validateWorkspaceMembership(workspaceId, userId);
       const roomName = `workspace:${workspaceId}`;
       await socket.join(roomName);
 
-      // Add to presence
       presenceManager.addUser(workspaceId, userId);
       presenceManager.emitPresenceUpdate(io, workspaceId);
 
@@ -88,213 +94,44 @@ const registerHandlers = (io, socket) => {
   });
 
   /**
-   * Join channel room
+   * DM Rooms
    */
-  socket.on("join_channel", async (payload) => {
+  socket.on("join_dm", async (payload) => {
     try {
-      const { channelId } = payload;
+      const { conversationId } = payload;
+      if (!conversationId) return;
 
-      if (!channelId) {
-        socket.emit("error", { message: "Channel ID is required" });
-        return;
-      }
-
-      // Verify channel access (via chatService)
-      const channel = await chatService.validateChannelAccess(channelId, userId);
-
-      // Join channel room
-      const roomName = `channel:${channelId}`;
-      await socket.join(roomName);
-
-      socket.emit("joined_channel", { channelId, room: roomName });
-    } catch (error) {
-      socket.emit("error", { message: error.message || "Failed to join channel" });
-    }
-  });
-
-  /**
-   * Leave channel room
-   */
-  socket.on("leave_channel", async (payload) => {
-    try {
-      const { channelId } = payload;
-      if (channelId) {
-        await socket.leave(`channel:${channelId}`);
-        socket.emit("left_channel", { channelId });
-      }
-    } catch (error) {
-      // Ignored
-    }
-  });
-
-  /**
-   * Join space room
-   */
-  socket.on("join_space", async (payload) => {
-    try {
-      const { spaceId } = payload;
-
-      if (!spaceId) {
-        socket.emit("error", { message: "Space ID is required" });
-        return;
-      }
-
-      // Verify space exists and user has access
-      const space = await Space.findOne({
-        _id: spaceId,
-        isDeleted: false
+      // Validate access to conversation
+      const Conversation = require("../models/Conversation");
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: userId
       }).lean();
 
-      if (!space) {
-        socket.emit("error", { message: "Space not found" });
-        return;
-      }
+      if (!conversation) throw new Error("Conversation not found or access denied");
 
-      // Verify user is workspace member
-      await chatService.validateWorkspaceMembership(space.workspace.toString(), userId);
-
-      // Join space room
-      const roomName = `space:${spaceId}`;
-      await socket.join(roomName);
-
-      socket.emit("joined_space", { spaceId, room: roomName });
+      await socket.join(`dm:${conversationId}`);
+      socket.emit("joined_dm", { conversationId });
     } catch (error) {
-      socket.emit("error", { message: error.message || "Failed to join space" });
+      socket.emit("error", { message: error.message });
     }
   });
 
   /**
-   * Join task room
+   * Sending Messages (Emitter Side)
    */
-  socket.on("join_task", async (payload) => {
+  socket.on("chat:send", async (payload, callback) => {
     try {
-      const { taskId } = payload;
+      const { workspaceId, channelId, content, mentions, tempId } = payload;
 
-      if (!taskId) {
-        socket.emit("error", { message: "Task ID is required" });
-        return;
-      }
+      if (!workspaceId) throw new Error("Workspace ID is required");
 
-      // Verify task exists and user has access
-      const Task = require("../models/Task");
-      const task = await Task.findOne({
-        _id: taskId,
-        isDeleted: false
-      }).lean();
-
-      if (!task) {
-        socket.emit("error", { message: "Task not found" });
-        return;
-      }
-
-      // Verify user is workspace member
-      await chatService.validateWorkspaceMembership(task.workspace.toString(), userId);
-
-      // Join task room
-      const roomName = `task:${taskId}`;
-      await socket.join(roomName);
-
-      socket.emit("joined_task", { taskId, room: roomName });
-    } catch (error) {
-      socket.emit("error", { message: error.message || "Failed to join task" });
-    }
-  });
-
-  /**
-   * Leave task room
-   */
-  socket.on("leave_task", async (payload) => {
-    try {
-      const { taskId } = payload;
-
-      if (!taskId) {
-        socket.emit("error", { message: "Task ID is required" });
-        return;
-      }
-
-      const roomName = `task:${taskId}`;
-      await socket.leave(roomName);
-
-      socket.emit("left_task", { taskId, room: roomName });
-    } catch (error) {
-      socket.emit("error", { message: "Failed to leave task" });
-    }
-  });
-
-  /**
-   * Handle disconnect
-   */
-  socket.on("disconnect", () => {
-    // Remove socket from socket service
-    socketService.removeSocket(userId, socket.id);
-
-    // Check if user is still online (other devices)
-    const isStillOnline = socketService.isUserOnline(userId);
-
-    // If user is completely offline, emit user:offline event
-    if (!isStillOnline) {
-      try {
-        // Get user's workspaces to notify workspace members
-        const Workspace = require("../models/Workspace");
-        Workspace.find({
-          "members.user": userId,
-          isDeleted: false,
-        })
-          .select("_id members")
-          .lean()
-          .then((workspaces) => {
-            workspaces.forEach((workspace) => {
-              // Notify all workspace members that user is offline
-              workspace.members.forEach((member) => {
-                const memberId = member.user.toString();
-                if (memberId !== userId) {
-                  socketService.emitToUser(memberId, "user:online", {
-                    userId,
-                    userName: socket.user!.name,
-                    workspaceId: workspace._id.toString(),
-                    timestamp: new Date(),
-                  });
-                }
-              });
-            });
-          })
-          .catch((error) => {
-            console.error("[Socket] Failed to emit user:online event:", error);
-          });
-      } catch (error) {
-        console.error("[Socket] Failed to emit user:online event:", error);
-      }
-    }
-
-    // Remove user from all workspace presence
-    const affectedWorkspaces = presenceManager.removeUserFromAll(userId);
-
-    // Emit presence updates to affected workspaces
-    affectedWorkspaces.forEach((workspaceId) => {
-      presenceManager.emitPresenceUpdate(io, workspaceId);
-    });
-  });
-
-  /**
-   * Chat: Send message
-   */
-  socket.on("chat:send", async (payload) => {
-    try {
-      const { workspaceId, channelId, content, mentions } = payload;
-
-      if (!workspaceId) {
-        socket.emit("error", { message: "Workspace ID is required" });
-        return;
-      }
-
-      // Check message limit
       const limitCheck = await checkMessageLimitForWorkspace(workspaceId);
       if (!limitCheck.allowed) {
-        socket.emit("error", limitCheck.error);
+        if (callback) callback({ status: "error", message: limitCheck.error });
         return;
       }
 
-      // Create message (validates membership and channel access)
       const message = await chatService.createMessage({
         workspaceId,
         channelId,
@@ -303,45 +140,131 @@ const registerHandlers = (io, socket) => {
         mentions: mentions || [],
       });
 
+      const messageData = {
+        _id: message._id,
+        tempId: tempId, // Send back tempId for optimistic UI sync
+        workspace: message.workspace,
+        channel: channelId,
+        sender: message.sender,
+        content: message.content,
+        type: message.type,
+        mentions: message.mentions,
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+      };
+
       // Broadcast to channel room
-      const targetChannelId = message.channel.toString();
-      
-      io.to(`channel:${targetChannelId}`).emit("chat:new", {
-        message: {
-          _id: message._id,
-          workspace: message.workspace,
-          channel: targetChannelId,
-          sender: message.sender,
-          content: message.content,
-          type: message.type,
-          mentions: message.mentions,
-          createdAt: message.createdAt,
-          updatedAt: message.updatedAt,
-        },
-      });
+      const room = channelId ? `channel:${channelId}` : `workspace:${workspaceId}`;
+      io.to(room).emit("chat:new", { message: messageData });
+
+      // Session Sync
+      // Notify other sessions of the same user
+      socket.to(`user:${userId}`).emit("message:sent:sync", { message: messageData });
+
+      // Server Acknowledgment
+      if (callback) callback({ status: "ok", messageId: message._id });
+
     } catch (error) {
-      socket.emit("error", { 
-        message: error.message || "Failed to send message" 
-      });
+      console.error("[Socket] chat:send error:", error);
+      if (callback) callback({ status: "error", message: error.message });
     }
   });
 
+  /**
+   * Direct Messages
+   */
+  socket.on("dm:send", async (payload, callback) => {
+    try {
+      const { conversationId, content, tempId } = payload;
+      if (!conversationId) throw new Error("Conversation ID is required");
+
+      const message = await chatService.createDirectMessage({
+        conversationId,
+        senderId: userId,
+        content
+      });
+
+      const messageData = {
+        _id: message._id,
+        tempId: tempId,
+        conversation: conversationId,
+        sender: message.sender,
+        content: message.content,
+        createdAt: message.createdAt
+      };
+
+      // Broadcast to DM room
+      io.to(`dm:${conversationId}`).emit("dm:new", { 
+        message: messageData,
+        conversation: conversationId 
+      });
+
+      // Sync other sessions
+      socket.to(`user:${userId}`).emit("message:sent:sync", { message: messageData });
+
+      if (callback) callback({ status: "ok", messageId: message._id });
+    } catch (error) {
+      if (callback) callback({ status: "error", message: error.message });
+    }
+  });
+
+  /**
+   * Delivery & Read Receipts
+   */
+  socket.on("message:read", async (payload) => {
+    try {
+      const { messageId, conversationId, channelId } = payload;
+      // Update DB and broadcast
+      // This would typically call a service to mark as read
+      const room = conversationId ? `dm:${conversationId}` : `channel:${channelId}`;
+      socket.to(room).emit("message:read:receipt", { messageId, userId, timestamp: new Date() });
+    } catch (error) {
+      // Ignore
+    }
+  });
+
+  /**
+   * Handle disconnect
+   */
+  socket.on("disconnect", (reason) => {
+    socketService.removeSocket(userId, socket.id);
+    const isStillOnline = socketService.isUserOnline(userId);
+
+    if (!isStillOnline) {
+      // Emit user:offline event
+      Workspace.find({ "members.user": userId, isDeleted: false })
+        .select("_id")
+        .lean()
+        .then(workspaces => {
+          workspaces.forEach(ws => {
+            const room = `workspace:${ws._id}`;
+            io.to(room).emit("user:offline", {
+              userId,
+              timestamp: new Date()
+            });
+            // Group Member Left Event
+            io.to(room).emit("group:memberLeft", { userId, timestamp: new Date() });
+            
+            presenceManager.removeUser(ws._id.toString(), userId);
+            presenceManager.emitPresenceUpdate(io, ws._id.toString());
+          });
+        });
+    }
+  });
   /**
    * Chat: Typing indicator
    */
   socket.on("chat:typing", async (payload) => {
     try {
-      const { channelId } = payload;
-      if (!channelId) return;
+      const { channelId, conversationId } = payload;
+      const room = channelId ? `channel:${channelId}` : `dm:${conversationId}`;
+      if (!room) return;
 
-      // Validate access
-      await chatService.validateChannelAccess(channelId, userId);
-
-      // Broadcast to channel room except sender
-      socket.to(`channel:${channelId}`).emit("chat:user_typing", {
+      socket.to(room).emit("chat:user_typing", {
         channelId,
+        conversationId,
         userId,
-        userName: socket.user!.name,
+        userName,
       });
     } catch (error) {
       // Silently fail
@@ -353,12 +276,13 @@ const registerHandlers = (io, socket) => {
    */
   socket.on("chat:stop_typing", async (payload) => {
     try {
-      const { channelId } = payload;
-      if (!channelId) return;
+      const { channelId, conversationId } = payload;
+      const room = channelId ? `channel:${channelId}` : `dm:${conversationId}`;
+      if (!room) return;
 
-      // Broadcast to channel room except sender
-      socket.to(`channel:${channelId}`).emit("chat:user_stop_typing", {
+      socket.to(room).emit("chat:user_stop_typing", {
         channelId,
+        conversationId,
         userId,
       });
     } catch (error) {
