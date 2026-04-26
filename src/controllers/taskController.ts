@@ -9,12 +9,13 @@ const AppError = require("../utils/AppError");
 // @route   POST /api/lists/:listId/tasks
 // @access  Private
 const createTask = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { title, description, priority, dueDate, deadline, assignee } = req.body;
+  const { title, description, status, priority, dueDate, deadline, assignee } = req.body;
   const { listId } = req.params;
 
   const task = await taskService.createTask({
     title,
     description,
+    status,
     priority,
     dueDate,
     deadline,

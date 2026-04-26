@@ -4,11 +4,12 @@ const createTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters"),
     description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
-    status: z.enum(["todo", "inprogress", "review", "done", "cancelled"]).optional(),
+    status: z.enum(["todo", "inprogress", "in-progress", "review", "done", "cancelled"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-    dueDate: z.string().datetime().optional(),
-    deadline: z.string().datetime().optional(),
-    assignee: z.string().optional(),
+    startDate: z.string().datetime().optional().nullable(),
+    dueDate: z.string().datetime().optional().nullable(),
+    deadline: z.string().datetime().optional().nullable(),
+    assignee: z.string().optional().nullable(),
     customFieldValues: z.array(z.object({
       field: z.string().min(1, "Custom field ID is required"),
       value: z.any()
@@ -40,12 +41,13 @@ const updateTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters").optional(),
     description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
-    status: z.enum(["todo", "inprogress", "review", "done", "cancelled"]).optional(),
+    status: z.enum(["todo", "inprogress", "in-progress", "review", "done", "cancelled"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-    dueDate: z.string().datetime().optional(),
-    deadline: z.string().datetime().optional(),
-    assignee: z.string().optional(),
-    assigneeId: z.string().optional(),
+    startDate: z.string().datetime().optional().nullable(),
+    dueDate: z.string().datetime().optional().nullable(),
+    deadline: z.string().datetime().optional().nullable(),
+    assignee: z.string().optional().nullable(),
+    assigneeId: z.string().optional().nullable(),
     customFieldValues: z.array(z.object({
       field: z.string().min(1, "Custom field ID is required"),
       value: z.any()

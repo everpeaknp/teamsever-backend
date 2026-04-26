@@ -20,7 +20,7 @@ const getFolderMembers = asyncHandler(
     
     const { folderId } = req.params;
 
-    const folder = await Folder.findById(folderId).populate("workspace");
+    const folder = await Folder.findById(folderId).populate("spaceId");
     if (!folder) {
       return next(new AppError("Folder not found", 404));
     }
@@ -31,8 +31,14 @@ const getFolderMembers = asyncHandler(
       .populate("addedBy", "name")
       .lean();
 
+    // Get workspace ID from populated spaceId
+    const workspaceId = folder.spaceId?.workspace;
+    if (!workspaceId) {
+      return next(new AppError("Workspace not found for this folder", 404));
+    }
+
     // Get workspace to show all potential members
-    const workspace = await Workspace.findById(folder.workspace).populate(
+    const workspace = await Workspace.findById(workspaceId).populate(
       "members.user",
       "name email avatar"
     );

@@ -15,6 +15,7 @@ const taskDependencyService = require("./taskDependencyService");
 interface CreateTaskData {
   title: string;
   description?: string;
+  status?: "todo" | "inprogress" | "in-progress" | "review" | "done" | "cancelled";
   priority?: "low" | "medium" | "high";
   startDate?: Date;
   dueDate?: Date;
@@ -35,7 +36,7 @@ interface CreateTaskData {
 interface UpdateTaskData {
   title?: string;
   description?: string;
-  status?: "todo" | "inprogress" | "done" | "cancelled";
+  status?: "todo" | "inprogress" | "in-progress" | "review" | "done" | "cancelled";
   priority?: "low" | "medium" | "high" | "urgent";
   startDate?: Date;
   dueDate?: Date;
@@ -114,6 +115,7 @@ class TaskService {
     const taskData: any = {
       title,
       description,
+      status: data.status === "in-progress" ? "inprogress" : (data.status || "todo"),
       priority,
       startDate: data.startDate,
       dueDate,
@@ -382,10 +384,11 @@ class TaskService {
     if (updateData.description !== undefined) task.description = updateData.description;
     if (updateData.status) {
       const oldStatus = task.status;
-      task.status = updateData.status;
+      const normalizedStatus = updateData.status === "in-progress" ? "inprogress" : updateData.status;
+      task.status = normalizedStatus;
       
       // Handle completedAt and completedBy fields
-      if (updateData.status === "done" && oldStatus !== "done") {
+      if (normalizedStatus === "done" && oldStatus !== "done") {
         // Task was just completed
         task.completedAt = new Date();
         task.completedBy = userId;

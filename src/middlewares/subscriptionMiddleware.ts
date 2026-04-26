@@ -98,8 +98,10 @@ const validateLimit = async (resourceKey: string, req: AuthRequest, res: Respons
     // 5. Check numeric limit
     const maxAllowed = features[config.planField] ?? config.defaultLimit;
     
-    // -1 means unlimited
-    if (maxAllowed === -1) return next();
+    // -1 means unlimited in plan features
+    if (maxAllowed === -1 && resourceKey !== 'members') {
+      return next();
+    }
 
     // 6. Get current usage
     let currentCount = 0;
@@ -109,9 +111,31 @@ const validateLimit = async (resourceKey: string, req: AuthRequest, res: Respons
       const workspace = await Workspace.findById(workspaceId);
       currentCount = workspace?.members?.filter((m: any) => m.status === 'active').length || 0;
       
-      // Special case: check subscription.memberCount field for paid users
+      // -1 in plan features means the plan technically supports unlimited members
+      // BUT if it's a paid per-seat plan, we still check subscription.memberCount
+      if (maxAllowed === -1) {
+        const subMax = targetUser.subscription?.memberCount;
+        // If it's a paid plan and they have a specific seat count, enforce that
+        if (isPaid && subMax && subMax !== -1) {
+          if (currentCount >= subMax) {
+            return res.status(403).json({
+              success: false,
+              message: config.message(subMax, currentCount),
+              code: config.errorCode,
+              currentCount,
+              maxAllowed: subMax,
+              isPaid,
+              action: "upgrade"
+            });
+          }
+        }
+        // If no seat count limit or we are under it, allow
+        return next();
+      }
+      
+      // Special case: check subscription.memberCount field for paid users (non-unlimited plans)
       const subMax = targetUser.subscription?.memberCount;
-      if (isPaid && subMax) {
+      if (isPaid && subMax && subMax !== -1) {
         if (currentCount >= subMax) {
           return res.status(403).json({
             success: false,
@@ -130,7 +154,7 @@ const validateLimit = async (resourceKey: string, req: AuthRequest, res: Respons
       currentCount = (usage as any)[config.usageField!] || 0;
     }
 
-    if (currentCount >= maxAllowed) {
+    if (maxAllowed !== -1 && currentCount >= maxAllowed) {
       return res.status(403).json({
         success: false,
         message: config.message(maxAllowed, currentCount),
