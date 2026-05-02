@@ -27,12 +27,6 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
- */
-router.get("/profile", protect, getMyProfile);
-
-/**
- * @swagger
- * /api/users/profile:
  *   patch:
  *     summary: Update user profile
  *     description: Update name, job title, department, bio, and profile picture. Uses multipart/form-data for file uploads.
@@ -64,6 +58,7 @@ router.get("/profile", protect, getMyProfile);
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
+router.get("/profile", protect, getMyProfile);
 router.patch(
   "/profile",
   protect,
