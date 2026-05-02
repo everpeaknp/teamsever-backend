@@ -30,8 +30,16 @@ const createList = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
 // @access  Private
 const getSpaceLists = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { spaceId } = req.params;
+  const { folderId } = req.query;
 
-  const lists = await listService.getSpaceLists(spaceId, req.user!.id);
+  let parsedFolderId;
+  if (folderId === 'null') {
+    parsedFolderId = null; // explicitly null
+  } else if (folderId !== undefined) {
+    parsedFolderId = folderId as string;
+  }
+
+  const lists = await listService.getSpaceLists(spaceId, req.user!.id, parsedFolderId);
 
   res.status(200).json({
     success: true,

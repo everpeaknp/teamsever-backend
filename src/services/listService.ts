@@ -133,7 +133,7 @@ class ListService {
     return list;
   }
 
-  async getSpaceLists(spaceId: string, userId: string) {
+  async getSpaceLists(spaceId: string, userId: string, folderId?: string | null) {
     console.log(`[ListService] getSpaceLists called with spaceId: ${spaceId}, userId: ${userId}`);
     
     // Import ListMember and Task models
@@ -185,12 +185,19 @@ class ListService {
 
     console.log(`[ListService] User ${userId} access check:`, { isOwner, isAdmin });
 
-    // Get all lists in the space
-    const allLists = await List.find({
+    const query: any = {
       space: spaceId,
       isDeleted: false
-    })
-      .populate("createdBy", "name email")
+    };
+
+    if (folderId !== undefined) {
+      query.folderId = folderId;
+    }
+
+    // Get all lists in the space
+    const allLists = await List.find(query)
+      .populate("createdBy", "name email profilePicture")
+      .populate("members.user", "name email profilePicture")
       .sort("-createdAt")
       .lean();
 
@@ -235,19 +242,10 @@ class ListService {
           status: 'done',
           isDeleted: false 
         });
-        
-        // Get list members for this list
-        const listMembers = await ListMember.find({
-          list: list._id
-        }).select('user').lean();
-        
-        const memberIds = listMembers.map((lm: any) => lm.user.toString());
-        
         return {
           ...list,
           taskCount,
-          completedCount,
-          members: memberIds // Add member IDs to the list
+          completedCount
         };
       })
     );
@@ -260,7 +258,8 @@ class ListService {
       _id: listId,
       isDeleted: false
     })
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email profilePicture")
+      .populate("members.user", "name email profilePicture")
       .lean();
 
     if (!list) {

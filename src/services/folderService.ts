@@ -146,7 +146,10 @@ class FolderService {
     const allListsRaw = await List.find({
       space: spaceId,
       isDeleted: false
-    }).lean();
+    })
+      .populate("createdBy", "name email profilePicture")
+      .populate("members.user", "name email profilePicture")
+      .lean();
     
     // Add task counts to each list
     const allLists = await Promise.all(
