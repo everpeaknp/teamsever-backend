@@ -89,6 +89,7 @@ const startServer = async () => {
     const tableMemberRoutes = require("./routes/tableMemberRoutes");
     const entitlementRoutes = require("./routes/entitlementRoutes");
     const paymentRoutes = require("./routes/paymentRoutes");
+    const webhookRoutes = require("./routes/webhookRoutes");
     const initializeSocketIO = require("./socket");
     const { initializeFirebase } = require("./config/firebase");
     const recurringService = require("./services/recurringService");
@@ -234,6 +235,7 @@ const startServer = async () => {
     app.use("/api/tables/:tableId/table-members", tableMemberRoutes);
     app.use("/api/entitlements", entitlementRoutes);
     app.use("/api/payment", paymentRoutes);
+    app.use("/api/webhooks", webhookRoutes);
 
     // Error handler middleware (must be last)
     const errorHandler = require("./middlewares/errorMiddleware");
