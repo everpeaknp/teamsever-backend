@@ -181,6 +181,9 @@ const startServer = async () => {
     }));
 
     // 7. Routes
+    console.log("[Server] Mounting Webhook routes at /api/webhooks");
+    app.use("/api/webhooks", webhookRoutes);
+
     app.use("/api/auth", authRoutes);
     app.use("/api/workspaces", workspaceRoutes);
     app.use("/api/workspaces/:workspaceId/spaces", workspaceSpaceRouter);
@@ -235,7 +238,6 @@ const startServer = async () => {
     app.use("/api/tables/:tableId/table-members", tableMemberRoutes);
     app.use("/api/entitlements", entitlementRoutes);
     app.use("/api/payment", paymentRoutes);
-    app.use("/api/webhooks", webhookRoutes);
 
     // Error handler middleware (must be last)
     const errorHandler = require("./middlewares/errorMiddleware");
