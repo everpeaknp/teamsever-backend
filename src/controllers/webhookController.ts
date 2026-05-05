@@ -1,4 +1,4 @@
-const { Space } = require("../models/Space");
+const Space = require("../models/Space");
 const { WorkspaceActivity } = require("../models/WorkspaceActivity");
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
