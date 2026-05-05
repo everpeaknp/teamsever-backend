@@ -876,7 +876,9 @@ class SpaceService {
     const secret = crypto.randomBytes(32).toString('hex');
 
     // Build the webhook URL using the public backend URL
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    let baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    // Remove trailing slash if present
+    baseUrl = baseUrl.replace(/\/$/, "");
     const webhookUrl = `${baseUrl}/api/webhooks/github/${spaceId}`;
 
     // Save to the space document

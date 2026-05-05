@@ -13,13 +13,22 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
   const { spaceId } = req.params;
   const signature = req.headers["x-hub-signature-256"];
 
+  console.log(`[Webhook] Received push for space: ${spaceId}`);
+
   const space = await Space.findById(spaceId);
-  if (!space || !space.githubWebhookSecret) {
-    return next(new AppError("Space or webhook secret not found", 404));
+  if (!space) {
+    console.error(`[Webhook] Space not found: ${spaceId}`);
+    return next(new AppError("Space not found", 404));
+  }
+
+  if (!space.githubWebhookSecret) {
+    console.error(`[Webhook] No secret configured for space: ${spaceId}`);
+    return next(new AppError("Webhook secret not found", 404));
   }
 
   // 1. Verify GitHub Signature (HMAC SHA-256)
   if (!signature) {
+    console.error(`[Webhook] Missing GitHub signature`);
     return next(new AppError("No signature provided", 401));
   }
 
