@@ -42,6 +42,7 @@ const workspaceActivitySchema = new mongoose.Schema(
         "space_member_removed",
         "list_member_added",
         "list_member_removed",
+        "github_commit",
       ],
       required: true,
       index: true,

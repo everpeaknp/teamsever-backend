@@ -33,16 +33,29 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
   }
 
   const hmac = cryptoNode.createHmac("sha256", space.githubWebhookSecret);
+  // Note: For perfect verification, raw body should be used. 
+  // If this fails with 401, we will need to capture raw body in server.ts
   const digest = "sha256=" + hmac.update(JSON.stringify(req.body)).digest("hex");
 
   if (signature !== digest) {
+    console.error(`[Webhook] Signature mismatch for space: ${spaceId}`);
+    // Log a small part of the digest/signature for debugging (don't log the whole thing for security)
+    console.error(`[Webhook] Expected prefix: ${digest.substring(0, 15)}...`);
     return next(new AppError("Invalid signature", 401));
+  }
+
+  // Handle GitHub Ping event
+  const githubEvent = req.headers["x-github-event"];
+  if (githubEvent === "ping") {
+    console.log(`[Webhook] Ping received for space: ${spaceId}. hook_id: ${req.body.hook_id}`);
+    return res.status(200).json({ success: true, message: "PONG" });
   }
 
   // 2. Extract commit info
   const { ref, commits, repository, pusher } = req.body;
   
   if (!commits || commits.length === 0) {
+    console.log(`[Webhook] No commits in this event (${githubEvent})`);
     return res.status(200).json({ success: true, message: "No commits found" });
   }
 
