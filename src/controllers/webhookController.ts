@@ -51,39 +51,52 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
     return res.status(200).json({ success: true, message: "PONG" });
   }
 
-  // 2. Extract commit info
-  const { ref, commits, repository, pusher } = req.body;
+  // 2. Extract commit info with safety checks
+  const { ref = "", commits = [], repository = {}, pusher = {} } = req.body;
   
-  if (!commits || commits.length === 0) {
+  if (commits.length === 0) {
     console.log(`[Webhook] No commits in this event (${githubEvent})`);
     return res.status(200).json({ success: true, message: "No commits found" });
   }
 
-  // 3. Log each commit as a WorkspaceActivity
-  const activities = await Promise.all(
-    commits.map((commit) => {
-      return WorkspaceActivity.create({
-        workspace: space.workspace,
-        space: spaceId,
-        user: null, // External event
-        type: "github_commit",
-        description: `Pushed to ${repository.name}: "${commit.message}"`,
-        metadata: {
-          repoName: repository.name,
-          commitMessage: commit.message,
-          author: commit.author.name,
-          url: commit.url,
-          branch: ref.replace("refs/heads/", ""),
-          pusher: pusher.name
-        }
-      });
-    })
-  );
+  const repoName = repository.name || "Unknown Repo";
+  const branchName = ref ? ref.replace("refs/heads/", "") : "unknown";
+  const pusherName = pusher.name || "Unknown User";
 
-  res.status(200).json({
-    success: true,
-    count: activities.length
-  });
+  console.log(`[Webhook] Processing ${commits.length} commits from ${repoName} (${branchName}) by ${pusherName}`);
+
+  try {
+    // 3. Log each commit as a WorkspaceActivity
+    const activities = await Promise.all(
+      commits.map((commit: any) => {
+        return WorkspaceActivity.create({
+          workspace: space.workspace,
+          space: spaceId,
+          user: null, // External event
+          type: "github_commit",
+          description: `Pushed to ${repoName}: "${commit.message || 'No message'}"`,
+          metadata: {
+            repoName: repoName,
+            commitMessage: commit.message || "",
+            author: commit.author?.name || pusherName,
+            url: commit.url || "",
+            branch: branchName,
+            pusher: pusherName
+          }
+        });
+      })
+    );
+
+    console.log(`[Webhook] Successfully logged ${activities.length} commits`);
+
+    res.status(200).json({
+      success: true,
+      count: activities.length
+    });
+  } catch (err: any) {
+    console.error(`[Webhook] Error saving activities: ${err.message}`);
+    return next(new AppError("Error processing webhook data", 500));
+  }
 });
 
 module.exports = {
