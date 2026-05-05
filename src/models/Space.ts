@@ -52,6 +52,14 @@ const spaceSchema = new mongoose.Schema(
     },
     deletedAt: {
       type: Date
+    },
+    githubRepoName: {
+      type: String,
+      default: null
+    },
+    githubWebhookSecret: {
+      type: String,
+      default: null
     }
   },
   {
