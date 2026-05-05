@@ -7,3 +7,5 @@ const { handleGithubPush } = require("../controllers/webhookController");
 router.post("/github/:spaceId", handleGithubPush);
 
 module.exports = router;
+
+export {};

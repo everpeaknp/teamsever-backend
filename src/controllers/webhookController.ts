@@ -2,14 +2,14 @@ const { Space } = require("../models/Space");
 const { WorkspaceActivity } = require("../models/WorkspaceActivity");
 const AppError = require("../utils/appError");
 const asyncHandler = require("../utils/asyncHandler");
-const crypto = require("crypto");
+const cryptoNode = require("crypto");
 
 /**
  * @desc    Handle GitHub push webhooks
  * @route   POST /api/webhooks/github/:spaceId
  * @access  Public (Secured by HMAC)
  */
-const handleGithubPush = asyncHandler(async (req, res, next) => {
+const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
   const { spaceId } = req.params;
   const signature = req.headers["x-hub-signature-256"];
 
@@ -23,7 +23,7 @@ const handleGithubPush = asyncHandler(async (req, res, next) => {
     return next(new AppError("No signature provided", 401));
   }
 
-  const hmac = crypto.createHmac("sha256", space.githubWebhookSecret);
+  const hmac = cryptoNode.createHmac("sha256", space.githubWebhookSecret);
   const digest = "sha256=" + hmac.update(JSON.stringify(req.body)).digest("hex");
 
   if (signature !== digest) {
@@ -67,3 +67,5 @@ const handleGithubPush = asyncHandler(async (req, res, next) => {
 module.exports = {
   handleGithubPush
 };
+
+export {};
