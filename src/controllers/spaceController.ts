@@ -139,6 +139,19 @@ const inviteExternalUsers = asyncHandler(async (req: AuthRequest, res: Response,
   });
 });
 
+// @desc    Generate or update GitHub webhook secret for a space
+// @route   POST /api/spaces/:id/webhook
+// @access  Private
+const generateWebhook = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { githubRepoName } = req.body;
+  const result = await spaceService.generateWebhook(req.params.id, req.user!.id, githubRepoName);
+
+  res.status(200).json({
+    success: true,
+    data: result
+  });
+});
+
 module.exports = {
   createSpace,
   getWorkspaceSpaces,
@@ -149,7 +162,8 @@ module.exports = {
   deleteSpace,
   addMemberToSpace,
   removeMemberFromSpace,
-  inviteExternalUsers
+  inviteExternalUsers,
+  generateWebhook
 };
 
-export {};
+export { };

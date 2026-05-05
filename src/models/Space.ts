@@ -66,4 +66,4 @@ spaceSchema.index({ "members.user": 1, isDeleted: 1 });
 
 module.exports = mongoose.model("Space", spaceSchema);
 
-export {};
+export { };

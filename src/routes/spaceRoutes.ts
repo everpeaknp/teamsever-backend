@@ -9,7 +9,8 @@ const {
   deleteSpace,
   addMemberToSpace,
   removeMemberFromSpace,
-  inviteExternalUsers
+  inviteExternalUsers,
+  generateWebhook
 } = require("../controllers/spaceController");
 const { protect } = require("../middlewares/authMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
@@ -48,7 +49,18 @@ const workspaceSpaceRouter = express.Router({ mergeParams: true });
  *       content:
  *         application/json:
  *           schema:
- *             $ref: "#/components/schemas/SpaceCreateInput"
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *               icon:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Space created successfully
@@ -166,7 +178,16 @@ const spaceRouter = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             $ref: "#/components/schemas/SpaceUpdateInput"
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *               icon:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Space updated successfully
@@ -264,7 +285,20 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/SpaceMetadataResponse"
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 workspace:
+ *                   type: string
+ *                 color:
+ *                   type: string
+ *                 icon:
+ *                   type: string
+ *                 membersCount:
+ *                   type: number
  *       401:
  *         description: Authentication required
  *         content:
@@ -304,7 +338,22 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/SpaceListMetadataResponse"
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   space:
+ *                     type: string
+ *                   workspace:
+ *                     type: string
+ *                   folder:
+ *                     type: string
+ *                     nullable: true
+ *                     description: Parent folder ID if list is inside a folder
  *       401:
  *         description: Authentication required
  *         content:
@@ -350,7 +399,12 @@ spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpa
  *       content:
  *         application/json:
  *           schema:
- *             $ref: "#/components/schemas/SpaceMemberInput"
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Member added successfully
@@ -450,7 +504,14 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  *       content:
  *         application/json:
  *           schema:
- *             $ref: "#/components/schemas/SpaceInviteInput"
+ *             type: object
+ *             required:
+ *               - emails
+ *             properties:
+ *               emails:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Invitations sent successfully
@@ -479,6 +540,8 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  */
 spaceRouter.post("/:id/invite-external", protect, requirePermission("INVITE_MEMBER"), inviteExternalUsers);
 
+spaceRouter.post("/:id/webhook", protect, generateWebhook);
+
 module.exports = { workspaceSpaceRouter, spaceRouter };
 
-export {};
+export { };

@@ -52,24 +52,24 @@ class SpaceService {
     const Plan = require("../models/Plan");
     const PlanInheritanceService = require("./planInheritanceService").default;
     const workspaceOwner = workspaceDoc.owner;
-    
+
     if (!workspaceOwner) {
       throw new AppError('Workspace owner not found', 404);
     }
-    
+
     // Get workspace owner's plan - either their paid plan or the free plan
     let planToUse = null;
-    
+
     if (workspaceOwner.subscription?.isPaid && workspaceOwner.subscription.planId) {
       // Owner has a paid subscription
       planToUse = workspaceOwner.subscription.planId;
     } else {
       // Owner is on free plan - fetch the free plan from database
-      const freePlan = await Plan.findOne({ 
-        name: { $regex: /free/i }, 
-        isActive: true 
+      const freePlan = await Plan.findOne({
+        name: { $regex: /free/i },
+        isActive: true
       });
-      
+
       if (!freePlan) {
         // If no free plan exists, allow creation (backward compatibility)
         const space = await Space.create({
@@ -116,20 +116,20 @@ class SpaceService {
 
         return space;
       }
-      
+
       planToUse = freePlan;
     }
-    
+
     // Get resolved features from workspace owner's plan
     const resolvedFeatures = await PlanInheritanceService.resolveFeatures(planToUse);
     const maxSpaces = resolvedFeatures.maxSpaces || 1;
-    
+
     // Count current spaces in workspace
     const currentSpaceCount = await Space.countDocuments({
       workspace: workspace,
       isDeleted: false
     });
-    
+
     // Check if limit is reached (only if not unlimited)
     if (maxSpaces !== -1 && currentSpaceCount >= maxSpaces) {
       throw new AppError(
@@ -194,7 +194,7 @@ class SpaceService {
   async getWorkspaceSpaces(workspaceId: string, userId: string) {
     // Import ListMember model
     const ListMember = require("../models/ListMember").ListMember;
-    
+
     // Verify user is workspace member
     const workspace = await Workspace.findOne({
       _id: workspaceId,
@@ -239,7 +239,7 @@ class SpaceService {
       spacesToReturn = allSpaces;
     } else {
       // Otherwise, filter to only spaces where user is a member OR has list access
-      
+
       // Get spaces where user is a space member
       const spacesAsMember = allSpaces.filter((space: any) => {
         return space.members?.some((m: any) => {
@@ -262,7 +262,7 @@ class SpaceService {
         ...spacesWithListAccess
       ]);
 
-      spacesToReturn = allSpaces.filter((space: any) => 
+      spacesToReturn = allSpaces.filter((space: any) =>
         accessibleSpaceIds.has(space._id.toString())
       );
     }
@@ -276,7 +276,7 @@ class SpaceService {
         const spaceId = space._id.toString();
         const folders = await folderService.getFolders(spaceId, userId);
         const allLists = await listService.getSpaceLists(spaceId, userId);
-        
+
         // Filter to only include lists that are NOT in a folder (top-level lists)
         const lists = allLists.filter((list: any) => !list.folderId);
 
@@ -298,7 +298,7 @@ class SpaceService {
       console.error(`[SpaceService] Invalid space ID format: ${spaceId}`);
       throw new AppError("Invalid space ID format", 400);
     }
-    
+
     const space = await Space.findOne({
       _id: spaceId,
       isDeleted: false
@@ -337,7 +337,7 @@ class SpaceService {
 
     const folders = await folderService.getFolders(spaceId, userId);
     const allLists = await listService.getSpaceLists(spaceId, userId);
-    
+
     // Filter to only include lists that are NOT in a folder (top-level lists)
     const lists = allLists.filter((list: any) => !list.folderId);
 
@@ -356,7 +356,7 @@ class SpaceService {
       console.error(`[SpaceService] Invalid space ID format: ${spaceId}`);
       throw new AppError("Invalid space ID format", 400);
     }
-    
+
     // Only fetch essential metadata fields
     const space = await Space.findOne({
       _id: spaceId,
@@ -401,7 +401,7 @@ class SpaceService {
     if (!mongoose.Types.ObjectId.isValid(spaceId)) {
       throw new AppError("Invalid space ID format", 400);
     }
-    
+
     // Verify space exists and user has access
     const space = await Space.findOne({
       _id: spaceId,
@@ -552,7 +552,7 @@ class SpaceService {
     // Permission Check:
     // 1. Workspace Owner bypass
     const isWorkspaceOwner = workspace.owner.toString() === userId;
-    
+
     // 2. Workspace Admin check
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
@@ -654,7 +654,7 @@ class SpaceService {
     const SpaceMember = require("../models/SpaceMember");
     await SpaceMember.findOneAndUpdate(
       { space: spaceId, user: memberId },
-      { 
+      {
         workspace: space.workspace,
         permissionLevel: finalPermissionLevel,
         addedBy: userId
@@ -798,18 +798,18 @@ class SpaceService {
       try {
         // Check if user already exists
         const existingUser = await User.findOne({ email: invite.email });
-        
+
         if (existingUser) {
           // Check if already in space
           const isInSpace = space.members.some(
             (m: any) => m.user.toString() === existingUser._id.toString()
           );
-          
+
           if (isInSpace) {
             results.push({ email: invite.email, status: 'already_member' });
             continue;
           }
-          
+
           // Add to space directly
           const permissionLevel = invite.role === 'admin' ? 'FULL' : 'EDIT';
           space.members.push({
@@ -822,7 +822,7 @@ class SpaceService {
           const SpaceMember = require("../models/SpaceMember");
           await SpaceMember.findOneAndUpdate(
             { space: spaceId, user: existingUser._id },
-            { 
+            {
               workspace: space.workspace,
               permissionLevel,
               addedBy: userId
@@ -861,8 +861,39 @@ class SpaceService {
 
     return { results };
   }
+
+  async generateWebhook(spaceId: string, userId: string, githubRepoName?: string) {
+    const space = await Space.findOne({
+      _id: spaceId,
+    });
+
+    if (!space) {
+      throw new AppError('Space not found', 404);
+    }
+
+    // Generate a cryptographically secure secret
+    const crypto = require('crypto');
+    const secret = crypto.randomBytes(32).toString('hex');
+
+    // Build the webhook URL using the public backend URL
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const webhookUrl = `${baseUrl}/api/webhooks/github/${spaceId}`;
+
+    // Save to the space document
+    (space as any).githubWebhookSecret = secret;
+    if (githubRepoName) {
+      (space as any).githubRepoName = githubRepoName;
+    }
+    await space.save();
+
+    return {
+      webhookUrl,
+      secret,
+      githubRepoName: githubRepoName || (space as any).githubRepoName || '',
+    };
+  }
 }
 
 module.exports = new SpaceService();
 
-export {};
+export { };

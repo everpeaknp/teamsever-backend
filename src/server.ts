@@ -46,7 +46,7 @@ const startServer = async () => {
   try {
     // 1. Connect to MongoDB FIRST
     await connectDB();
-    
+
     // 2. Import routes and services AFTER MongoDB is connected
     const authRoutes = require("./routes/authRoutes");
     const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
@@ -92,14 +92,14 @@ const startServer = async () => {
     const initializeSocketIO = require("./socket");
     const { initializeFirebase } = require("./config/firebase");
     const recurringService = require("./services/recurringService");
-    
+
     // 2. Initialize Firebase Admin SDK
     initializeFirebase();
-    
+
     // 3. Setup Express app
     const app = express();
     const httpServer = http.createServer(app);
-    
+
     // 4. Initialize Socket.io
     const io = initializeSocketIO(httpServer);
     app.set("io", io);
@@ -156,14 +156,14 @@ const startServer = async () => {
     app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
     app.use(express.json());
-    
+
     // 6.5. NoSQL Injection Protection - MUST be after express.json() and before routes
     app.use(sanitizeMiddleware); // Custom middleware compatible with Express v5
-    
+
     app.get("/", (_req, res) => {
       res.send("API is running...");
     });
-    
+
     // Health check endpoint
     app.get("/health", (_req, res) => {
       res.json({
@@ -234,17 +234,17 @@ const startServer = async () => {
     app.use("/api/tables/:tableId/table-members", tableMemberRoutes);
     app.use("/api/entitlements", entitlementRoutes);
     app.use("/api/payment", paymentRoutes);
-    
+
     // Error handler middleware (must be last)
     const errorHandler = require("./middlewares/errorMiddleware");
     app.use(errorHandler);
-    
+
     // 8. Start HTTP server
     const PORT = Number(process.env.PORT) || 5000;
     httpServer.listen(PORT, () => {
       console.log(`[Server] HTTP server running on port ${PORT}`);
       console.log(`[Server] WebSocket server ready`);
-      
+
       // Initialize recurring task cron job
       cron.schedule("0 * * * *", async () => {
         console.log("[Cron] Running recurring task processor...");
@@ -262,7 +262,7 @@ const startServer = async () => {
         try {
           const User = require("./models/User");
           const now = new Date();
-          
+
           // Single updateMany instead of N+1 individual saves
           const result = await User.updateMany(
             {
@@ -287,7 +287,7 @@ const startServer = async () => {
       });
       console.log("[Cron] Subscription expiry checker scheduled (runs every hour)");
     });
-    
+
     // Return for graceful shutdown
     return { httpServer, io };
   } catch (error) {
@@ -310,7 +310,7 @@ startServer().then((servers) => {
 // ============================================================================
 const gracefulShutdown = async (signal) => {
   console.log(`[Server] ${signal} received, shutting down gracefully...`);
-  
+
   // Close socket connections first to prevent "User Disconnected" flood
   try {
     console.log('[Server] Closing socket connections...');
@@ -322,16 +322,16 @@ const gracefulShutdown = async (signal) => {
   } catch (error) {
     console.error('[Server] Error closing sockets:', error);
   }
-  
+
   // All cleanup done - no queues, workers, or Redis to close
-  
+
   // Close HTTP server
   httpServer.close(() => {
     console.log("[Server] ✓ HTTP server closed");
     console.log("[Server] Shutdown complete");
     process.exit(0);
   });
-  
+
   // Force exit after 10 seconds if graceful shutdown fails
   setTimeout(() => {
     console.error("[Server] ⚠️ Forced shutdown after timeout");
@@ -342,4 +342,4 @@ const gracefulShutdown = async (signal) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-export {};
+export { };

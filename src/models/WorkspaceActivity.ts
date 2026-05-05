@@ -139,4 +139,4 @@ const WorkspaceActivity = mongoose.model("WorkspaceActivity", workspaceActivityS
 
 module.exports = WorkspaceActivity;
 
-export {};
+export { };
