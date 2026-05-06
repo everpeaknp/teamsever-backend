@@ -331,6 +331,29 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+/**
+ * Get GitHub commits for a specific space
+ * GET /api/spaces/:spaceId/commits
+ */
+const getSpaceCommits = asyncHandler(async (req: any, res: any) => {
+  const { spaceId } = req.params;
+  const { limit = 50, skip = 0 } = req.query;
+
+  const activities = await WorkspaceActivity.find({
+    space: spaceId,
+    type: "github_commit",
+  })
+    .sort({ createdAt: -1 })
+    .limit(parseInt(limit))
+    .skip(parseInt(skip))
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    data: activities,
+  });
+});
+
 module.exports = {
   getActivities,
   createComment,
@@ -340,6 +363,7 @@ module.exports = {
   addReaction,
   removeReaction,
   getUserActivity,
+  getSpaceCommits,
 };
 
 export {};

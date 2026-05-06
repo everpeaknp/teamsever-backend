@@ -378,6 +378,19 @@ router.get(
   activityController.getUserActivity
 );
 
+/**
+ * @swagger
+ * /api/spaces/{spaceId}/commits:
+ *   get:
+ *     summary: Get space GitHub commits
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
+ */
+router.get(
+  "/spaces/:spaceId/commits",
+  protect,
+  activityController.getSpaceCommits
+);
+
 module.exports = router;
 
 export {};
