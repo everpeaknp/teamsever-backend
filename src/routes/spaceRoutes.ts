@@ -10,6 +10,7 @@ const {
   addMemberToSpace,
   removeMemberFromSpace,
   inviteExternalUsers,
+  getWebhook,
   generateWebhook
 } = require("../controllers/spaceController");
 const { protect } = require("../middlewares/authMiddleware");
@@ -540,6 +541,7 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  */
 spaceRouter.post("/:id/invite-external", protect, requirePermission("INVITE_MEMBER"), inviteExternalUsers);
 
+spaceRouter.get("/:id/webhook", protect, getWebhook);
 spaceRouter.post("/:id/webhook", protect, generateWebhook);
 
 module.exports = { workspaceSpaceRouter, spaceRouter };

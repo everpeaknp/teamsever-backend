@@ -139,16 +139,42 @@ const inviteExternalUsers = asyncHandler(async (req: AuthRequest, res: Response,
   });
 });
 
+// @desc    Get space webhook details
+// @route   GET /api/spaces/:id/webhook
+// @access  Private
+const getWebhook = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const space = await spaceService.getSpaceById(id, req.user!.id);
+  
+  if (!space.githubWebhookSecret) {
+    return res.status(200).json({
+      success: true,
+      data: null
+    });
+  }
+
+  const webhookUrl = `${process.env.BACKEND_URL || 'https://teamsever-backend.onrender.com'}/api/webhooks/github/${id}`;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      webhookUrl,
+      secret: space.githubWebhookSecret,
+      githubRepoName: space.githubRepoName
+    }
+  });
+});
+
 // @desc    Generate or update GitHub webhook secret for a space
 // @route   POST /api/spaces/:id/webhook
 // @access  Private
 const generateWebhook = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { githubRepoName } = req.body;
-  const result = await spaceService.generateWebhook(req.params.id, req.user!.id, githubRepoName);
+  const webhookData = await spaceService.generateWebhook(req.params.id, req.user!.id, githubRepoName);
 
   res.status(200).json({
     success: true,
-    data: result
+    data: webhookData
   });
 });
 
@@ -163,6 +189,7 @@ module.exports = {
   addMemberToSpace,
   removeMemberFromSpace,
   inviteExternalUsers,
+  getWebhook,
   generateWebhook
 };
 
