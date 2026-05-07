@@ -16,6 +16,8 @@ export interface INotification extends Document {
     | "INVITATION"
     | "INVITE_ACCEPTED"
     | "SPACE_INVITATION"
+    | "GITHUB_COMMIT"
+    | "ANNOUNCEMENT_NEW"
     | "SYSTEM";
   title: string;
   body: string;
@@ -62,6 +64,8 @@ const notificationSchema = new Schema<INotification>(
         "INVITATION",
         "INVITE_ACCEPTED",
         "SPACE_INVITATION",
+        "GITHUB_COMMIT",
+        "ANNOUNCEMENT_NEW",
         "SYSTEM"
       ],
       required: true,
