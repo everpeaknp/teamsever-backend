@@ -204,13 +204,23 @@ class EnhancedNotificationService {
       if (!workspace) return;
 
       // Identify all members of the space + workspace owners/admins
-      const spaceMemberIds = space.members.map((m: any) => m.user?._id?.toString() || m.user?.toString());
+      const spaceMemberIds = space.members.map((m: any) => {
+        const userId = m.user?._id || m.user;
+        return userId?.toString();
+      }).filter(Boolean);
+
       const workspaceAdminIds = workspace.members
         .filter((m: any) => m.role === "admin" || m.role === "owner")
-        .map((m: any) => m.user.toString());
-      const ownerId = workspace.owner.toString();
+        .map((m: any) => {
+          const userId = m.user?._id || m.user;
+          return userId?.toString();
+        }).filter(Boolean);
+
+      const ownerId = (workspace.owner?._id || workspace.owner).toString();
 
       const allRecipientIds = [...new Set([...spaceMemberIds, ...workspaceAdminIds, ownerId])];
+      
+      console.log(`[EnhancedNotification] GitHub commit notification for space ${space.name} targeting:`, allRecipientIds);
       
       const title = `New Commit in ${space.name}`;
       const body = `${authorName} pushed to ${repoName}: "${commitMessage}"`;
