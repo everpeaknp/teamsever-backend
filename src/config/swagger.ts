@@ -108,10 +108,39 @@ const options: swaggerJsdoc.Options = {
               type: "string",
               description: "URL to profile picture"
             },
+            githubUsername: {
+              type: "string",
+              description: "Verified GitHub username"
+            },
+            jobTitle: {
+              type: "string"
+            },
+            department: {
+              type: "string"
+            },
+            bio: {
+              type: "string"
+            },
+            notificationPreferences: {
+              $ref: "#/components/schemas/NotificationPreferences"
+            },
             createdAt: {
               type: "string",
               format: "date-time"
             }
+          }
+        },
+        NotificationPreferences: {
+          type: "object",
+          properties: {
+            githubCommits: { type: "boolean", default: true },
+            taskAssigned: { type: "boolean", default: true },
+            taskStatusChange: { type: "boolean", default: true },
+            taskUpdates: { type: "boolean", default: true },
+            messages: { type: "boolean", default: true },
+            mentions: { type: "boolean", default: true },
+            comments: { type: "boolean", default: true },
+            notices: { type: "boolean", default: true }
           }
         },
         AuthResponse: {
@@ -1581,6 +1610,7 @@ const options: swaggerJsdoc.Options = {
             jobTitle: { type: "string", example: "Senior Developer" },
             department: { type: "string", example: "Platform Team" },
             bio: { type: "string", example: "Passionate about scalable systems." },
+            githubUsername: { type: "string", example: "octocat", description: "Verified via OAuth flow" },
             removeAvatar: {
               type: "string",
               enum: ["true", "false"],
@@ -2312,6 +2342,14 @@ const options: swaggerJsdoc.Options = {
       {
         name: "11.1 Personal — Sticky Notes",
         description: "Get and update a personal sticky note scoped to the user's workspace dashboard."
+      },
+      {
+        name: "12. Webhooks",
+        description: "External integration endpoints for GitHub and other third-party services."
+      },
+      {
+        name: "13. GitHub Integration",
+        description: "Configure GitHub repositories and webhooks for real-time space activity."
       }
     ]
   },
