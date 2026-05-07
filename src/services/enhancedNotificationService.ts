@@ -5,6 +5,7 @@ const DeviceToken = require("../models/DeviceToken");
 const User = require("../models/User");
 const Task = require("../models/Task");
 const Workspace = require("../models/Workspace");
+const AppError = require("../utils/AppError");
 const { getMessaging, isFirebaseConfigured } = require("../config/firebase");
 const logger = require("../utils/logger");
 
@@ -24,6 +25,7 @@ type NotificationType =
   | "FILE_UPLOAD"
   | "INVITE_ACCEPTED"
   | "ANNOUNCEMENT_NEW"
+  | "GITHUB_COMMIT"
   | "SYSTEM";
 
 interface NotificationData {
@@ -161,6 +163,10 @@ class EnhancedNotificationService {
         .filter((id: string) => id !== authorId);
 
       for (const recipientId of recipients) {
+        // Check preferences
+        const user = await User.findById(recipientId).select("notificationPreferences").lean();
+        if (user?.notificationPreferences?.notices === false) continue;
+
         await this.createNotification({
           recipientId,
           type: "ANNOUNCEMENT_NEW",
@@ -176,6 +182,65 @@ class EnhancedNotificationService {
       }
     } catch (error) {
       console.error("[Notification] Failed to notify announcement created:", error);
+    }
+  }
+  
+  /**
+   * Notify members of a space about a new GitHub commit
+   */
+  async notifyGithubCommit(
+    spaceId: string,
+    repoName: string,
+    commitMessage: string,
+    authorName: string,
+    url?: string
+  ): Promise<void> {
+    try {
+      const Space = require("../models/Space");
+      const space = await Space.findById(spaceId).populate("members.user").lean();
+      if (!space) return;
+
+      const workspace = await Workspace.findById(space.workspace).lean();
+      if (!workspace) return;
+
+      // Identify all members of the space + workspace owners/admins
+      const spaceMemberIds = space.members.map((m: any) => m.user?._id?.toString() || m.user?.toString());
+      const workspaceAdminIds = workspace.members
+        .filter((m: any) => m.role === "admin" || m.role === "owner")
+        .map((m: any) => m.user.toString());
+      const ownerId = workspace.owner.toString();
+
+      const allRecipientIds = [...new Set([...spaceMemberIds, ...workspaceAdminIds, ownerId])];
+      
+      const title = `New Commit in ${space.name}`;
+      const body = `${authorName} pushed to ${repoName}: "${commitMessage}"`;
+
+      for (const recipientId of allRecipientIds) {
+        // Fetch user to check preferences
+        const user = await User.findById(recipientId).select("notificationPreferences").lean();
+        
+        // Skip if user has disabled commit notifications (defaults to true if preference is missing)
+        if (user?.notificationPreferences?.githubCommits === false) {
+          continue;
+        }
+
+        await this.createNotification({
+          recipientId,
+          type: "GITHUB_COMMIT",
+          title,
+          body,
+          data: {
+            resourceId: spaceId,
+            resourceType: "Space",
+            workspaceId: space.workspace.toString(),
+            spaceId,
+            repoName,
+            url,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("[Notification] Failed to notify github commit:", error);
     }
   }
 
@@ -256,6 +321,17 @@ class EnhancedNotificationService {
 
       // Send notification to each recipient
       for (const recipientId of uniqueRecipients) {
+        // Check preferences
+        const user = await User.findById(recipientId).select("notificationPreferences").lean();
+        
+        if (updateType === "status") {
+          if (user?.notificationPreferences?.taskStatusChange === false) continue;
+        } else if (updateType === "assignee") {
+          if (user?.notificationPreferences?.taskAssigned === false) continue;
+        } else {
+          if (user?.notificationPreferences?.taskUpdates === false) continue;
+        }
+
         await this.createNotification({
           recipientId,
           type,
@@ -315,6 +391,10 @@ class EnhancedNotificationService {
 
       // Notify participants
       for (const recipientId of uniqueRecipients) {
+        // Check preferences
+        const user = await User.findById(recipientId).select("notificationPreferences").lean();
+        if (user?.notificationPreferences?.comments === false) continue;
+
         await this.createNotification({
           recipientId,
           type: "COMMENT_ADDED",
@@ -333,6 +413,10 @@ class EnhancedNotificationService {
       // Notify mentioned users
       for (const mentionedUserId of mentions) {
         if (mentionedUserId !== authorId) {
+          // Check preferences
+          const user = await User.findById(mentionedUserId).select("notificationPreferences").lean();
+          if (user?.notificationPreferences?.mentions === false) continue;
+
           await this.createNotification({
             recipientId: mentionedUserId,
             type: "COMMENT_MENTION",
@@ -457,6 +541,10 @@ class EnhancedNotificationService {
       const sender = await User.findById(senderId).select("name").lean();
       const senderName = sender?.name || "Someone";
       const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+
+      // Check preferences
+      const user = await User.findById(recipientId).select("notificationPreferences").lean();
+      if (user?.notificationPreferences?.messages === false) return;
 
       await this.createNotification({
         recipientId,

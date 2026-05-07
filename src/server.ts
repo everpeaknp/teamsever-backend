@@ -141,7 +141,7 @@ const startServer = async () => {
     // General API: 500 requests per 15 min per IP
     const generalLimiter = rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 500,
+      max: 5000,
       skip: (req) => req.method === "OPTIONS",
       message: { success: false, message: "Too many requests from this IP. Try again later." }
     });

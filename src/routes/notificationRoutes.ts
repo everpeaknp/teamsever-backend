@@ -11,39 +11,28 @@ const {
 // All routes require authentication
 router.use(protect);
 
+// This file is mounted at /api/notifications/devices
+// So routes here resolve to /api/notifications/devices/...
+
 /**
  * @swagger
  * /api/notifications/devices/fcm-token:
  *   post:
- *     summary: Register FCM token
- *     description: Register Firebase Cloud Messaging token for web push notifications
+ *     summary: Register FCM token (Simplified)
+ *     description: Register a raw FCM token for the current user.
  *     tags: ["10.3 Utilities — Push Notification Devices"]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - token
+ *             required: [fcmToken]
  *             properties:
- *               token:
- *                 type: string
+ *               fcmToken: { type: string }
  *     responses:
  *       200:
- *         description: FCM token registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/DeviceRegistrationResponse"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
+ *         description: Token registered
  */
 router.post("/fcm-token", notificationController.registerFCMToken);
 
@@ -51,120 +40,55 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  * @swagger
  * /api/notifications/devices/register:
  *   post:
- *     summary: Register device
- *     description: Register a device for push notifications
+ *     summary: Register device details
+ *     description: Register full device details including platform and FCM token.
  *     tags: ["10.3 Utilities — Push Notification Devices"]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - token
- *               - platform
+ *             required: [token, platform]
  *             properties:
- *               token:
- *                 type: string
- *               platform:
- *                 type: string
- *                 enum: [web, ios, android]
+ *               token: { type: string }
+ *               platform: { type: string, enum: [web, ios, android] }
  *     responses:
  *       200:
- *         description: Device registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/DeviceRegistrationResponse"
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
+ *         description: Device registered
  */
-router.post(
-  "/register",
-  validate(registerDeviceSchema),
-  notificationController.registerDevice
-);
+router.post("/register", validate(registerDeviceSchema), notificationController.registerDevice);
 
 /**
  * @swagger
  * /api/notifications/devices/unregister:
  *   delete:
  *     summary: Unregister device
- *     description: Unregister a device from push notifications
  *     tags: ["10.3 Utilities — Push Notification Devices"]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - token
+ *             required: [token]
  *             properties:
- *               token:
- *                 type: string
+ *               token: { type: string }
  *     responses:
  *       200:
- *         description: Device unregistered successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/DeviceRegistrationResponse"
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
+ *         description: Device unregistered
  */
-router.delete(
-  "/unregister",
-  validate(unregisterDeviceSchema),
-  notificationController.unregisterDevice
-);
+router.delete("/unregister", validate(unregisterDeviceSchema), notificationController.unregisterDevice);
 
 /**
  * @swagger
  * /api/notifications/devices:
  *   get:
- *     summary: Get registered devices
- *     description: Retrieve all registered devices for the current user
+ *     summary: List registered devices
  *     tags: ["10.3 Utilities — Push Notification Devices"]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Devices retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/DeviceListResponse"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
+ *         description: Success
  */
 router.get("/", notificationController.getDevices);
 
