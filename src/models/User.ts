@@ -6,6 +6,7 @@ interface IUser extends Document {
   password: string;
   profilePicture?: string;
   googleId?: string;
+  githubUsername?: string;
   isSuperUser?: boolean;
   passwordResetToken?: string;
   passwordResetTokenExpires?: Date;
@@ -37,6 +38,16 @@ interface IUser extends Document {
       maxMembersPerPrivateChannel?: number;
     };
   };
+  notificationPreferences?: {
+    githubCommits: boolean;
+    taskAssigned: boolean;
+    taskStatusChange: boolean;
+    taskUpdates: boolean;
+    messages: boolean;
+    mentions: boolean;
+    comments: boolean;
+    notices: boolean;
+  };
 }
 
 const userSchema = new mongoose.Schema(
@@ -46,9 +57,20 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     profilePicture: { type: String },
     googleId: { type: String },
+    githubUsername: { type: String },
     isSuperUser: {
       type: Boolean,
       default: false
+    },
+    notificationPreferences: {
+      githubCommits: { type: Boolean, default: true },
+      taskAssigned: { type: Boolean, default: true },
+      taskStatusChange: { type: Boolean, default: true },
+      taskUpdates: { type: Boolean, default: true },
+      messages: { type: Boolean, default: true },
+      mentions: { type: Boolean, default: true },
+      comments: { type: Boolean, default: true },
+      notices: { type: Boolean, default: true },
     },
     passwordResetToken: {
       type: String

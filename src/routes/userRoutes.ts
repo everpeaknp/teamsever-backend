@@ -1,5 +1,5 @@
 const express = require("express");
-const { getMyProfile, updateProfile } = require("../controllers/userController");
+const { getMyProfile, updateProfile, updateNotificationPreferences } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddleware");
 
@@ -66,6 +66,34 @@ router.patch(
   handleUploadError,
   updateProfile
 );
+
+/**
+ * @swagger
+ * /api/users/notification-preferences:
+ *   patch:
+ *     summary: Update notification preferences
+ *     description: Toggle notifications for GitHub commits, tasks, messages, etc.
+ *     tags: ["1.2 Auth — Password & Profile"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: "#/components/schemas/NotificationPreferences"
+ *     responses:
+ *       200:
+ *         description: Preferences updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: "object"
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 data: { $ref: "#/components/schemas/NotificationPreferences" }
+ */
+router.patch("/notification-preferences", protect, updateNotificationPreferences);
 
 module.exports = router;
 export {};

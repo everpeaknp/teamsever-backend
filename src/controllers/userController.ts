@@ -25,7 +25,7 @@ export const getMyProfile = asyncHandler(async (req: any, res: any) => {
  * PATCH /api/users/profile
  */
 export const updateProfile = asyncHandler(async (req: any, res: any) => {
-  const { name, jobTitle, department, bio, removeAvatar } = req.body;
+  const { name, jobTitle, department, bio, githubUsername, removeAvatar } = req.body;
   const userId = req.user.id;
   const file = req.file;
 
@@ -39,6 +39,7 @@ export const updateProfile = asyncHandler(async (req: any, res: any) => {
   if (jobTitle !== undefined) (user as any).jobTitle = jobTitle;
   if (department !== undefined) (user as any).department = department;
   if (bio !== undefined) (user as any).bio = bio;
+  if (githubUsername !== undefined) (user as any).githubUsername = githubUsername;
 
   // Handle avatar
   if (file) {
@@ -62,7 +63,63 @@ export const updateProfile = asyncHandler(async (req: any, res: any) => {
       profilePicture: user.profilePicture,
       jobTitle: (user as any).jobTitle,
       department: (user as any).department,
-      bio: (user as any).bio
+      bio: (user as any).bio,
+      notificationPreferences: (user as any).notificationPreferences
     }
+  });
+});
+
+/**
+ * Update user notification preferences
+ * PATCH /api/users/notification-preferences
+ */
+export const updateNotificationPreferences = asyncHandler(async (req: any, res: any) => {
+  const { 
+    githubCommits, 
+    taskAssigned, 
+    taskStatusChange,
+    taskUpdates,
+    messages,
+    mentions, 
+    comments,
+    notices
+  } = req.body;
+  const userId = req.user.id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (!user.notificationPreferences) {
+    (user as any).notificationPreferences = {
+      githubCommits: true,
+      taskAssigned: true,
+      taskStatusChange: true,
+      taskUpdates: true,
+      messages: true,
+      mentions: true,
+      comments: true,
+      notices: true
+    };
+  }
+
+  const prefs = (user as any).notificationPreferences;
+  if (githubCommits !== undefined) prefs.githubCommits = githubCommits;
+  if (taskAssigned !== undefined) prefs.taskAssigned = taskAssigned;
+  if (taskStatusChange !== undefined) prefs.taskStatusChange = taskStatusChange;
+  if (taskUpdates !== undefined) prefs.taskUpdates = taskUpdates;
+  if (messages !== undefined) prefs.messages = messages;
+  if (mentions !== undefined) prefs.mentions = mentions;
+  if (comments !== undefined) prefs.comments = comments;
+  if (notices !== undefined) prefs.notices = notices;
+
+  user.markModified('notificationPreferences');
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "Notification preferences updated",
+    data: user.notificationPreferences
   });
 });

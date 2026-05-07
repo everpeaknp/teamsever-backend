@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser, loginUser, googleAuth, requestPasswordReset, resetPassword } = require("../controllers/authController");
+const { registerUser, loginUser, googleAuth, githubAuth, requestPasswordReset, resetPassword } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -95,6 +95,41 @@ router.post("/login", loginUser);
  *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/google", googleAuth);
+
+/**
+ * @swagger
+ * /api/auth/github:
+ *   post:
+ *     summary: GitHub OAuth authentication
+ *     description: Authenticate user with GitHub OAuth token (Firebase ID Token)
+ *     tags: ["1.1 Auth — Login & Registration"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Firebase ID Token from GitHub sign-in
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/AuthResponse"
+ *       401:
+ *         description: Invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ */
+router.post("/github", githubAuth);
 
 /**
  * @swagger

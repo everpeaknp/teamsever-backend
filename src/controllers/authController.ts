@@ -158,6 +158,79 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+const githubAuth = asyncHandler(async (req: any, res: any) => {
+  console.log("[GitHub Auth] Request received");
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    throw new AppError("ID token is required", 400);
+  }
+
+  // Check if Firebase Admin is initialized
+  if (!admin.apps || admin.apps.length === 0) {
+    throw new AppError("Firebase Admin SDK not configured.", 500);
+  }
+
+  // Verify the Firebase ID token
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(idToken);
+  } catch (error: any) {
+    throw new AppError(`Invalid ID token: ${error.message}`, 401);
+  }
+
+  const { email, name, picture, uid, firebase } = decodedToken;
+  
+  // Extract GitHub username if available in the token (identities object)
+  const githubUsername = firebase?.identities?.['github.com']?.[0] || "";
+
+  if (!email) {
+    throw new AppError("Email not found in token", 400);
+  }
+
+  // Check if user exists (case-insensitive)
+  let user = await User.findOne({ email: email.toLowerCase() });
+
+  if (!user) {
+    // Create new user with GitHub auth
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    user = await User.create({
+      name: name || email.split('@')[0],
+      email: email.toLowerCase(),
+      password: await bcrypt.hash(randomPassword, 10),
+      profilePicture: picture || undefined,
+      githubUsername: githubUsername,
+    });
+  } else {
+    // Always update GitHub info
+    if (githubUsername) user.githubUsername = githubUsername;
+    
+    // Update profile picture if user doesn't have one
+    if (picture && !user.profilePicture) {
+      user.profilePicture = picture;
+    }
+    
+    await user.save();
+  }
+
+  const token = generateToken(user._id.toString(), user.email, user.name);
+
+  res.json({
+    success: true,
+    message: "Logged in with GitHub successfully",
+    data: {
+      token: token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        isSuperUser: user.isSuperUser || false
+      }
+    }
+  });
+});
+
 const requestPasswordReset = asyncHandler(async (req: any, res: any) => {
   const rawEmail = String(req.body?.email || '').trim();
   const email = rawEmail.toLowerCase();
@@ -243,5 +316,5 @@ const resetPassword = asyncHandler(async (req: any, res: any) => {
   res.json({ success: true, message: "Password reset successfully" });
 });
 
-module.exports = { registerUser, loginUser, googleAuth, requestPasswordReset, resetPassword };
+module.exports = { registerUser, loginUser, googleAuth, githubAuth, requestPasswordReset, resetPassword };
 export {};
