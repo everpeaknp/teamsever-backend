@@ -106,6 +106,24 @@ const emitTaskEvent = (
 };
 
 /**
+ * Emit chat message event
+ * Broadcasts to channel room
+ */
+const emitChatMessage = (
+  channelId: string,
+  message: any
+): void => {
+  const socketIo = getIO();
+  if (!socketIo) return;
+  
+  try {
+    socketIo.to(`channel:${channelId}`).emit("chat:new", { message });
+  } catch (error) {
+    // Silent fail
+  }
+};
+
+/**
  * Emit to specific user by user ID
  * Uses socketService for efficient multi-device delivery
  */
@@ -136,6 +154,7 @@ module.exports = {
   emitWorkspaceEvent,
   emitSpaceEvent,
   emitTaskEvent,
+  emitChatMessage,
   emitToUser,
   getWorkspaceOnlineCount
 };

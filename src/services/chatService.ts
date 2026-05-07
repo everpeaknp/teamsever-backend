@@ -342,6 +342,20 @@ class ChatService {
       }
     }
 
+    // Broadcast to channel room via socket
+    const { emitChatMessage } = require("../socket/events");
+    emitChatMessage(targetChannelId, {
+      _id: message._id,
+      workspace: message.workspace,
+      channel: targetChannelId,
+      sender: message.sender,
+      content: message.content,
+      type: message.type,
+      mentions: message.mentions,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+    });
+
     return message;
   }
 
