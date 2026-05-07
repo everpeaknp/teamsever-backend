@@ -54,6 +54,7 @@ const getChannelMessages = asyncHandler(async (req: any, res: any) => {
   const result = await chatService.getChannelMessages(channelId, userId, {
     page: page ? parseInt(page) : undefined,
     limit: limit ? parseInt(limit) : undefined,
+    userId: req.query.userId, // Filter by user if provided
   });
 
   res.status(200).json({
@@ -165,6 +166,7 @@ const getWorkspaceMessages = asyncHandler(async (req: any, res: any) => {
     workspaceId,
     page: page ? parseInt(page) : undefined,
     limit: limit ? parseInt(limit) : undefined,
+    userId: req.query.userId, // Filter by user if provided
   });
 
   res.status(200).json({

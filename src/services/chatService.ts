@@ -371,10 +371,15 @@ class ChatService {
     const skip = (page - 1) * limit;
 
     // Build query
-    const query = {
+    const query: any = {
       channel: channelId,
       isDeleted: false,
     };
+
+    // Optional: Filter by specific user (sender)
+    if ((options as any).userId) {
+      query.sender = (options as any).userId;
+    }
 
     // Get total count
     const total = await ChatMessage.countDocuments(query);
