@@ -169,11 +169,27 @@ class DirectMessageService {
   }
 
   /**
-   * Get user's conversations
+   * Get user's conversations, optionally filtered by workspace members
    */
-  async getConversations(userId: string): Promise<any[]> {
+  async getConversations(userId: string, workspaceId?: string): Promise<any[]> {
+    let participantFilter: any = userId;
+
+    if (workspaceId) {
+      const Workspace = require("../models/Workspace");
+      const workspace = await Workspace.findById(workspaceId).select("members").lean();
+      if (workspace) {
+        const memberIds = workspace.members.map((m: any) => m.user.toString());
+        // Only include conversations where at least one other participant is in the workspace
+        // (In a 1:1 DM, the other participant must be in the workspace)
+        participantFilter = {
+          $all: [userId],
+          $in: memberIds
+        };
+      }
+    }
+
     const conversations = await Conversation.find({
-      participants: userId,
+      participants: participantFilter,
     })
       .populate("participants", "name email avatar profilePicture")
       .populate({

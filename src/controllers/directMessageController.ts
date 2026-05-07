@@ -66,8 +66,9 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
  */
 const getConversations = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
+  const { workspaceId } = req.query;
 
-  const conversations = await directMessageService.getConversations(userId);
+  const conversations = await directMessageService.getConversations(userId, workspaceId);
 
   res.status(200).json({
     success: true,
