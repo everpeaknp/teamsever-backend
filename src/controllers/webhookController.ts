@@ -3,6 +3,11 @@ const WorkspaceActivity = require("../models/WorkspaceActivity");
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const cryptoNode = require("crypto");
+const enhancedNotificationService = require("../services/enhancedNotificationService");
+const User = require("../models/User");
+const ChatMessage = require("../models/ChatMessage");
+const ChatChannel = require("../models/ChatChannel");
+const chatService = require("../services/chatService");
 
 /**
  * @desc    Handle GitHub push webhooks
@@ -68,17 +73,39 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
   try {
     // 3. Log each commit as a WorkspaceActivity
     const activities = await Promise.all(
-      commits.map((commit: any) => {
+      commits.map(async (commit: any) => {
+        // Try to find a platform user by author email or github username
+        const authorEmail = commit.author?.email;
+        const authorUsername = commit.author?.username || commit.committer?.username;
+        let foundUser = null;
+
+        if (authorEmail) {
+          foundUser = await User.findOne({ email: authorEmail }).select("_id");
+        }
+
+        if (!foundUser && authorUsername) {
+          foundUser = await User.findOne({ 
+            githubUsername: { $regex: new RegExp(`^${authorUsername}$`, "i") } 
+          }).select("_id");
+        }
+
+        if (!foundUser && pusherName) {
+          foundUser = await User.findOne({ 
+            githubUsername: { $regex: new RegExp(`^${pusherName}$`, "i") } 
+          }).select("_id");
+        }
+
         return WorkspaceActivity.create({
           workspace: space.workspace,
           space: spaceId,
-          user: null, // External event
+          user: foundUser ? foundUser._id : null,
           type: "github_commit",
           description: `Pushed to ${repoName}: "${commit.message || 'No message'}"`,
           metadata: {
             repoName: repoName,
             commitMessage: commit.message || "",
             author: commit.author?.name || pusherName,
+            authorEmail: authorEmail,
             url: commit.url || "",
             branch: branchName,
             pusher: pusherName
@@ -89,9 +116,71 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
 
     console.log(`[Webhook] Successfully logged ${activities.length} commits`);
 
+    // Trigger notifications for the push
+    const firstCommit = commits[0] || {};
+    const authorName = firstCommit.author?.name || pusherName;
+    const commitMessage = commits.length > 1 
+      ? `${firstCommit.message} (+ ${commits.length - 1} more)`
+      : firstCommit.message || "No message";
+
+    enhancedNotificationService.notifyGithubCommit(
+      spaceId,
+      repoName,
+      commitMessage,
+      authorName,
+      req.body.compare
+    ).catch((err: any) => console.error("[Webhook] Notification failed:", err));
+    
+    // 4. POST TO COMMIT LOG CHANNEL
+    try {
+      const commitLogChannel = await chatService.getOrCreateCommitLogChannel(space.workspace.toString());
+      
+      if (commitLogChannel) {
+        // Find a sender: either the foundUser from the first commit, or workspace owner
+        const firstActivity = activities[0];
+        const workspace = await require("../models/Workspace").findById(space.workspace).select("owner").lean();
+        const senderId = firstActivity?.user || workspace?.owner;
+
+        if (senderId) {
+          // Prepare chat content
+          const commitCount = commits.length;
+          const content = commitCount > 1 
+            ? `Pushed ${commitCount} commits to ${repoName} [${branchName}]`
+            : `Pushed a commit to ${repoName} [${branchName}]: "${commitMessage}"`;
+
+          await ChatMessage.create({
+            workspace: space.workspace,
+            channel: commitLogChannel._id,
+            sender: senderId,
+            type: "github_commit",
+            content: content,
+            metadata: {
+              repoName,
+              branchName,
+              spaceName: space.name,
+              commits: commits.map((c: any) => ({
+                message: c.message,
+                url: c.url,
+                author: c.author?.name || pusherName
+              })),
+              compareUrl: req.body.compare
+            }
+          });
+          
+          // Update channel last message
+          await ChatChannel.findByIdAndUpdate(commitLogChannel._id, { lastMessageAt: new Date() });
+          
+          console.log(`[Webhook] Posted commit notification to channel: ${commitLogChannel.name}`);
+        }
+      }
+    } catch (chatErr: any) {
+      console.error(`[Webhook] Failed to post to chat: ${chatErr.message}`);
+      // Don't fail the webhook if chat post fails
+    }
+
     res.status(200).json({
       success: true,
-      count: activities.length
+      message: `Successfully logged ${activities.length} commits`,
     });
   } catch (err: any) {
     console.error(`[Webhook] Error saving activities: ${err.message}`);

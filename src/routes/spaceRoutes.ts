@@ -541,6 +541,119 @@ spaceRouter.delete("/:id/members/:userId", protect, requirePermission("REMOVE_SP
  */
 spaceRouter.post("/:id/invite-external", protect, requirePermission("INVITE_MEMBER"), inviteExternalUsers);
 
+/**
+ * @swagger
+ * /api/spaces/{id}/webhook:
+ *   get:
+ *     summary: Get GitHub webhook configuration
+ *     description: Retrieve the webhook URL and secret for connecting a GitHub repository to this space.
+ *     tags: ["13. GitHub Integration"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Webhook config retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     webhookUrl: { type: string, description: "URL to paste into GitHub Webhook settings" }
+ *                     secret: { type: string, description: "HMAC secret for signature verification" }
+ *                     githubRepoName: { type: string, nullable: true }
+ *   post:
+ *     summary: Generate GitHub webhook secret
+ *     description: Generate or rotate the HMAC secret and link a repository name to this space.
+ *     tags: ["13. GitHub Integration"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [githubRepoName]
+ *             properties:
+ *               githubRepoName: { type: string, example: "my-org/my-repo" }
+ *     responses:
+ *       200:
+ *         description: Webhook secret generated successfully
+ */
+/**
+ * @swagger
+ * /api/spaces/{id}/webhook:
+ *   get:
+ *     summary: Get GitHub webhook configuration
+ *     description: Retrieve the webhook URL and secret for connecting a GitHub repository to this space.
+ *     tags: ["13. GitHub Integration"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Webhook configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     webhookUrl: { type: string, description: "The URL you must paste into GitHub repository settings" }
+ *                     secret: { type: string, description: "The HMAC secret used for signature verification" }
+ *                     githubRepoName: { type: string, nullable: true, description: "The linked repository name (e.g., owner/repo)" }
+ *   post:
+ *     summary: Setup GitHub repo for space
+ *     description: Generate an HMAC secret and link a GitHub repository name to this space.
+ *     tags: ["13. GitHub Integration"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [githubRepoName]
+ *             properties:
+ *               githubRepoName: { type: string, example: "everacy/teamsever-backend", description: "Full GitHub repository name" }
+ *     responses:
+ *       200:
+ *         description: Webhook secret generated and repository linked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data: { type: object, properties: { secret: { type: string }, githubRepoName: { type: string } } }
+ */
 spaceRouter.get("/:id/webhook", protect, getWebhook);
 spaceRouter.post("/:id/webhook", protect, generateWebhook);
 

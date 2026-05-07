@@ -100,37 +100,74 @@ class ChatService {
   }
 
   /**
-   * Get or create default channel (#general)
+   * Get or create default channels (#general and #commit-log)
    */
-  async getOrCreateDefaultChannel(workspaceId: string, creatorId?: string): Promise<any> {
-    let channel = await ChatChannel.findOne({
+  async getOrCreateDefaultChannels(workspaceId: string, creatorId?: string): Promise<any> {
+    // 1. General Channel
+    let generalChannel = await ChatChannel.findOne({
       workspace: workspaceId,
-      isDefault: true,
+      name: "General",
       isDeleted: false,
     });
 
-    if (!channel) {
-      // If no creatorId provided, use the workspace owner
+    if (!generalChannel) {
       if (!creatorId) {
         const workspace = await Workspace.findById(workspaceId).select("owner").lean();
         creatorId = workspace?.owner?.toString();
       }
 
-      if (!creatorId) {
-        throw new AppError("Cannot determine creator for default channel", 500);
+      if (creatorId) {
+        generalChannel = await ChatChannel.create({
+          workspace: workspaceId,
+          name: "General",
+          description: "Workspace-wide chat for all members",
+          type: "public",
+          isDefault: true,
+          createdBy: creatorId,
+        });
       }
-
-      channel = await ChatChannel.create({
-        workspace: workspaceId,
-        name: "General",
-        description: "Workspace-wide chat for all members",
-        type: "public",
-        isDefault: true,
-        createdBy: creatorId,
-      });
+    } else if (!generalChannel.isDefault) {
+      // Fix migration issue if name exists but not marked as default
+      generalChannel.isDefault = true;
+      await generalChannel.save();
     }
 
-    return channel;
+    // 2. Commit Log Channel
+    let commitLogChannel = await ChatChannel.findOne({
+      workspace: workspaceId,
+      name: "Commit Log",
+      isDeleted: false,
+    });
+
+    if (!commitLogChannel) {
+      if (!creatorId) {
+        const workspace = await Workspace.findById(workspaceId).select("owner").lean();
+        creatorId = workspace?.owner?.toString();
+      }
+
+      if (creatorId) {
+        commitLogChannel = await ChatChannel.create({
+          workspace: workspaceId,
+          name: "Commit Log",
+          description: "Automated logs for all repository commits in this workspace",
+          type: "public",
+          isDefault: false, // It's a special channel, but only 'General' is the true 'isDefault' for landing
+          createdBy: creatorId,
+        });
+      }
+    }
+
+    return { generalChannel, commitLogChannel };
+  }
+
+  async getOrCreateDefaultChannel(workspaceId: string, creatorId?: string): Promise<any> {
+    const { generalChannel } = await this.getOrCreateDefaultChannels(workspaceId, creatorId);
+    return generalChannel;
+  }
+
+  async getOrCreateCommitLogChannel(workspaceId: string, creatorId?: string): Promise<any> {
+    const { commitLogChannel } = await this.getOrCreateDefaultChannels(workspaceId, creatorId);
+    return commitLogChannel;
   }
 
   /**
@@ -196,8 +233,8 @@ class ChatService {
     const { membership } = await this.validateWorkspaceMembership(workspaceId, userId);
     const isAdmin = membership.role === 'admin' || membership.role === 'owner';
 
-    // Ensure default channel exists
-    await this.getOrCreateDefaultChannel(workspaceId, userId);
+    // Ensure default channels exist
+    await this.getOrCreateDefaultChannels(workspaceId, userId);
 
     // Find all public channels OR private channels where user is a member
     // Admins/Owners can see ALL channels
@@ -425,7 +462,13 @@ class ChatService {
       throw new AppError("Not authorized to update this channel settings", 403);
     }
 
-    if (updateData.name) {
+    const isSystemChannel = channel.name === "General" || channel.name === "Commit Log";
+
+    if (updateData.name && updateData.name !== channel.name) {
+      if (isSystemChannel) {
+        throw new AppError(`The ${channel.name} channel is permanent and cannot be renamed`, 400);
+      }
+      
       // Ensure name is unique in workspace
       const existing = await ChatChannel.findOne({ 
         workspace: workspaceId, 
@@ -439,8 +482,8 @@ class ChatService {
 
     if (updateData.description !== undefined) channel.description = updateData.description;
     
-    // Only allow changing type if it's not the default channel
-    if (updateData.type && !channel.isDefault) {
+    // Only allow changing type if it's not a system channel
+    if (updateData.type && !isSystemChannel) {
       channel.type = updateData.type;
     }
 
