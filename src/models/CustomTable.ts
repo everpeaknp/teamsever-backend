@@ -16,6 +16,7 @@ export interface IRow {
 
 export interface ICustomTable extends Document {
   spaceId: Schema.Types.ObjectId;
+  folderId?: Schema.Types.ObjectId | null;
   name: string;
   columns: IColumn[];
   rows: IRow[];
@@ -31,6 +32,12 @@ const customTableSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Space",
       required: true,
+      index: true
+    },
+    folderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Folder",
+      default: null,
       index: true
     },
     name: {
@@ -125,6 +132,7 @@ const customTableSchema = new mongoose.Schema(
 
 // Compound index for efficient queries
 customTableSchema.index({ spaceId: 1, isDeleted: 1 });
+customTableSchema.index({ folderId: 1, isDeleted: 1 });
 
 module.exports = mongoose.model("CustomTable", customTableSchema);
 export {};

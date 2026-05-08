@@ -1,4 +1,5 @@
 const Activity = require("../models/Activity");
+const ActivityLog = require("../models/ActivityLog");
 const Task = require("../models/Task");
 const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
@@ -473,7 +474,7 @@ class ActivityService {
   }) {
     const { userId, performedBy, workspaceId, spaceId, listId, limit = 50, skip = 0, startDate, endDate } = params;
 
-    // Build query
+    // Build query for rich Activity model
     const query: any = { isDeleted: false };
 
     if (workspaceId) query.workspace = workspaceId;
@@ -487,15 +488,17 @@ class ActivityService {
     }
 
     // If listId is provided, get all tasks in that list first
+    let taskIds: any[] = [];
+    let taskIdToTitle = new Map<string, string>();
     if (listId) {
       const Task = require("../models/Task");
       const tasks = await Task.find({ list: listId, isDeleted: false }).select('_id');
-      const taskIds = tasks.map((t: any) => t._id);
+      taskIds = tasks.map((t: any) => t._id);
       query.task = { $in: taskIds };
     }
 
-    // Get activities
-    const activities = await Activity.find(query)
+    // Get activities from Activity model
+    const primaryActivities = await Activity.find(query)
       .populate("user", "name email avatar")
       .populate("task", "title status")
       .sort("-createdAt")
@@ -503,7 +506,101 @@ class ActivityService {
       .skip(skip)
       .lean();
 
-    return activities;
+    // Build task title map for fallback logs
+    if (listId) {
+      const fullTasks = await Task.find({ list: listId, isDeleted: false }).select("_id title");
+      taskIdToTitle = new Map(fullTasks.map((t: any) => [t._id.toString(), t.title || "Task"]));
+    }
+
+    // Fallback/merge from ActivityLog for operational task events
+    let fallbackActivities: any[] = [];
+    if (listId && taskIds.length > 0) {
+      const logQuery: any = {
+        resourceType: "Task",
+        resourceId: { $in: taskIds },
+      };
+      if (workspaceId) logQuery.workspaceId = workspaceId;
+      if (performedBy) logQuery.userId = performedBy;
+      if (startDate || endDate) {
+        logQuery.createdAt = {};
+        if (startDate) logQuery.createdAt.$gte = new Date(startDate);
+        if (endDate) logQuery.createdAt.$lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+      }
+
+      const logs = await ActivityLog.find(logQuery)
+        .populate("userId", "name email avatar")
+        .sort("-createdAt")
+        .limit(limit)
+        .skip(skip)
+        .lean();
+
+      fallbackActivities = logs.map((log: any) => {
+        const action = log.action;
+        const metadata = log.metadata || {};
+        const taskId = log.resourceId?.toString();
+        const taskTitle = metadata.title || taskIdToTitle.get(taskId) || "Task";
+
+        let fieldChanged = "general";
+        if (action === "STATUS_CHANGE") fieldChanged = "status";
+        if (action === "CREATE") fieldChanged = "title";
+
+        return {
+          _id: `log_${log._id}`,
+          user: log.userId || { name: "Unknown User" },
+          task: { _id: taskId, title: taskTitle },
+          type: "update",
+          fieldChanged,
+          oldValue: metadata.oldStatus || null,
+          newValue: metadata.newStatus || metadata.title || null,
+          content: undefined,
+          isSystemGenerated: true,
+          workspace: log.workspaceId?.toString?.() || "",
+          createdAt: log.createdAt,
+          updatedAt: log.createdAt,
+        };
+      });
+    }
+
+    // Final safety net: synthesize task creation activity directly from Task docs
+    // so activity feed is never empty for lists that already contain tasks.
+    let synthesizedTaskCreations: any[] = [];
+    if (listId) {
+      const taskDocs = await Task.find({ list: listId, isDeleted: false })
+        .populate("createdBy", "name email avatar")
+        .select("_id title createdAt createdBy workspace")
+        .sort("-createdAt")
+        .limit(limit)
+        .lean();
+
+      synthesizedTaskCreations = taskDocs.map((t: any) => ({
+        _id: `task_create_${t._id}`,
+        user: t.createdBy || { name: "Unknown User" },
+        task: { _id: t._id.toString(), title: t.title || "Task" },
+        type: "update",
+        fieldChanged: "title",
+        oldValue: null,
+        newValue: t.title || "Task",
+        content: undefined,
+        isSystemGenerated: true,
+        workspace: t.workspace?.toString?.() || "",
+        createdAt: t.createdAt,
+        updatedAt: t.createdAt,
+      }));
+    }
+
+    const merged = [...primaryActivities, ...fallbackActivities, ...synthesizedTaskCreations]
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      // Deduplicate by task + action + timestamp bucket (1s) to avoid noisy duplicates
+      .filter((item: any, idx: number, arr: any[]) => {
+        const key = `${item.task?._id || ''}_${item.fieldChanged || item.type}_${Math.floor(new Date(item.createdAt).getTime() / 1000)}`;
+        return arr.findIndex((x: any) => {
+          const k = `${x.task?._id || ''}_${x.fieldChanged || x.type}_${Math.floor(new Date(x.createdAt).getTime() / 1000)}`;
+          return k === key;
+        }) === idx;
+      })
+      .slice(0, limit);
+
+    return merged;
   }
 }
 

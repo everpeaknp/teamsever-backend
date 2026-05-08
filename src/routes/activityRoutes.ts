@@ -139,6 +139,12 @@ router.get(
   activityController.getTaskActivity
 );
 
+router.get(
+  "/folders/:folderId/activity",
+  protect,
+  activityController.getFolderActivity
+);
+
 /**
  * @swagger
  * /api/activities/{activityId}:

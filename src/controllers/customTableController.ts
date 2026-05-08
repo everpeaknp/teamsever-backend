@@ -72,13 +72,14 @@ async function checkTablePermission(
 // @route   POST /api/spaces/:spaceId/tables
 // @access  Private
 const createTable = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { name, columns, initialRows } = req.body;
+  const { name, columns, initialRows, folderId } = req.body;
   const { spaceId } = req.params;
 
   const table = await customTableService.createTable(
     spaceId,
     name,
     req.user!.id,
+    folderId || null,
     columns,
     initialRows
   );
@@ -94,6 +95,7 @@ const createTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
 // @access  Private
 const getSpaceTables = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { spaceId } = req.params;
+  const { folderId } = req.query as { folderId?: string };
   
   // Verify user has access to the space
   const Space = require("../models/Space");
@@ -131,10 +133,15 @@ const getSpaceTables = asyncHandler(async (req: AuthRequest, res: Response, next
   const isAdminOrOwner = await permissionService.isAdminOrOwner(req.user!.id, workspace._id.toString());
   
   const CustomTable = require("../models/CustomTable");
-  const allTables = await CustomTable.find({ 
+  const query: any = {
     spaceId, 
-    isDeleted: false 
-  }).sort({ createdAt: -1 });
+    isDeleted: false
+  };
+  if (folderId !== undefined) {
+    query.folderId = folderId === 'null' ? null : folderId;
+  }
+
+  const allTables = await CustomTable.find(query).sort({ createdAt: -1 });
 
   // Filter tables based on permissions
   let accessibleTables = [];

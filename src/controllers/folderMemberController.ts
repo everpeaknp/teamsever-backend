@@ -104,8 +104,15 @@ const addFolderMember = asyncHandler(
       return next(new AppError("Folder not found", 404));
     }
 
+    // Resolve workspace from folder's spaceId (Folder model has no workspace field)
+    const Space = require("../models/Space");
+    const space = await Space.findById(folder.spaceId).select("_id workspace");
+    if (!space) {
+      return next(new AppError("Space not found", 404));
+    }
+
     // Verify user is workspace member
-    const workspace = await Workspace.findById(folder.workspace);
+    const workspace = await Workspace.findById(space.workspace);
     if (!workspace) {
       return next(new AppError("Workspace not found", 404));
     }
@@ -136,8 +143,8 @@ const addFolderMember = asyncHandler(
       folderMember = await FolderMember.create({
         user: userId,
         folder: folderId,
-        space: folder.space,
-        workspace: folder.workspace,
+        space: space._id,
+        workspace: space.workspace,
         permissionLevel,
         addedBy: currentUserId,
       });

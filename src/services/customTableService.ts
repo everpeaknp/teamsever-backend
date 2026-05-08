@@ -28,6 +28,7 @@ class CustomTableService {
         spaceId: string,
         name: string,
         userId: string,
+        folderId?: string | null,
         initialColumns?: IColumn[],
         initialRowCount?: number
     ): Promise<any> {
@@ -59,6 +60,7 @@ class CustomTableService {
             // Create table
             const table = await CustomTable.create({
                 spaceId,
+                folderId: folderId || null,
                 name,
                 columns: initialColumns || [],
                 rows

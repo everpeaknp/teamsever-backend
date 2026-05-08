@@ -211,6 +211,30 @@ class FolderService {
     return filteredFolders;
   }
 
+  async getFolderById(folderId: string, userId: string) {
+    const folder = await Folder.findOne({
+      _id: folderId,
+      isDeleted: false
+    }).lean();
+
+    if (!folder) {
+      throw new AppError("Folder not found", 404);
+    }
+
+    // Reuse existing access and filtering logic by space.
+    const folders = await this.getFolders(folder.spaceId.toString(), userId);
+    const folderWithLists = folders.find(
+      (f: any) => f._id.toString() === folderId
+    );
+
+    // If folder exists but user cannot access any lists inside it, keep behavior explicit.
+    if (!folderWithLists) {
+      throw new AppError("Folder not found", 404);
+    }
+
+    return folderWithLists;
+  }
+
   async updateFolder(folderId: string, userId: string, updateData: UpdateFolderData) {
     const folder = await Folder.findOne({
       _id: folderId,

@@ -52,14 +52,8 @@ const getFolders = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
 // @access  Private
 const getFolder = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   console.log('[FolderController] getFolder called', { folderId: req.params.id });
-  
-  const Folder = require("../models/Folder");
-  const folder = await Folder.findById(req.params.id);
 
-  if (!folder) {
-    res.status(404);
-    throw new Error("Folder not found");
-  }
+  const folder = await folderService.getFolderById(req.params.id, req.user!.id);
 
   console.log('[FolderController] Folder retrieved', { folderId: folder._id });
 

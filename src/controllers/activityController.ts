@@ -2,6 +2,10 @@ const activityService = require("../services/activityService");
 const WorkspaceActivity = require("../models/WorkspaceActivity");
 const Workspace = require("../models/Workspace");
 const TimeEntry = require("../models/TimeEntry");
+const Activity = require("../models/Activity");
+const Folder = require("../models/Folder");
+const List = require("../models/List");
+const Task = require("../models/Task");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
@@ -26,6 +30,12 @@ const getActivities = asyncHandler(async (req: any, res: any) => {
     isAdmin = member?.role === 'admin' || member?.role === 'owner' || isOwner;
   }
 
+  // Only enforce personal-only filter when workspaceId is explicitly provided
+  // and caller is not admin/owner. For listId-only queries, keep full list scope.
+  const performedByFilter = workspaceId
+    ? ((isAdmin || isOwner) ? undefined : userId)
+    : undefined;
+
   const activities = await activityService.getActivities({
     userId,
     workspaceId,
@@ -33,7 +43,7 @@ const getActivities = asyncHandler(async (req: any, res: any) => {
     listId,
     limit: limit ? parseInt(limit) : 50,
     skip: skip ? parseInt(skip) : 0,
-    performedBy: (isAdmin || isOwner) ? undefined : userId // ENFORCE: Non-admins only see their own
+    performedBy: performedByFilter
   });
 
   res.status(200).json({
@@ -354,6 +364,72 @@ const getSpaceCommits = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+/**
+ * Get activity feed for a folder (aggregated from tasks in lists of the folder)
+ * GET /api/folders/:folderId/activity
+ */
+const getFolderActivity = asyncHandler(async (req: any, res: any) => {
+  const { folderId } = req.params;
+  const userId = req.user.id;
+  const { limit = 50, skip = 0 } = req.query;
+
+  const folder = await Folder.findOne({ _id: folderId, isDeleted: false }).populate("spaceId", "workspace");
+  if (!folder) {
+    throw new AppError("Folder not found", 404);
+  }
+
+  const workspaceId = folder.spaceId?.workspace?.toString();
+  if (!workspaceId) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: false });
+  if (!workspace) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const isOwner = workspace.owner.toString() === userId;
+  const member = workspace.members.find((m: any) => m.user.toString() === userId);
+  const isMember = !!member;
+  if (!isOwner && !isMember) {
+    throw new AppError("Access denied", 403);
+  }
+
+  const folderLists = await List.find({
+    folderId: folderId,
+    isDeleted: false,
+  }).select("_id");
+
+  const listIds = folderLists.map((l: any) => l._id.toString());
+  if (listIds.length === 0) {
+    return res.status(200).json({ success: true, data: [] });
+  }
+
+  // Use the SAME service pipeline as list activity to ensure parity:
+  // Activity + ActivityLog + synthesized task creation fallback.
+  const perListActivities = await Promise.all(
+    listIds.map((listId: string) =>
+      activityService.getActivities({
+        // Keep exact parity with list-level activity endpoint usage
+        // (frontend list page calls /activities with listId only).
+        listId,
+        limit: parseInt(limit),
+        skip: 0,
+      })
+    )
+  );
+
+  const flattened = perListActivities.flat();
+  const activities = flattened
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(parseInt(skip), parseInt(skip) + parseInt(limit));
+
+  res.status(200).json({
+    success: true,
+    data: activities,
+  });
+});
+
 module.exports = {
   getActivities,
   createComment,
@@ -364,6 +440,7 @@ module.exports = {
   removeReaction,
   getUserActivity,
   getSpaceCommits,
+  getFolderActivity,
 };
 
 export {};
