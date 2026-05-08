@@ -1,4 +1,5 @@
 const Folder = require("../models/Folder");
+const FolderMember = require("../models/FolderMember");
 const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
 const List = require("../models/List");
@@ -215,24 +216,88 @@ class FolderService {
     const folder = await Folder.findOne({
       _id: folderId,
       isDeleted: false
-    }).lean();
+    });
 
     if (!folder) {
       throw new AppError("Folder not found", 404);
     }
 
-    // Reuse existing access and filtering logic by space.
-    const folders = await this.getFolders(folder.spaceId.toString(), userId);
-    const folderWithLists = folders.find(
-      (f: any) => f._id.toString() === folderId
-    );
+    const space = await Space.findOne({
+      _id: folder.spaceId,
+      isDeleted: false
+    });
 
-    // If folder exists but user cannot access any lists inside it, keep behavior explicit.
-    if (!folderWithLists) {
-      throw new AppError("Folder not found", 404);
+    if (!space) {
+      throw new AppError("Space not found", 404);
     }
 
-    return folderWithLists;
+    const workspace = await Workspace.findOne({
+      _id: space.workspace,
+      isDeleted: false
+    });
+
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
+    }
+
+    const workspaceOwnerId = typeof workspace.owner === "string"
+      ? workspace.owner
+      : workspace.owner?._id?.toString?.();
+    const isOwner = workspaceOwnerId === userId;
+    const workspaceMember = workspace.members.find((m: any) => {
+      const memberId = typeof m.user === "string" ? m.user : m.user?._id?.toString?.();
+      return memberId === userId;
+    });
+    const isAdmin = workspaceMember?.role === "admin" || workspaceMember?.role === "owner";
+
+    // Folder-specific access: owner/admin always allowed.
+    // Non-admin members must have explicit folder membership.
+    if (!isOwner && !isAdmin) {
+      const folderMember = await FolderMember.findOne({
+        user: userId,
+        folder: folderId
+      }).lean();
+
+      if (!folderMember) {
+        throw new AppError("Folder not found", 404);
+      }
+    }
+
+    const Task = require("../models/Task");
+    const listsRaw = await List.find({
+      folderId: folder._id,
+      isDeleted: false
+    })
+      .populate("createdBy", "name email profilePicture")
+      .populate("members.user", "name email profilePicture")
+      .sort("createdAt")
+      .lean();
+
+    const lists = await Promise.all(
+      listsRaw.map(async (list: any) => {
+        const taskCount = await Task.countDocuments({
+          list: list._id,
+          isDeleted: false
+        });
+        const completedCount = await Task.countDocuments({
+          list: list._id,
+          status: "done",
+          isDeleted: false
+        });
+
+        return {
+          ...list,
+          taskCount,
+          completedCount
+        };
+      })
+    );
+
+    const folderPlain = folder.toObject();
+    return {
+      ...folderPlain,
+      lists
+    };
   }
 
   async updateFolder(folderId: string, userId: string, updateData: UpdateFolderData) {
