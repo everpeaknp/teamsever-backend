@@ -8,7 +8,7 @@ const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
-const notificationService = require("../services/notificationService");
+const notificationService = require("../services/enhancedNotificationService");
 
 interface AuthRequest extends Request {
   user?: {

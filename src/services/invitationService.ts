@@ -6,7 +6,7 @@ const User = require("../models/User");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const emailService = require("./emailService");
-const notificationService = require("./notificationService");
+const notificationService = require("./enhancedNotificationService");
 
 interface SendInviteData {
   email: string;

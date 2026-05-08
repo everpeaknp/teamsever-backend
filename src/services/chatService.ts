@@ -7,7 +7,7 @@ const User = require("../models/User");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
-const notificationService = require("./notificationService");
+const notificationService = require("./enhancedNotificationService");
 const entitlementService = require("./entitlementService").default;
 
 interface CreateMessageData {

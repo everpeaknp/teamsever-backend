@@ -20,9 +20,12 @@ type NotificationType =
   | "COMMENT_ADDED"
   | "COMMENT_UPDATED"
   | "COMMENT_DELETED"
+  | "MENTION"
   | "COMMENT_MENTION"
   | "DM_NEW"
   | "FILE_UPLOAD"
+  | "INVITATION"
+  | "SPACE_INVITATION"
   | "INVITE_ACCEPTED"
   | "ANNOUNCEMENT_NEW"
   | "GITHUB_COMMIT"
@@ -63,6 +66,45 @@ interface SendPushOptions {
 }
 
 class EnhancedNotificationService {
+  private async isNotificationEnabledForUser(recipientId: string, type: NotificationType): Promise<boolean> {
+    const user = await User.findById(recipientId).select("notificationPreferences").lean();
+    const prefs = user?.notificationPreferences;
+    if (!prefs) return true;
+
+    switch (type) {
+      case "GITHUB_COMMIT":
+        return prefs.githubCommits !== false;
+      case "TASK_ASSIGNED":
+        return prefs.taskAssigned !== false;
+      case "TASK_STATUS_CHANGED":
+        return prefs.taskStatusChange !== false;
+      case "TASK_UPDATE":
+      case "TASK_PRIORITY_CHANGED":
+      case "SUBTASK_CREATED":
+      case "DEPENDENCY_ADDED":
+      case "DEPENDENCY_STATUS_CHANGED":
+      case "FILE_UPLOAD":
+        return prefs.taskUpdates !== false;
+      case "DM_NEW":
+        return prefs.messages !== false;
+      case "COMMENT_MENTION":
+      case "MENTION":
+        return prefs.mentions !== false;
+      case "COMMENT_ADDED":
+      case "COMMENT_UPDATED":
+      case "COMMENT_DELETED":
+        return prefs.comments !== false;
+      case "INVITATION":
+      case "SPACE_INVITATION":
+      case "INVITE_ACCEPTED":
+      case "ANNOUNCEMENT_NEW":
+      case "SYSTEM":
+        return prefs.notices !== false;
+      default:
+        return true;
+    }
+  }
+
   /**
    * Central notification pipeline
    * Creates notification, emits socket event if online, sends push if offline
@@ -70,6 +112,10 @@ class EnhancedNotificationService {
   async createNotification(options: CreateNotificationOptions): Promise<any> {
     try {
       const { recipientId, type, title, body, data = {} } = options;
+      const notificationsEnabled = await this.isNotificationEnabledForUser(recipientId, type);
+      if (!notificationsEnabled) {
+        return null;
+      }
 
       // 1. Save notification to database
       const notification = await Notification.create({

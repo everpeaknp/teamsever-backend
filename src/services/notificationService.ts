@@ -4,6 +4,7 @@ const { getMessaging, isFirebaseConfigured } = require("../config/firebase");
 const presenceManager = require("../socket/presence");
 const logger = require("../utils/logger");
 const { emitToUser } = require("../socket/events");
+const enhancedNotificationService = require("./enhancedNotificationService");
 
 interface NotificationData {
   resourceId?: string;
@@ -41,81 +42,7 @@ class NotificationService {
    * Creates notification, emits socket event if online, sends push if offline
    */
   async createNotification(options: CreateNotificationOptions): Promise<any> {
-    try {
-      const { recipientId, type, title, body, data = {} } = options;
-
-      // 1. Save notification to database
-      const notification = await Notification.create({
-        recipient: recipientId,
-        type,
-        title,
-        body,
-        data,
-      });
-
-      // Populate recipient for response
-      await notification.populate("recipient", "name email avatar profilePicture");
-
-      // 2. Log notification creation
-      try {
-        if (data.workspaceId) {
-          await logger.logActivity({
-            userId: recipientId,
-            workspaceId: data.workspaceId,
-            action: "CREATE",
-            resourceType: "Notification",
-            resourceId: notification._id.toString(),
-            metadata: {
-              type,
-              title,
-            },
-          });
-        }
-      } catch (error) {
-        console.error("[Notification] Failed to log activity:", error);
-      }
-
-      // 3. Emit socket event if online
-      const isOnline = this.isUserOnline(recipientId, data.workspaceId);
-
-      if (isOnline) {
-        console.log(`[Notification] User ${recipientId} is online, emitting socket event`);
-        try {
-          emitToUser(recipientId, "notification:new", {
-            notification: {
-              _id: notification._id,
-              type: notification.type,
-              title: notification.title,
-              body: notification.body,
-              data: notification.data,
-              read: notification.read,
-              createdAt: notification.createdAt,
-            },
-          });
-        } catch (error) {
-          console.error("[Notification] Failed to emit socket event:", error);
-        }
-      }
-
-      // 4. ALWAYS send push notification (FCM) to trigger OS browser alerts
-      // Even if they are online, the tab might be in the background.
-      // The frontend FCM listener handles deduplication/display.
-      console.log(`[Notification] Sending FCM push notification to user ${recipientId}`);
-      await this.sendPushNotification(recipientId, {
-        title,
-        body,
-        data: {
-          type,
-          notificationId: notification._id.toString(),
-          ...data,
-        },
-      });
-
-      return notification;
-    } catch (error) {
-      console.error("[Notification] Failed to create notification:", error);
-      throw error;
-    }
+    return enhancedNotificationService.createNotification(options as any);
   }
 
   /**

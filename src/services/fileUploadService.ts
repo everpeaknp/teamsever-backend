@@ -6,7 +6,7 @@ const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const socketService = require("./socketService").default;
-const notificationService = require("./notificationService");
+const notificationService = require("./enhancedNotificationService");
 const path = require("path");
 const fs = require("fs").promises;
 

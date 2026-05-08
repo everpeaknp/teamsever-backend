@@ -6,6 +6,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
+const notificationService = require("../services/enhancedNotificationService");
 
 /**
  * @desc    Get all members of a workspace
@@ -276,6 +277,19 @@ const inviteMember = asyncHandler(
       try {
         const inviter = await User.findById(req.user?.id);
         const workspaceLink = `${process.env.FRONTEND_URL}/workspace/${workspaceId}`;
+
+        await notificationService.createNotification({
+          recipientId: user._id.toString(),
+          type: "INVITATION",
+          title: "Workspace Invitation Reminder",
+          body: `${inviter?.name || "A team member"} invited you to ${workspace.name}`,
+          data: {
+            workspaceId: workspace._id.toString(),
+            workspaceName: workspace.name,
+            inviteType: "workspace_member_invite",
+            role,
+          },
+        });
         
         await emailService.sendWorkspaceInvitation({
           recipientEmail: user.email,
@@ -318,6 +332,19 @@ const inviteMember = asyncHandler(
     try {
       const inviter = await User.findById(req.user?.id);
       const workspaceLink = `${process.env.FRONTEND_URL}/workspace/${workspaceId}`;
+
+      await notificationService.createNotification({
+        recipientId: user._id.toString(),
+        type: "INVITATION",
+        title: "Workspace Invitation",
+        body: `${inviter?.name || "A team member"} invited you to ${workspace.name}`,
+        data: {
+          workspaceId: workspace._id.toString(),
+          workspaceName: workspace.name,
+          inviteType: "workspace_member_invite",
+          role,
+        },
+      });
       
       await emailService.sendWorkspaceInvitation({
         recipientEmail: user.email,
