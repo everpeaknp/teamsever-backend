@@ -12,11 +12,13 @@ const getNotifications = asyncHandler(async (req: any, res: any) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const unreadOnly = req.query.unreadOnly === "true";
+  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
 
   const result = await notificationService.getUserNotifications(userId, {
     page,
     limit,
     unreadOnly,
+    workspaceId,
   });
 
   res.status(200).json({
@@ -51,8 +53,9 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
  */
 const markAllAsRead = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
+  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
 
-  const count = await notificationService.markAllAsRead(userId);
+  const count = await notificationService.markAllAsRead(userId, workspaceId);
 
   res.status(200).json({
     success: true,
@@ -68,8 +71,9 @@ const markAllAsRead = asyncHandler(async (req: any, res: any) => {
  */
 const getUnreadCount = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
+  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
 
-  const unreadCount = await notificationService.getUnreadCount(userId);
+  const unreadCount = await notificationService.getUnreadCount(userId, workspaceId);
 
   res.status(200).json({
     success: true,

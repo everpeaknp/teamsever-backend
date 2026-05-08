@@ -54,6 +54,7 @@ class NotificationService {
       page?: number;
       limit?: number;
       unreadOnly?: boolean;
+      workspaceId?: string;
     } = {}
   ): Promise<any> {
     try {
@@ -66,15 +67,22 @@ class NotificationService {
       if (options.unreadOnly) {
         query.read = false;
       }
+      if (options.workspaceId) {
+        query["data.workspaceId"] = options.workspaceId;
+      }
 
       // Get total count
       const total = await Notification.countDocuments(query);
 
       // Get unread count
-      const unreadCount = await Notification.countDocuments({
+      const unreadQuery: any = {
         recipient: userId,
         read: false,
-      });
+      };
+      if (options.workspaceId) {
+        unreadQuery["data.workspaceId"] = options.workspaceId;
+      }
+      const unreadCount = await Notification.countDocuments(unreadQuery);
 
       // Get notifications
       const notifications = await Notification.find(query)
@@ -132,13 +140,18 @@ class NotificationService {
   /**
    * Mark all notifications as read
    */
-  async markAllAsRead(userId: string): Promise<number> {
+  async markAllAsRead(userId: string, workspaceId?: string): Promise<number> {
     try {
+      const query: any = {
+        recipient: userId,
+        read: false,
+      };
+      if (workspaceId) {
+        query["data.workspaceId"] = workspaceId;
+      }
+
       const result = await Notification.updateMany(
-        {
-          recipient: userId,
-          read: false,
-        },
+        query,
         {
           $set: {
             read: true,
@@ -157,12 +170,17 @@ class NotificationService {
   /**
    * Get unread count
    */
-  async getUnreadCount(userId: string): Promise<number> {
+  async getUnreadCount(userId: string, workspaceId?: string): Promise<number> {
     try {
-      const count = await Notification.countDocuments({
+      const query: any = {
         recipient: userId,
         read: false,
-      });
+      };
+      if (workspaceId) {
+        query["data.workspaceId"] = workspaceId;
+      }
+
+      const count = await Notification.countDocuments(query);
 
       return count;
     } catch (error) {
