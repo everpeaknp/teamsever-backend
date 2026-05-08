@@ -39,7 +39,7 @@ const options: swaggerJsdoc.Options = {
         description: "Local Development"
       },
       {
-        url: "https://teamsever-backend.vercel.app",
+        url: "https://teamsever-backend.onrender.com",
         description: "Production"
       }
     ],
