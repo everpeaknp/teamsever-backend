@@ -282,7 +282,7 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *       | `stats` | Total tasks, completion rate, priority & status breakdown |
  *       | `hierarchy` | Full tree: Spaces → Folders → Lists |
  *       | `members` | Who is clocked in right now (sorted: active first) |
- *       | `tasks` | Recent tasks (top 100) |
+ *       | `tasks` | Workspace tasks (full set, newest first) |
  *       | `announcements` | Latest workspace announcements |
  *       | `currentRunningTimer` | The logged-in user's active timer (if any) |
  *       | `stickyNote` | The logged-in user's personal sticky note for this workspace |

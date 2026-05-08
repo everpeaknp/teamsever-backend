@@ -393,7 +393,7 @@ class WorkspaceService {
       .sort("-startTime")
       .lean();
 
-    // 5. Fetch recent tasks across workspace (top 100 for immediate dashboard visibility)
+    // 5. Fetch tasks across workspace (full set; analytics must not be capped)
     const recentTasks = await Task.find({ 
       workspace: workspaceId, 
       isDeleted: false 
@@ -401,7 +401,6 @@ class WorkspaceService {
       .select("_id title status priority assignee space list updatedAt")
       .populate("assignee", "name email profilePicture")
       .sort("-updatedAt")
-      .limit(100)
       .lean();
 
     // 6. Fetch Sticky Note for this user
