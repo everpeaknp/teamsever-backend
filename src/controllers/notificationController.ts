@@ -135,13 +135,13 @@ const getDevices = asyncHandler(async (req: any, res: any) => {
  * @access  Private
  */
 const registerFCMToken = asyncHandler(async (req: any, res: any) => {
-  const { fcmToken } = req.body;
+  const fcmToken = req.body?.fcmToken || req.body?.token;
   const userId = req.user.id;
 
   if (!fcmToken) {
     return res.status(400).json({
       success: false,
-      message: "FCM token is required",
+      message: "FCM token is required (send `fcmToken` or `token`)",
     });
   }
 

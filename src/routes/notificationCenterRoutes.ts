@@ -13,8 +13,9 @@ router.use(protect);
  * @swagger
  * /api/notifications/fcm-token:
  *   post:
- *     summary: Register FCM device token
- *     description: Register a Firebase Cloud Messaging (FCM) token for push notifications. Call this when the app launches and gets a valid FCM token from Firebase.
+ *     deprecated: true
+ *     summary: Register FCM device token (legacy alias)
+ *     description: Legacy alias kept for backward compatibility. Prefer `POST /api/notifications/devices/fcm-token`. Accepts `fcmToken` (preferred) and `token` (legacy).
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
@@ -25,10 +26,13 @@ router.use(protect);
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - fcmToken
  *             properties:
+ *               fcmToken:
+ *                 type: string
  *               token:
  *                 type: string
+ *                 description: Legacy field name still accepted for compatibility.
  *                 example: "dGhpcyBpcyBhIHNhbXBsZSBGQ00gdG9rZW4..."
  *     responses:
  *       200:
