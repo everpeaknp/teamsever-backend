@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const activityController = require("../controllers/activityController");
 const { protect } = require("../middlewares/authMiddleware");
+const { requirePermission } = require("../permissions/permission.middleware");
 
 /**
  * @swagger
@@ -95,6 +96,7 @@ router.get(
 router.post(
   "/tasks/:taskId/comments",
   protect,
+  requirePermission("COMMENT_TASK"),
   activityController.createComment
 );
 
