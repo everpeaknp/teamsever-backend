@@ -89,15 +89,37 @@ const createNotification = asyncHandler(async (req: any, res: any) => {
     throw new AppError("Recipient ID, type, title, and message are required", 400);
   }
 
+  const allowedTypes = new Set([
+    "TASK_ASSIGNED",
+    "TASK_UPDATE",
+    "TASK_STATUS_CHANGED",
+    "TASK_PRIORITY_CHANGED",
+    "COMMENT_ADDED",
+    "COMMENT_UPDATED",
+    "COMMENT_DELETED",
+    "COMMENT_MENTION",
+    "DM_NEW",
+    "FILE_UPLOAD",
+    "INVITATION",
+    "INVITE_ACCEPTED",
+    "SPACE_INVITATION",
+    "GITHUB_COMMIT",
+    "ANNOUNCEMENT_NEW",
+    "SYSTEM",
+  ]);
+  const normalizedType = String(type || "").toUpperCase();
+  const safeType = allowedTypes.has(normalizedType) ? normalizedType : "SYSTEM";
+
   // Map frontend field 'message' to backend 'body'
   const notificationCount = await notificationService.createNotification({
     recipientId,
-    type: type.toUpperCase(),
+    type: safeType,
     title,
     body: message,
     data: {
       ...data,
-      link
+      link,
+      sourceType: type,
     }
   });
 
