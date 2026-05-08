@@ -148,6 +148,23 @@ const updateChannel = asyncHandler(async (req: any, res: any) => {
 });
 
 /**
+ * @desc    Delete channel
+ * @route   DELETE /api/workspaces/:workspaceId/chat/channels/:channelId
+ * @access  Private (creator, admin, owner)
+ */
+const deleteChannel = asyncHandler(async (req: any, res: any) => {
+  const { workspaceId, channelId } = req.params;
+  const userId = req.user.id;
+
+  const result = await chatService.deleteChannel(workspaceId, channelId, userId);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+});
+
+/**
  * @desc    Get aggregate unread count for all accessible channels in a workspace
  * @route   GET /api/workspaces/:workspaceId/chat/unread
  * @access  Private
@@ -197,6 +214,7 @@ module.exports = {
   deleteMessage,
   getUnreadCount,
   updateChannel,
+  deleteChannel,
   getWorkspaceUnreadCount,
   getWorkspaceMessages,
 };

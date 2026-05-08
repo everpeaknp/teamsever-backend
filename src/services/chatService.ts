@@ -533,6 +533,45 @@ class ChatService {
     await channel.save();
     return channel;
   }
+
+  /**
+   * Delete channel (soft delete)
+   * Permanent channels (General, Commit Log) cannot be deleted.
+   */
+  async deleteChannel(workspaceId: string, channelId: string, userId: string) {
+    const channel = await ChatChannel.findOne({
+      _id: channelId,
+      workspace: workspaceId,
+      isDeleted: false,
+    });
+
+    if (!channel) {
+      throw new AppError("Channel not found", 404);
+    }
+
+    const channelName = (channel.name || "").toLowerCase();
+    const isPermanentChannel =
+      channel.isDefault === true ||
+      channelName === "general" ||
+      channelName === "commit log";
+
+    if (isPermanentChannel) {
+      throw new AppError("General and Commit Log channels are permanent and cannot be deleted", 400);
+    }
+
+    // Only creator or admin/owner can delete
+    const { membership } = await this.validateWorkspaceMembership(workspaceId.toString(), userId);
+    const isAdmin = membership.role === "admin" || membership.role === "owner";
+    const isCreator = channel.createdBy && channel.createdBy.toString() === userId.toString();
+
+    if (!isCreator && !isAdmin) {
+      throw new AppError("Not authorized to delete this channel", 403);
+    }
+
+    await softDelete(ChatChannel, channelId);
+
+    return { message: "Channel deleted successfully" };
+  }
 }
 
 module.exports = new ChatService();

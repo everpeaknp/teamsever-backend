@@ -156,7 +156,8 @@ workspaceChatRouter
  */
 workspaceChatRouter
   .route("/channels/:channelId")
-  .patch(protect, chatController.updateChannel);
+  .patch(protect, chatController.updateChannel)
+  .delete(protect, chatController.deleteChannel);
 
 workspaceChatRouter
   .route("/unread")
