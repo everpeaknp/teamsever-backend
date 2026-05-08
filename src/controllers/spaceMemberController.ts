@@ -7,7 +7,10 @@ const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
-const { SpacePermissionLevel } = require("../models/SpaceMember");
+
+// Keep runtime-safe permission constants in controller.
+// SpaceMember model is exported as mongoose model via module.exports.
+const SPACE_PERMISSION_LEVELS = ["FULL", "EDIT", "COMMENT", "VIEW"] as const;
 
 /**
  * @desc    Get all space members with their permission levels
@@ -91,7 +94,7 @@ const addSpaceMember = asyncHandler(
     const currentUserId = req.user!.id;
 
     // Validate permission level
-    const validLevels = Object.values(SpacePermissionLevel);
+    const validLevels = [...SPACE_PERMISSION_LEVELS];
     if (!permissionLevel || !validLevels.includes(permissionLevel)) {
       return next(
         new AppError(
@@ -195,7 +198,7 @@ const updateSpaceMember = asyncHandler(
     const currentUserId = req.user!.id;
 
     // Validate permission level
-    const validLevels = Object.values(SpacePermissionLevel);
+    const validLevels = [...SPACE_PERMISSION_LEVELS];
     if (!permissionLevel || !validLevels.includes(permissionLevel)) {
       return next(
         new AppError(
