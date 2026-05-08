@@ -7,7 +7,10 @@ const Folder = require("../models/Folder");
 const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
-const { FolderPermissionLevel } = require("../models/FolderMember");
+
+// Keep runtime-safe permission constants in controller.
+// The model file uses `module.exports` for mongoose model, so enum exports are not available via require().
+const FOLDER_PERMISSION_LEVELS = ["FULL", "EDIT", "COMMENT", "VIEW"] as const;
 
 /**
  * @desc    Get all folder members with their permission levels
@@ -44,10 +47,14 @@ const getFolderMembers = asyncHandler(
     );
 
     // Format response with override info
-    const members = workspace.members.map((member: any) => {
-      const override = folderMembers.find(
-        (fm: any) => fm.user._id.toString() === member.user._id.toString()
-      );
+    const members = (workspace.members || [])
+      .filter((member: any) => member?.user?._id)
+      .map((member: any) => {
+      const override = folderMembers.find((fm: any) => {
+        const overrideUserId = fm?.user?._id?.toString?.();
+        const memberUserId = member?.user?._id?.toString?.();
+        return !!overrideUserId && !!memberUserId && overrideUserId === memberUserId;
+      });
 
       return {
         _id: member.user._id,
@@ -84,7 +91,7 @@ const addFolderMember = asyncHandler(
     const currentUserId = req.user!.id;
 
     // Validate permission level
-    const validLevels = Object.values(FolderPermissionLevel);
+    const validLevels = [...FOLDER_PERMISSION_LEVELS];
     if (!permissionLevel || !validLevels.includes(permissionLevel)) {
       return next(
         new AppError(
@@ -117,9 +124,11 @@ const addFolderMember = asyncHandler(
       return next(new AppError("Workspace not found", 404));
     }
 
-    const isWorkspaceMember = workspace.members.some(
-      (m: any) => m.user.toString() === userId
-    );
+    const isWorkspaceMember = (workspace.members || []).some((m: any) => {
+      const memberUserId =
+        typeof m?.user === "string" ? m.user : m?.user?._id?.toString?.();
+      return !!memberUserId && memberUserId === userId;
+    });
 
     if (!isWorkspaceMember) {
       return next(
@@ -179,7 +188,7 @@ const updateFolderMember = asyncHandler(
     const currentUserId = req.user!.id;
 
     // Validate permission level
-    const validLevels = Object.values(FolderPermissionLevel);
+    const validLevels = [...FOLDER_PERMISSION_LEVELS];
     if (!permissionLevel || !validLevels.includes(permissionLevel)) {
       return next(
         new AppError(
