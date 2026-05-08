@@ -52,7 +52,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  * /api/notifications:
  *   get:
  *     summary: Get notifications
- *     description: Retrieve the current user's in-app notifications, newest first.
+ *     description: Retrieve the current user's in-app notifications, newest first. Optionally scope to a workspace.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
@@ -69,6 +69,12 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *           type: integer
  *           default: 0
  *         description: Pagination offset
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Optional workspace scope. When provided, only notifications with matching `data.workspaceId` are returned.
  *     responses:
  *       200:
  *         description: Notifications retrieved
@@ -154,10 +160,17 @@ router.post("/", notificationCenterController.createNotification);
  * /api/notifications/unread-count:
  *   get:
  *     summary: Get unread notification count
- *     description: Returns the count of unread notifications. Use this to display the badge number on the notification bell icon.
+ *     description: Returns unread count for current user. Optionally scope to a workspace.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Optional workspace scope. Counts only notifications with matching `data.workspaceId`.
  *     responses:
  *       200:
  *         description: Unread count
@@ -166,7 +179,7 @@ router.post("/", notificationCenterController.createNotification);
  *             example:
  *               success: true
  *               data:
- *                 count: 5
+ *                 unreadCount: 5
  *       401:
  *         description: Authentication required
  *         content:
@@ -181,10 +194,17 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  * /api/notifications/read-all:
  *   patch:
  *     summary: Mark all notifications as read
- *     description: Marks all the current user's unread notifications as read. Useful when user opens the notification panel.
+ *     description: Marks current user's unread notifications as read. Optionally scope to one workspace.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Optional workspace scope. Marks only notifications with matching `data.workspaceId`.
  *     responses:
  *       200:
  *         description: All notifications marked as read
