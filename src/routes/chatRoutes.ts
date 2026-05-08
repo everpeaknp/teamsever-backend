@@ -12,6 +12,41 @@ const workspaceChatRouter = express.Router({ mergeParams: true });
 /**
  * @swagger
  * /api/workspaces/{workspaceId}/chat:
+ *   get:
+ *     summary: Get workspace message feed
+ *     description: Retrieve paginated workspace message feed. Supports optional sender filtering.
+ *     tags: ["5.2 Collaboration — Chat Channels"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: userId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional sender filter. Returns only messages created by this user.
+ *     responses:
+ *       200:
+ *         description: Workspace messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
  *   post:
  *     summary: Send chat message
  *     description: Send a message to a specific channel within a workspace. If channelId is omitted, it defaults to the #General channel.
@@ -153,6 +188,32 @@ workspaceChatRouter
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
+ *   delete:
+ *     summary: Delete a channel
+ *     description: Delete a custom channel. `General` and `Commit Log` are permanent and cannot be deleted.
+ *     tags: ["5.2 Collaboration — Chat Channels"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: channelId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Channel deleted successfully
+ *       400:
+ *         description: Permanent channel cannot be deleted
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Channel not found
  */
 workspaceChatRouter
   .route("/channels/:channelId")
@@ -189,6 +250,12 @@ const channelRouter = express.Router();
  *         name: limit
  *         schema:
  *           type: number
+ *       - in: query
+ *         name: userId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional sender filter. Returns only messages authored by this user.
  *     responses:
  *       200:
  *         description: Messages retrieved successfully

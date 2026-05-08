@@ -13,10 +13,17 @@ router.use(protect);
  * /api/dm:
  *   get:
  *     summary: Get all conversations
- *     description: Retrieve all direct message conversations for the current user, including last message, participants, and unread count.
+ *     description: Retrieve direct message conversations for the current user, including last message, participants, and unread count.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workspaceId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional workspace scope. When provided, only conversations involving workspace members are returned.
  *     responses:
  *       200:
  *         description: Conversations retrieved successfully

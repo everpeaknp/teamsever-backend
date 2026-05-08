@@ -147,6 +147,42 @@ router.get(
 
 /**
  * @swagger
+ * /api/folders/{folderId}/activity:
+ *   get:
+ *     summary: Get folder activity feed
+ *     description: Aggregates activity from all lists inside the folder and returns a unified, time-sorted feed.
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: folderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: skip
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Folder activity retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Folder not found
+ */
+
+/**
+ * @swagger
  * /api/activities/{activityId}:
  *   put:
  *     summary: Edit comment

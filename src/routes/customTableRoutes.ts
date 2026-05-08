@@ -90,6 +90,12 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *         application/json:
  *           schema:
  *             $ref: "#/components/schemas/TableCreateInput"
+ *           example:
+ *             name: "Sprint Tracker"
+ *             folderId: "69bc340a830a5703d3979d1c"
+ *             columns:
+ *               - name: "Task"
+ *                 type: "text"
  *     responses:
  *       201:
  *         description: Table created successfully
@@ -128,6 +134,12 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *         schema:
  *           type: string
  *         description: Space ID
+ *       - in: query
+ *         name: folderId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional folder scope. Use `null` to fetch space-level tables (no folder).
  *     responses:
  *       200:
  *         description: Tables retrieved successfully

@@ -557,59 +557,6 @@ spaceRouter.post("/:id/invite-external", protect, requirePermission("INVITE_MEMB
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Webhook config retrieved
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success: { type: boolean }
- *                 data:
- *                   type: object
- *                   properties:
- *                     webhookUrl: { type: string, description: "URL to paste into GitHub Webhook settings" }
- *                     secret: { type: string, description: "HMAC secret for signature verification" }
- *                     githubRepoName: { type: string, nullable: true }
- *   post:
- *     summary: Generate GitHub webhook secret
- *     description: Generate or rotate the HMAC secret and link a repository name to this space.
- *     tags: ["13. GitHub Integration"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [githubRepoName]
- *             properties:
- *               githubRepoName: { type: string, example: "my-org/my-repo" }
- *     responses:
- *       200:
- *         description: Webhook secret generated successfully
- */
-/**
- * @swagger
- * /api/spaces/{id}/webhook:
- *   get:
- *     summary: Get GitHub webhook configuration
- *     description: Retrieve the webhook URL and secret for connecting a GitHub repository to this space.
- *     tags: ["13. GitHub Integration"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
  *         description: Webhook configuration retrieved successfully
  *         content:
  *           application/json:
