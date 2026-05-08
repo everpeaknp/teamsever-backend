@@ -272,7 +272,12 @@ class ChatService {
     }
 
     // Validate channel access
-    await this.validateChannelAccess(targetChannelId, senderId);
+    const channel = await this.validateChannelAccess(targetChannelId, senderId);
+
+    // Enforce workspace/channel consistency to prevent cross-workspace leaks
+    if (channel.workspace.toString() !== workspaceId) {
+      throw new AppError("Channel does not belong to the provided workspace", 400);
+    }
 
     // Validate content
     if (!content || content.trim().length === 0) {

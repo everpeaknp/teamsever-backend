@@ -10,6 +10,7 @@ interface SendMessageData {
   senderId: string;
   targetUserId: string;
   content: string;
+  workspaceId?: string;
 }
 
 interface GetMessagesOptions {
@@ -21,7 +22,7 @@ class DirectMessageService {
   /**
    * Find or create conversation between two users
    */
-  async findOrCreateConversation(userId1: string, userId2: string): Promise<any> {
+  async findOrCreateConversation(userId1: string, userId2: string, workspaceId?: string): Promise<any> {
     // Prevent self-conversation
     if (userId1 === userId2) {
       throw new AppError("Cannot create conversation with yourself", 400);
@@ -39,10 +40,37 @@ class DirectMessageService {
     // Sort participants for consistent ordering
     const participants = [userId1, userId2].sort();
 
+    // If workspace-scoped DM is requested, enforce both users belong to that workspace
+    if (workspaceId) {
+      const Workspace = require("../models/Workspace");
+      const workspace = await Workspace.findOne({
+        _id: workspaceId,
+        isDeleted: false,
+      }).select("members.user owner").lean();
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
+      }
+
+      const memberIds = new Set([
+        workspace.owner?.toString?.(),
+        ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
+      ]);
+
+      if (!memberIds.has(userId1) || !memberIds.has(userId2)) {
+        throw new AppError("Both users must be members of the same workspace for this DM", 403);
+      }
+    }
+
     // Find existing conversation
-    let conversation = await Conversation.findOne({
+    const findQuery: any = {
       participants: { $all: participants },
-    })
+    };
+    if (workspaceId) {
+      findQuery.workspace = workspaceId;
+    }
+
+    let conversation = await Conversation.findOne(findQuery)
       .populate("participants", "name email avatar profilePicture")
       .populate({
         path: "lastMessage",
@@ -52,6 +80,7 @@ class DirectMessageService {
     // Create if doesn't exist
     if (!conversation) {
       conversation = await Conversation.create({
+        workspace: workspaceId || null,
         participants,
         lastMessageAt: new Date(),
       });
@@ -65,8 +94,8 @@ class DirectMessageService {
   /**
    * Start a conversation (find or create)
    */
-  async startConversation(userId: string, targetUserId: string): Promise<any> {
-    const conversation = await this.findOrCreateConversation(userId, targetUserId);
+  async startConversation(userId: string, targetUserId: string, workspaceId?: string): Promise<any> {
+    const conversation = await this.findOrCreateConversation(userId, targetUserId, workspaceId);
     return conversation;
   }
 
@@ -74,7 +103,7 @@ class DirectMessageService {
    * Send a direct message
    */
   async sendMessage(data: SendMessageData): Promise<any> {
-    const { senderId, targetUserId, content } = data;
+    const { senderId, targetUserId, content, workspaceId } = data;
 
     // Validate content
     if (!content || content.trim().length === 0) {
@@ -86,7 +115,7 @@ class DirectMessageService {
     }
 
     // Find or create conversation
-    const conversation = await this.findOrCreateConversation(senderId, targetUserId);
+    const conversation = await this.findOrCreateConversation(senderId, targetUserId, workspaceId);
 
     // Create message
     const message = await DirectMessage.create({
@@ -172,24 +201,85 @@ class DirectMessageService {
    * Get user's conversations, optionally filtered by workspace members
    */
   async getConversations(userId: string, workspaceId?: string): Promise<any[]> {
-    let participantFilter: any = userId;
-
     if (workspaceId) {
       const Workspace = require("../models/Workspace");
-      const workspace = await Workspace.findById(workspaceId).select("members").lean();
-      if (workspace) {
-        const memberIds = workspace.members.map((m: any) => m.user.toString());
-        // Only include conversations where at least one other participant is in the workspace
-        // (In a 1:1 DM, the other participant must be in the workspace)
-        participantFilter = {
-          $all: [userId],
-          $in: memberIds
-        };
+      const workspace = await Workspace.findOne({
+        _id: workspaceId,
+        isDeleted: false
+      }).select("members.user owner").lean();
+
+      if (!workspace) {
+        throw new AppError("Workspace not found", 404);
       }
+
+      const memberIds = new Set([
+        workspace.owner?.toString?.(),
+        ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
+      ]);
+
+      if (!memberIds.has(userId)) {
+        throw new AppError("You do not have access to this workspace", 403);
+      }
+
+      // Primary: explicit workspace-scoped conversations
+      const scopedConversations = await Conversation.find({
+        workspace: workspaceId,
+        participants: userId,
+      })
+        .populate("participants", "name email avatar profilePicture")
+        .populate({
+          path: "lastMessage",
+          populate: { path: "sender", select: "name email avatar profilePicture" },
+        })
+        .sort({ lastMessageAt: -1 })
+        .lean();
+
+      // Backward compatibility: legacy conversations without workspace set
+      const legacy = await Conversation.find({
+        workspace: { $in: [null, undefined] },
+        participants: userId,
+      })
+        .populate("participants", "name email avatar profilePicture")
+        .populate({
+          path: "lastMessage",
+          populate: { path: "sender", select: "name email avatar profilePicture" },
+        })
+        .sort({ lastMessageAt: -1 })
+        .lean();
+
+      const legacyFiltered = legacy.filter((conv: any) =>
+        conv.participants.every((p: any) => memberIds.has(p._id.toString()))
+      );
+
+      const dedup = new Map<string, any>();
+      [...scopedConversations, ...legacyFiltered].forEach((c: any) => {
+        dedup.set(c._id.toString(), c);
+      });
+
+      const conversations = Array.from(dedup.values()).sort(
+        (a: any, b: any) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+
+      const conversationsWithUnread = await Promise.all(
+        conversations.map(async (conv: any) => {
+          const unreadCount = await DirectMessage.countDocuments({
+            conversation: conv._id,
+            sender: { $ne: userId },
+            readBy: { $ne: userId },
+          });
+
+          return {
+            ...conv,
+            unreadCount,
+          };
+        })
+      );
+
+      return conversationsWithUnread;
     }
 
     const conversations = await Conversation.find({
-      participants: participantFilter,
+      participants: userId,
     })
       .populate("participants", "name email avatar profilePicture")
       .populate({

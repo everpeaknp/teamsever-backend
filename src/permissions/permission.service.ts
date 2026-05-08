@@ -30,6 +30,7 @@ const Workspace = require("../models/Workspace");
 const SpaceMember = require("../models/SpaceMember");
 const FolderMember = require("../models/FolderMember");
 const { ListMember } = require("../models/ListMember");
+const List = require("../models/List");
 const Task = require("../models/Task");
 
 class PermissionService {
@@ -281,11 +282,21 @@ class PermissionService {
         space: spaceId
       }).select("permissionLevel");
 
-      if (!spaceMember) {
-        return null;
+      if (spaceMember?.permissionLevel) {
+        return spaceMember.permissionLevel;
       }
 
-      return spaceMember.permissionLevel;
+      // Backward-compatibility fallback:
+      // some older flows only persisted permissionLevel in Space.members.
+      const Space = require("../models/Space");
+      const space = await Space.findById(spaceId).select("members.user members.permissionLevel");
+      const nestedMember = space?.members?.find((m: any) => m.user?.toString?.() === userId);
+
+      if (nestedMember?.permissionLevel) {
+        return nestedMember.permissionLevel;
+      }
+
+      return null;
     } catch (error) {
       console.error("[PermissionService] Error getting space permission:", error);
       return null;
@@ -335,11 +346,18 @@ class PermissionService {
         list: listId
       }).select("permissionLevel");
 
-      if (!listMember) {
-        return null;
+      if (listMember?.permissionLevel) {
+        return listMember.permissionLevel;
       }
 
-      return listMember.permissionLevel;
+      // Backward-compatibility fallback for legacy nested list member permissions
+      const list = await List.findById(listId).select("members.user members.permissionLevel");
+      const nestedMember = list?.members?.find((m: any) => m.user?.toString?.() === userId);
+      if (nestedMember?.permissionLevel) {
+        return nestedMember.permissionLevel;
+      }
+
+      return null;
     } catch (error) {
       console.error("[PermissionService] Error getting list permission:", error);
       return null;

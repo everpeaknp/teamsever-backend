@@ -376,7 +376,7 @@ spaceRouter.get("/:id", protect, requirePermission("VIEW_SPACE"), getSpace);
  */
 spaceRouter.get("/:id/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceMetadata);
 spaceRouter.get("/:id/lists/metadata", protect, requirePermission("VIEW_SPACE"), getSpaceListsMetadata);
-spaceRouter.patch("/:id", protect, requirePermission("UPDATE_SPACE"), require("../middlewares/ownerOnly"), validate(updateSpaceSchema), updateSpace);
+spaceRouter.patch("/:id", protect, requirePermission("UPDATE_SPACE"), validate(updateSpaceSchema), updateSpace);
 spaceRouter.delete("/:id", protect, requirePermission("DELETE_SPACE"), deleteSpace);
 
 /**

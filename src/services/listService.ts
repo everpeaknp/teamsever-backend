@@ -2,6 +2,7 @@ const List = require("../models/List");
 const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
 const WorkspaceActivity = require("../models/WorkspaceActivity");
+const SpaceMember = require("../models/SpaceMember");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
@@ -204,11 +205,20 @@ class ListService {
     console.log(`[ListService] Found ${allLists.length} total lists`);
     console.log(`[ListService] All list IDs:`, allLists.map((l: any) => ({ id: l._id.toString(), name: l.name })));
 
+    // Determine space-level override for this user
+    const spaceOverride = await SpaceMember.findOne({
+      user: userId,
+      space: spaceId,
+      workspace: workspace._id
+    }).select("permissionLevel").lean();
+
+    const hasSpaceLevelAccess = !!spaceOverride;
+
     // Determine which lists to return
     let listsToReturn;
     
-    // Only owners and admins can see all lists
-    if (isOwner || isAdmin) {
+    // Owners/admins and users with any explicit space-level permission can see all lists
+    if (isOwner || isAdmin || hasSpaceLevelAccess) {
       console.log(`[ListService] User is owner/admin, returning all ${allLists.length} lists`);
       listsToReturn = allLists;
     } else {
@@ -298,22 +308,24 @@ class ListService {
       throw new AppError("List not found", 404);
     }
 
-    // Verify user is space owner or admin
-    const space = await Space.findOne({
-      _id: list.space,
+    // Route-level permission middleware is the source of truth for UPDATE_LIST.
+    // Service only validates user belongs to workspace.
+    const workspace = await Workspace.findOne({
+      _id: list.workspace,
       isDeleted: false
     });
 
-    if (!space) {
-      throw new AppError("Space not found", 404);
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
     }
 
-    const member = space.members.find(
-      (m: any) => m.user.toString() === userId
+    const isWorkspaceOwner = workspace.owner.toString() === userId;
+    const isWorkspaceMember = workspace.members.some(
+      (member: any) => member.user.toString() === userId
     );
 
-    if (!member || (member.role !== "owner" && member.role !== "admin")) {
-      throw new AppError("Only space owner or admin can update this list", 403);
+    if (!isWorkspaceOwner && !isWorkspaceMember) {
+      throw new AppError("You do not have access to this list", 403);
     }
 
     // Capture old state for audit
@@ -379,27 +391,15 @@ class ListService {
       throw new AppError("Workspace not found", 404);
     }
 
-    // Check if user is workspace owner
+    // Route-level permission middleware is the source of truth for DELETE_LIST.
+    // Service only validates user belongs to workspace.
     const isWorkspaceOwner = workspace.owner.toString() === userId;
+    const isWorkspaceMember = workspace.members.some(
+      (member: any) => member.user.toString() === userId
+    );
 
-    // If not workspace owner, check if user is space owner or admin
-    if (!isWorkspaceOwner) {
-      const space = await Space.findOne({
-        _id: list.space,
-        isDeleted: false
-      });
-
-      if (!space) {
-        throw new AppError("Space not found", 404);
-      }
-
-      const member = space.members.find(
-        (m: any) => m.user.toString() === userId
-      );
-
-      if (!member || (member.role !== "owner" && member.role !== "admin")) {
-        throw new AppError("Only workspace owner, space owner, or space admin can delete this list", 403);
-      }
+    if (!isWorkspaceOwner && !isWorkspaceMember) {
+      throw new AppError("You do not have access to this list", 403);
     }
 
     // Invalidate usage cache for workspace owner

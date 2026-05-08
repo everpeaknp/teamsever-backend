@@ -3,6 +3,12 @@ const { Schema } = mongoose;
 
 const conversationSchema = new Schema(
   {
+    workspace: {
+      type: Schema.Types.ObjectId,
+      ref: "Workspace",
+      default: null,
+      index: true,
+    },
     participants: {
       type: [Schema.Types.ObjectId],
       ref: "User",
@@ -32,6 +38,7 @@ const conversationSchema = new Schema(
 
 // Compound index for efficient participant queries
 conversationSchema.index({ participants: 1 });
+conversationSchema.index({ workspace: 1, participants: 1 });
 
 // Index for sorting conversations by last message
 conversationSchema.index({ lastMessageAt: -1 });

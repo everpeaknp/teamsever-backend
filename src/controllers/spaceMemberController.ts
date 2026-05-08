@@ -149,6 +149,15 @@ const addSpaceMember = asyncHandler(
       });
     }
 
+    // Keep legacy nested membership permission in sync
+    const spaceMemberInSpace = space.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    if (spaceMemberInSpace) {
+      spaceMemberInSpace.permissionLevel = permissionLevel;
+      await space.save();
+    }
+
     // Populate user info
     await spaceMember.populate("user", "name email avatar");
 
@@ -202,6 +211,16 @@ const updateSpaceMember = asyncHandler(
     spaceMember.permissionLevel = permissionLevel;
     spaceMember.addedBy = currentUserId;
     await spaceMember.save();
+
+    // Keep legacy nested membership permission in sync
+    const space = await Space.findById(spaceId);
+    const spaceMemberInSpace = space?.members?.find(
+      (m: any) => m.user.toString() === userId
+    );
+    if (spaceMemberInSpace) {
+      spaceMemberInSpace.permissionLevel = permissionLevel;
+      await space.save();
+    }
 
     await spaceMember.populate("user", "name email avatar");
 

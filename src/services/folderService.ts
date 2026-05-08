@@ -1,5 +1,6 @@
 const Folder = require("../models/Folder");
 const FolderMember = require("../models/FolderMember");
+const SpaceMember = require("../models/SpaceMember");
 const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
 const List = require("../models/List");
@@ -173,11 +174,20 @@ class FolderService {
       })
     );
 
+    // Determine explicit space-level override
+    const spaceOverride = await SpaceMember.findOne({
+      user: userId,
+      space: spaceId,
+      workspace: workspace._id
+    }).select("permissionLevel").lean();
+
+    const hasSpaceLevelAccess = !!spaceOverride;
+
     // Determine which lists user can access
     let accessibleListIds: string[];
     
-    // Only owners and admins can see all lists
-    if (isOwner || isAdmin) {
+    // Owners/admins and users with explicit space-level permissions can see all lists
+    if (isOwner || isAdmin || hasSpaceLevelAccess || isSpaceMember) {
       accessibleListIds = allLists.map((list: any) => list._id.toString());
     } else {
       // Get lists where user has membership

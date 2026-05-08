@@ -232,7 +232,7 @@ const folderRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  */
 folderRouter.get("/:id", protect, requirePermission("VIEW_FOLDER"), getFolder);
-folderRouter.put("/:id", protect, requirePermission("UPDATE_FOLDER"), require("../middlewares/ownerOnly"), updateFolder);
+folderRouter.put("/:id", protect, requirePermission("UPDATE_FOLDER"), updateFolder);
 folderRouter.delete("/:id", protect, requirePermission("DELETE_FOLDER"), deleteFolder);
 
 module.exports = { spaceFolderRouter, folderRouter };

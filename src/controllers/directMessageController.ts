@@ -10,10 +10,12 @@ const EntitlementService = require("../services/entitlementService").default;
 const startConversation = asyncHandler(async (req: any, res: any) => {
   const currentUserId = req.user.id;
   const { userId: targetUserId } = req.params;
+  const workspaceId = req.query.workspaceId || req.body.workspaceId;
 
   const conversation = await directMessageService.startConversation(
     currentUserId,
-    targetUserId
+    targetUserId,
+    workspaceId
   );
 
   res.status(200).json({
@@ -31,7 +33,7 @@ const startConversation = asyncHandler(async (req: any, res: any) => {
 const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
-  const { content } = req.body;
+  const { content, workspaceId } = req.body;
 
   // Check entitlement
   const entitlement = await EntitlementService.canSendDirectMessage(senderId, targetUserId);
@@ -47,6 +49,7 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
     senderId,
     targetUserId,
     content,
+    workspaceId,
   });
 
   // Invalidate cache after sending message
