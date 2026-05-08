@@ -184,19 +184,28 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
   // Extract GitHub username if available in the token (identities object)
   const githubUsername = firebase?.identities?.['github.com']?.[0] || "";
 
-  if (!email) {
-    throw new AppError("Email not found in token", 400);
+  const normalizedEmail = email ? String(email).toLowerCase() : "";
+
+  // Resolve existing user by email first, then by GitHub username (for private-email GitHub accounts)
+  let user = null;
+  if (normalizedEmail) {
+    user = await User.findOne({ email: normalizedEmail });
+  }
+  if (!user && githubUsername) {
+    user = await User.findOne({
+      githubUsername: { $regex: new RegExp(`^${githubUsername}$`, "i") }
+    });
   }
 
-  // Check if user exists (case-insensitive)
-  let user = await User.findOne({ email: email.toLowerCase() });
-
   if (!user) {
+    // GitHub users can hide email; create a stable fallback email for account creation.
+    const signupEmail = normalizedEmail || `${uid}@users.noreply.github.local`;
+
     // Create new user with GitHub auth
     const randomPassword = crypto.randomBytes(32).toString('hex');
     user = await User.create({
-      name: name || email.split('@')[0],
-      email: email.toLowerCase(),
+      name: name || signupEmail.split('@')[0],
+      email: signupEmail,
       password: await bcrypt.hash(randomPassword, 10),
       profilePicture: picture || undefined,
       githubUsername: githubUsername,
