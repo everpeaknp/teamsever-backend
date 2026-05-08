@@ -255,6 +255,15 @@ async function getWorkspaceId(req: AuthRequest): Promise<string | null> {
         if (space && space.workspace) {
           return space.workspace.toString();
         }
+      } else {
+        // Handle ObjectId instance that is neither populated object nor string
+        const rawSpaceId = (folder.spaceId as any)?.toString?.();
+        if (rawSpaceId) {
+          const space = await Space.findById(rawSpaceId).select("workspace");
+          if (space && space.workspace) {
+            return space.workspace.toString();
+          }
+        }
       }
     }
   }
