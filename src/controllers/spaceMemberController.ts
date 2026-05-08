@@ -117,9 +117,10 @@ const addSpaceMember = asyncHandler(
       return next(new AppError("Workspace not found", 404));
     }
 
-    const isWorkspaceMember = workspace.members.some(
-      (m: any) => m.user.toString() === userId
-    );
+    const isWorkspaceMember = (workspace.members || []).some((m: any) => {
+      const memberUserId = m?.user?._id?.toString?.() || m?.user?.toString?.();
+      return memberUserId === userId;
+    });
 
     if (!isWorkspaceMember) {
       return next(
@@ -150,9 +151,10 @@ const addSpaceMember = asyncHandler(
     }
 
     // Keep legacy nested membership permission in sync
-    const spaceMemberInSpace = space.members.find(
-      (m: any) => m.user.toString() === userId
-    );
+    const spaceMemberInSpace = (space.members || []).find((m: any) => {
+      const memberUserId = m?.user?._id?.toString?.() || m?.user?.toString?.();
+      return memberUserId === userId;
+    });
     if (spaceMemberInSpace) {
       spaceMemberInSpace.permissionLevel = permissionLevel;
       await space.save();
@@ -161,14 +163,20 @@ const addSpaceMember = asyncHandler(
     // Populate user info
     await spaceMember.populate("user", "name email avatar");
 
+    const populatedUser: any = (spaceMember as any).user;
+    const responseUserId = populatedUser?._id?.toString?.() || userId;
+    const responseUserName = populatedUser?.name || "";
+    const responseUserEmail = populatedUser?.email || "";
+    const responseUserAvatar = populatedUser?.avatar || null;
+
     res.status(200).json({
       success: true,
       message: "Space member permission updated successfully",
       data: {
-        _id: spaceMember.user._id,
-        name: spaceMember.user.name,
-        email: spaceMember.user.email,
-        avatar: spaceMember.user.avatar,
+        _id: responseUserId,
+        name: responseUserName,
+        email: responseUserEmail,
+        avatar: responseUserAvatar,
         permissionLevel: spaceMember.permissionLevel,
       },
     });
@@ -214,9 +222,10 @@ const updateSpaceMember = asyncHandler(
 
     // Keep legacy nested membership permission in sync
     const space = await Space.findById(spaceId);
-    const spaceMemberInSpace = space?.members?.find(
-      (m: any) => m.user.toString() === userId
-    );
+    const spaceMemberInSpace = space?.members?.find((m: any) => {
+      const memberUserId = m?.user?._id?.toString?.() || m?.user?.toString?.();
+      return memberUserId === userId;
+    });
     if (spaceMemberInSpace) {
       spaceMemberInSpace.permissionLevel = permissionLevel;
       await space.save();
@@ -224,14 +233,20 @@ const updateSpaceMember = asyncHandler(
 
     await spaceMember.populate("user", "name email avatar");
 
+    const populatedUser: any = (spaceMember as any).user;
+    const responseUserId = populatedUser?._id?.toString?.() || userId;
+    const responseUserName = populatedUser?.name || "";
+    const responseUserEmail = populatedUser?.email || "";
+    const responseUserAvatar = populatedUser?.avatar || null;
+
     res.status(200).json({
       success: true,
       message: "Space member permission updated successfully",
       data: {
-        _id: spaceMember.user._id,
-        name: spaceMember.user.name,
-        email: spaceMember.user.email,
-        avatar: spaceMember.user.avatar,
+        _id: responseUserId,
+        name: responseUserName,
+        email: responseUserEmail,
+        avatar: responseUserAvatar,
         permissionLevel: spaceMember.permissionLevel,
       },
     });
