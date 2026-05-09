@@ -44,6 +44,9 @@ class HierarchyService {
     ]);
 
     const spaceMemberIds = new Set(spaceMemberships.map((m: any) => m.space.toString()));
+    const spacePermissionById = new Map(
+      spaceMemberships.map((m: any) => [m.space.toString(), m.permissionLevel || null])
+    );
     const folderMemberIds = new Set(folderMemberships.map((m: any) => m.folder.toString()));
     const listMemberIds = new Set(listMemberships.map((m: any) => m.list.toString()));
 
@@ -191,6 +194,7 @@ class HierarchyService {
           description: space.description,
           status: space.status,
           color: space.color,
+          spacePermissionLevel: spacePermissionById.get(spaceId) || null,
           folders,
           lists: standaloneLists, // Renamed to match frontend interface
           totalTasks,
@@ -211,4 +215,3 @@ class HierarchyService {
 }
 
 export default HierarchyService;
-
