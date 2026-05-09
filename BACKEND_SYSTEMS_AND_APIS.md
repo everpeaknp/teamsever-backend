@@ -3,7 +3,7 @@
 ## 1. Document Scope
 1. This document tracks backend systems and API behavior for the range:
    - Baseline commit: `5c5f61cf733812324f9fa840c243af90a822ec35`
-   - Current HEAD: `ce922da` (plus current local documentation updates)
+   - Current HEAD: `5caddb6` (plus current local documentation updates)
 2. Audience: Flutter/mobile/web client developers integrating APIs and real-time behaviors.
 3. Goal: clearly list:
    - New APIs
@@ -618,6 +618,50 @@
    - Notification is saved in `Notification` collection.
    - Optional activity log entry is created if `workspaceId` present.
 6. Delivery split:
+
+## 15. Latest Access Cleanup + Ownership Transfer (May 9, 2026)
+
+### 15.1 Commit Covered
+1. `5caddb6` — `fix(access-cleanup): revoke list visibility and transfer list ownership on scope removal`
+
+### 15.2 What changed
+1. Space-level member removal now performs full child-scope cleanup inside that space:
+   - Deletes `SpaceMember` record for the removed user+space.
+   - Deletes all `FolderMember` records for that user in folders of that space.
+   - Deletes all `ListMember` records for that user in lists of that space.
+   - Removes stale embedded entries from `List.members[]` for lists under that space.
+2. Folder-level member removal now performs folder child cleanup:
+   - Deletes `FolderMember` record for removed user+folder.
+   - Deletes all `ListMember` records for that user in lists of that folder.
+   - Removes stale embedded entries from `List.members[]` for lists under that folder.
+3. Ownership transfer safety on scope removal:
+   - For affected lists, if `List.createdBy` is the removed user, ownership is reassigned to the parent `Space.owner`.
+   - Applies during both space-member removal and folder-member removal flows.
+
+### 15.3 Why this matters
+1. Prevents stale list visibility after removing user access at space/folder scope.
+2. Prevents orphaned ownership when creator is removed from permission scope.
+3. Keeps sidebar/hierarchy behavior aligned with effective access.
+
+### 15.4 Affected backend files
+1. `src/services/spaceService.ts`
+2. `src/controllers/folderMemberController.ts`
+
+### 15.5 API behavior impact
+1. No endpoint path/method changes.
+2. Behavior changes on existing routes:
+   - `DELETE /api/spaces/:spaceId/space-members/:userId`
+   - `DELETE /api/folders/:folderId/folder-members/:userId`
+3. Both now trigger deeper cleanup + ownership transfer logic as described above.
+
+### 15.6 QA checklist for this change
+1. User has FULL in a space, creates lists, then is removed from space:
+   - space/folder/list access should disappear immediately.
+   - created lists should remain, with `createdBy` effectively transferred to space owner.
+2. User has FULL in a folder, creates lists, then is removed from folder:
+   - folder/list visibility should disappear immediately.
+   - created lists in that folder should remain under owner ownership.
+3. Removed user should not retain stale list rows in sidebar/hierarchy due to embedded `List.members[]`.
    - If recipient is online (socket connected): emit `notification:new` over socket.
    - If recipient is offline: send FCM push to registered device tokens.
 7. Client UI then:
