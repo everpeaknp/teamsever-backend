@@ -23,7 +23,9 @@ const getSpaceMembers = asyncHandler(
     
     const { spaceId } = req.params;
 
-    const space = await Space.findById(spaceId).populate("workspace");
+    const space = await Space.findById(spaceId)
+      .populate("workspace")
+      .populate("members.user", "name email avatar");
     if (!space) {
       return next(new AppError("Space not found", 404));
     }
@@ -34,7 +36,7 @@ const getSpaceMembers = asyncHandler(
       .populate("addedBy", "name")
       .lean();
 
-    // Get workspace to show all potential members
+    // Get workspace to map workspace roles for users who are already in this space
     const workspace = await Workspace.findById(space.workspace).populate(
       "members.user",
       "name email avatar"
@@ -44,13 +46,27 @@ const getSpaceMembers = asyncHandler(
       return next(new AppError("Workspace not found", 404));
     }
 
-    // Format response with override info - handle both populated and unpopulated user fields
-    const members = workspace.members.map((member: any) => {
-      // Handle case where user might be an ID string or populated object
-      const userId = typeof member.user === 'string' ? member.user : member.user?._id;
-      const userName = typeof member.user === 'string' ? 'Unknown' : member.user?.name || 'Unknown';
-      const userEmail = typeof member.user === 'string' ? '' : member.user?.email || '';
-      const userAvatar = typeof member.user === 'string' ? null : member.user?.avatar || null;
+    const workspaceRoleMap = new Map<string, string>();
+    for (const member of workspace.members || []) {
+      const memberUserId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id?.toString?.();
+      if (memberUserId) {
+        workspaceRoleMap.set(memberUserId, member.role);
+      }
+    }
+
+    // Format response ONLY for users actually associated with this space
+    const members = (space.members || []).map((member: any) => {
+      const userObj = typeof member.user === "string" ? null : member.user;
+      const userId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id?.toString?.();
+      const userName = userObj?.name || "Unknown";
+      const userEmail = userObj?.email || "";
+      const userAvatar = userObj?.avatar || null;
 
       const override = spaceMembers.find(
         (sm: any) => {
@@ -64,8 +80,9 @@ const getSpaceMembers = asyncHandler(
         name: userName,
         email: userEmail,
         avatar: userAvatar,
-        workspaceRole: member.role,
-        spacePermissionLevel: override?.permissionLevel || null,
+        workspaceRole: workspaceRoleMap.get(userId?.toString?.() || "") || "member",
+        spaceRole: member.role || "member",
+        spacePermissionLevel: override?.permissionLevel || member.permissionLevel || null,
         hasOverride: !!override,
         addedBy: override?.addedBy?.name || null,
         addedAt: override?.createdAt || null,
