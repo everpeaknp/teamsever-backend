@@ -314,6 +314,35 @@ const removeFolderMember = asyncHandler(
       );
     }
 
+    // On folder-scope removal:
+    // 1) remove list-level overrides inside this folder
+    // 2) remove embedded list.members visibility entries
+    // 3) transfer list ownership created by removed user to parent space owner
+    const List = require("../models/List");
+    const { ListMember } = require("../models/ListMember");
+    const Space = require("../models/Space");
+
+    const folder = await Folder.findById(folderId).select("spaceId");
+    if (folder?.spaceId) {
+      const space = await Space.findById(folder.spaceId).select("owner");
+      await Promise.all([
+        ListMember.deleteMany({
+          user: userId,
+          folder: folderId,
+        }),
+        List.updateMany(
+          { folderId: folderId, isDeleted: false },
+          { $pull: { members: { user: userId } } }
+        ),
+        space?.owner
+          ? List.updateMany(
+              { folderId: folderId, createdBy: userId, isDeleted: false },
+              { $set: { createdBy: space.owner } }
+            )
+          : Promise.resolve(),
+      ]);
+    }
+
     res.status(200).json({
       success: true,
       message: "Folder member permission override removed successfully",
