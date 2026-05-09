@@ -4,7 +4,8 @@ const sendMessageSchema = z.object({
   body: z.object({
     workspaceId: z
       .string()
-      .min(1, "workspaceId is required")
+      .trim()
+      .min(1, "workspaceId cannot be empty")
       .optional(),
     content: z
       .string()

@@ -300,7 +300,7 @@
   - Returns only conversations inside the provided workspace scope.
   - Requests without `workspaceId` return `400`.
 
-### 4.6.2 Changed: Start conversation (workspace required)
+### 4.6.2 Changed: Start conversation (workspace preferred, auto-resolved when omitted)
 - Method: `POST`
 - Path: `/api/dm/:userId`
 - Preferred request field:
@@ -313,7 +313,7 @@
     2) shared workspace membership (latest updated workspace)
   - Returns `400` only when no valid workspace can be resolved.
 
-### 4.6.3 Changed: Send message (workspace required)
+### 4.6.3 Changed: Send message (workspace preferred, auto-resolved when omitted)
 - Method: `POST`
 - Path: `/api/dm/:userId/message`
 - Required request fields:
@@ -490,10 +490,10 @@
 4. This is important because sidebar/group unread indicators are fed from workspace-level socket updates, while open-room chat views may still subscribe at channel level.
 
 ## 9. Flutter Integration Notes (Actionable)
-1. DM APIs are workspace-required:
-   - `GET /api/dm?workspaceId=<id>`
-   - `POST /api/dm/:userId` with `{ workspaceId }`
-   - `POST /api/dm/:userId/message` with `{ workspaceId, content }`
+1. DM APIs are workspace-scoped:
+   - `GET /api/dm?workspaceId=<id>` still requires explicit workspace scope.
+   - `POST /api/dm/:userId` prefers `{ workspaceId }`, but backend can auto-resolve a shared workspace when omitted.
+   - `POST /api/dm/:userId/message` prefers `{ workspaceId, content }`, but backend can auto-resolve a shared workspace when omitted.
 2. Use folder-aware table patterns:
    - Create: include optional `folderId`
    - List: include optional `folderId` or `folderId=null`
@@ -519,8 +519,8 @@
 7. `GET /api/chat/channels/:channelId/messages` now documents `userId` query filter.
 8. `DELETE /api/workspaces/:workspaceId/chat/channels/:channelId` documented.
 9. `GET /api/dm` now documents required `workspaceId` query.
-10. `POST /api/dm/:userId` now documents required `workspaceId` body.
-11. `POST /api/dm/:userId/message` now documents required `workspaceId` in payload schema (`DMMessageInput`).
+10. `POST /api/dm/:userId` now documents optional `workspaceId` body with backend auto-resolution fallback.
+11. `POST /api/dm/:userId/message` now documents optional `workspaceId` in payload schema (`DMMessageInput`) with backend auto-resolution fallback.
 12. `POST/GET /api/spaces/:spaceId/tables` docs now mention folder scoping (`folderId`).
 13. Cleaned duplicated Swagger block for `/api/spaces/{id}/webhook`.
 14. Notification schema enum list updated to include `GITHUB_COMMIT`, `ANNOUNCEMENT_NEW`, and `MENTION`.
@@ -566,8 +566,8 @@
    - [ ] `DELETE /api/workspaces/:workspaceId/chat/channels/:channelId`
 6. DM
    - [ ] `GET /api/dm?workspaceId=...` (required)
-   - [ ] `POST /api/dm/:userId` with `workspaceId`
-   - [ ] `POST /api/dm/:userId/message` with `workspaceId`
+   - [ ] `POST /api/dm/:userId` with and without `workspaceId`
+   - [ ] `POST /api/dm/:userId/message` with and without `workspaceId`
 7. Tables
    - [ ] `POST /api/spaces/:spaceId/tables` with/without `folderId`
    - [ ] `GET /api/spaces/:spaceId/tables?folderId=...`

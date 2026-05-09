@@ -1439,9 +1439,13 @@ const options: swaggerJsdoc.Options = {
         },
         DMMessageInput: {
           type: "object",
-          required: ["workspaceId", "content"],
+          required: ["content"],
           properties: {
-            workspaceId: { type: "string", example: "69bbf827a96fe78f716752bb" },
+            workspaceId: {
+              type: "string",
+              example: "69bbf827a96fe78f716752bb",
+              description: "Optional workspace scope. If omitted, the backend will try to auto-resolve a shared workspace between the sender and recipient."
+            },
             content: { type: "string", example: "Hey! Did you see the new update?" },
             attachments: { type: "array", items: { type: "string" }, description: "Cloudinary URLs of attachments" }
           }

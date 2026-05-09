@@ -75,11 +75,10 @@ router.get("/", directMessageController.getConversations);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [workspaceId]
  *             properties:
  *               workspaceId:
  *                 type: string
- *                 description: Workspace ID used to scope DM conversation.
+ *                 description: Optional workspace ID used to scope the DM conversation. If omitted, the backend will auto-resolve a shared workspace between the two users.
  *     responses:
  *       200:
  *         description: Conversation started or retrieved successfully
@@ -91,7 +90,7 @@ router.get("/", directMessageController.getConversations);
  *                 _id: "69bbf827a96fe78f71675700"
  *                 participants: [...]
  *       400:
- *         description: Bad Request (e.g. starting conversation with yourself or missing workspaceId)
+ *         description: Bad Request (e.g. starting conversation with yourself or no shared workspace found)
  *         content:
  *           application/json:
  *             schema:
@@ -160,7 +159,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *     description: |
  *       Sends a message to another user. If no conversation exists, it creates one automatically.
  *       **Note:** Message content cannot be empty unless attachments are provided.
- *       `workspaceId` is required to keep DM scoped to one workspace.
+ *       `workspaceId` is optional. When omitted, the backend will auto-resolve a shared workspace between the sender and recipient.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
