@@ -287,10 +287,24 @@ const removeSpaceMember = asyncHandler(
       space: spaceId,
     });
 
-    if (!spaceMember) {
-      return next(
-        new AppError("Space member override not found", 404)
-      );
+    // Also clear legacy nested permission override on Space.members
+    const space = await Space.findById(spaceId);
+    if (space?.members?.length) {
+      const nestedMember = space.members.find((m: any) => {
+        const memberUserId = m?.user?._id?.toString?.() || m?.user?.toString?.();
+        return memberUserId === userId;
+      });
+
+      if (nestedMember && nestedMember.permissionLevel) {
+        nestedMember.permissionLevel = undefined as any;
+        await space.save();
+      }
+    }
+
+    // Do not treat missing SpaceMember doc as hard error if nested permission existed.
+    // Endpoint semantics: "reset override if present".
+    if (!spaceMember && !space) {
+      return next(new AppError("Space not found", 404));
     }
 
     res.status(200).json({
