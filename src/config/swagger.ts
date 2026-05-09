@@ -1381,7 +1381,8 @@ const options: swaggerJsdoc.Options = {
                 "TASK_PRIORITY_CHANGED", "COMMENT_ADDED", "COMMENT_UPDATED",
                 "COMMENT_DELETED", "COMMENT_MENTION", "DM_NEW",
                 "FILE_UPLOAD", "INVITATION", "INVITE_ACCEPTED",
-                "SPACE_INVITATION", "SYSTEM"
+                "SPACE_INVITATION", "GITHUB_COMMIT", "ANNOUNCEMENT_NEW",
+                "MENTION", "SYSTEM"
               ]
             },
             title: { type: "string" },
@@ -1438,8 +1439,9 @@ const options: swaggerJsdoc.Options = {
         },
         DMMessageInput: {
           type: "object",
-          required: ["content"],
+          required: ["workspaceId", "content"],
           properties: {
+            workspaceId: { type: "string", example: "69bbf827a96fe78f716752bb" },
             content: { type: "string", example: "Hey! Did you see the new update?" },
             attachments: { type: "array", items: { type: "string" }, description: "Cloudinary URLs of attachments" }
           }

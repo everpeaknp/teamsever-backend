@@ -13,17 +13,17 @@ router.use(protect);
  * /api/dm:
  *   get:
  *     summary: Get all conversations
- *     description: Retrieve direct message conversations for the current user, including last message, participants, and unread count.
+ *     description: Retrieve direct message conversations for the current user inside a specific workspace.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: workspaceId
- *         required: false
+ *         required: true
  *         schema:
  *           type: string
- *         description: Optional workspace scope. When provided, only conversations involving workspace members are returned.
+ *         description: Workspace scope. Only conversations involving members of this workspace are returned.
  *     responses:
  *       200:
  *         description: Conversations retrieved successfully
@@ -44,6 +44,8 @@ router.use(protect);
  *                   unreadCount: 2
  *       401:
  *         description: Authentication required
+ *       400:
+ *         description: workspaceId is required
  *         content:
  *           application/json:
  *             schema:
@@ -56,7 +58,7 @@ router.get("/", directMessageController.getConversations);
  * /api/dm/{userId}:
  *   post:
  *     summary: Start conversation
- *     description: Start a new conversation with a user or retrieve the existing one if it already exists.
+ *     description: Start a new conversation with a user in a workspace scope or retrieve the existing one.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
@@ -67,8 +69,19 @@ router.get("/", directMessageController.getConversations);
  *         schema:
  *           type: string
  *         description: User ID to start conversation with
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [workspaceId]
+ *             properties:
+ *               workspaceId:
+ *                 type: string
+ *                 description: Workspace ID used to scope DM conversation.
  *     responses:
- *       201:
+ *       200:
  *         description: Conversation started or retrieved successfully
  *         content:
  *           application/json:
@@ -78,7 +91,7 @@ router.get("/", directMessageController.getConversations);
  *                 _id: "69bbf827a96fe78f71675700"
  *                 participants: [...]
  *       400:
- *         description: Bad Request (e.g. starting conversation with yourself)
+ *         description: Bad Request (e.g. starting conversation with yourself or missing workspaceId)
  *         content:
  *           application/json:
  *             schema:
@@ -147,6 +160,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *     description: |
  *       Sends a message to another user. If no conversation exists, it creates one automatically.
  *       **Note:** Message content cannot be empty unless attachments are provided.
+ *       `workspaceId` is required to keep DM scoped to one workspace.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
@@ -188,7 +202,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Subscription limit reached (if applicable)
+ *         description: Subscription limit reached (if applicable) or workspace membership validation failed
  *         content:
  *           application/json:
  *             schema:

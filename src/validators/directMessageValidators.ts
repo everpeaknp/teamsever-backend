@@ -2,6 +2,9 @@ const { z } = require("zod");
 
 const sendMessageSchema = z.object({
   body: z.object({
+    workspaceId: z
+      .string()
+      .min(1, "workspaceId is required"),
     content: z
       .string()
       .min(1, "Message content is required")
