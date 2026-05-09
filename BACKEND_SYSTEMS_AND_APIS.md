@@ -3,7 +3,7 @@
 ## 1. Document Scope
 1. This document tracks backend systems and API behavior for the range:
    - Baseline commit: `5c5f61cf733812324f9fa840c243af90a822ec35`
-   - Current HEAD: `02addde` (plus current local documentation updates)
+   - Current HEAD: `ce922da` (plus current local documentation updates)
 2. Audience: Flutter/mobile/web client developers integrating APIs and real-time behaviors.
 3. Goal: clearly list:
    - New APIs
@@ -39,6 +39,7 @@
 
 ## 3. Commit-Range Change Summary (Since Baseline)
 ### 3.0 Canonical Backend Commits Reviewed (May 7–9, 2026)
+1. `ce922da` docs(swagger): align DM workspace requirements and notification endpoint docs
 1. `02addde` fix(notifications): normalize FCM data payloads and guard missing messaging client
 1. `287ec1c` fix(permissions): honor folder FULL for list actions and clean space-removal access
 1. `0d230b5` fix(permissions): enforce scoped DM and folder-level access visibility
@@ -313,7 +314,7 @@
 
 ## 4.8 Custom Table APIs
 
-### 4.7.1 Changed: Create table (folder-aware)
+### 4.8.1 Changed: Create table (folder-aware)
 - Method: `POST`
 - Path: `/api/spaces/:spaceId/tables`
 - New request field:
@@ -321,7 +322,7 @@
 - Behavior:
   - Table can be attached to a folder or remain space-level (`null`).
 
-### 4.7.2 Changed: Get tables (folder filtering)
+### 4.8.2 Changed: Get tables (folder filtering)
 - Method: `GET`
 - Path: `/api/spaces/:spaceId/tables`
 - New query:
@@ -330,21 +331,24 @@
 
 ## 4.9 Folder Permission/Access APIs
 
-### 4.8.1 Changed: Folder details endpoint behavior
+### 4.9.1 Changed: Folder details endpoint behavior
 - `GET /api/folders/:id` now runs through `folderService.getFolderById(folderId, userId)`.
 - Effect: folder-level permission-aware access, not raw `findById` fetch.
 
-### 4.8.2 Changed: Folder member management robustness
+### 4.9.2 Changed: Folder member management robustness
 - Runtime-safe permission constants used (`FULL|EDIT|COMMENT|VIEW`).
 - Correct workspace resolution from `folder.spaceId -> space.workspace`.
 - Null-safe member and override mapping.
 
-### 4.8.3 Changed: Folder members list source
+### 4.9.3 Changed: Folder members list source
 - Method: `GET`
 - Path: `/api/folders/:folderId/folder-members`
 - Behavior:
-  - Returns members from the parent space membership set (not the full workspace user list).
-  - Includes folder override metadata (`folderPermissionLevel`, `hasOverride`) for those members.
+  - Returns a union of:
+    - users currently in the parent space membership
+    - users with explicit folder override (`FolderMember`) for this folder
+  - Excludes unrelated workspace-wide users.
+  - Includes folder override metadata (`folderPermissionLevel`, `hasOverride`, `addedBy`, `addedAt`).
 
 ## 4.10 Platform/Infra Behavior
 1. General API rate limit increased:

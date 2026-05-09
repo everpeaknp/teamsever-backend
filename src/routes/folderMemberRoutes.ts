@@ -22,7 +22,7 @@ const router = express.Router({ mergeParams: true });
  * /api/folders/{folderId}/folder-members:
  *   get:
  *     summary: Get folder members
- *     description: Retrieve all folder members with their permission overrides
+ *     description: Retrieve folder member permission view. Returns users currently in parent space plus direct folder overrides.
  *     tags: ["3.5 Hierarchy — Folder Members"]
  *     security:
  *       - bearerAuth: []
@@ -73,7 +73,7 @@ const router = express.Router({ mergeParams: true });
  *             type: object
  *             required:
  *               - userId
- *               - permissions
+ *               - permissionLevel
  *             properties:
  *               userId:
  *                 type: string
