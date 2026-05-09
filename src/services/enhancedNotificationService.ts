@@ -955,7 +955,20 @@ class EnhancedNotificationService {
 
       // Send push notification directly via FCM
       const messaging = getMessaging();
+      if (!messaging) {
+        console.log("[Notification] Messaging client unavailable, skipping push");
+        return false;
+      }
       const tokens = deviceTokens.map((dt: any) => dt.token);
+
+      const rawData = options.data || {};
+      // Firebase Admin requires all data values to be strings.
+      const stringData: Record<string, string> = {};
+      for (const [key, value] of Object.entries(rawData)) {
+        if (value !== null && value !== undefined) {
+          stringData[key] = typeof value === "string" ? value : JSON.stringify(value);
+        }
+      }
 
       const message = {
         notification: {
@@ -963,7 +976,7 @@ class EnhancedNotificationService {
           body: options.body,
           ...(options.imageUrl && { imageUrl: options.imageUrl }),
         },
-        data: options.data || {},
+        data: stringData,
       };
 
       // Send to all tokens
