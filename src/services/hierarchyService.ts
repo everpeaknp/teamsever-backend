@@ -43,12 +43,16 @@ class HierarchyService {
       ListMember.find({ workspace: workspaceId, user: userId }).lean()
     ]);
 
-    const spaceMemberIds = new Set(spaceMemberships.map((m: any) => m.space.toString()));
     const spacePermissionById = new Map(
       spaceMemberships.map((m: any) => [m.space.toString(), m.permissionLevel || null])
     );
     const folderMemberIds = new Set(folderMemberships.map((m: any) => m.folder.toString()));
     const listMemberIds = new Set(listMemberships.map((m: any) => m.list.toString()));
+    const directSpaceMemberIds = new Set(
+      allSpaces
+        .filter((s: any) => s.members?.some((m: any) => m.user?.toString?.() === userId))
+        .map((s: any) => s._id.toString())
+    );
 
     // 2. Resolve Visibility (Bottom-Up for Pathway)
     const visibleListIds = new Set<string>();
@@ -63,7 +67,7 @@ class HierarchyService {
       const parentSpaceId = list.space?.toString();
 
       const hasAccess = isAdmin || 
-                        (parentSpaceId && spaceMemberIds.has(parentSpaceId)) ||
+                        (parentSpaceId && directSpaceMemberIds.has(parentSpaceId)) ||
                         (parentFolderId && folderMemberIds.has(parentFolderId)) ||
                         isDirectListMember;
 
@@ -80,7 +84,7 @@ class HierarchyService {
       const parentSpaceId = folder.spaceId?.toString();
       
       const hasAccess = isAdmin || 
-                        (parentSpaceId && spaceMemberIds.has(parentSpaceId)) ||
+                        (parentSpaceId && directSpaceMemberIds.has(parentSpaceId)) ||
                         folderMemberIds.has(folderId) ||
                         visibleFolderIds.has(folderId);
 
@@ -99,7 +103,7 @@ class HierarchyService {
       const hasAccess = isAdmin || 
                         isSpaceOwner || 
                         isDirectSpaceMember || 
-                        spaceMemberIds.has(spaceId) || 
+                        directSpaceMemberIds.has(spaceId) || 
                         visibleSpaceIds.has(spaceId);
 
       if (hasAccess) {

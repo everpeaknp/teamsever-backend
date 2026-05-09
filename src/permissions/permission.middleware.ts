@@ -165,6 +165,16 @@ async function getFolderId(req: AuthRequest): Promise<string | undefined> {
     }
   }
 
+  // For create/update list routes where folderId is passed in body/query
+  const bodyFolderId = (req.body as any)?.folderId;
+  if (bodyFolderId && typeof bodyFolderId === "string") {
+    return bodyFolderId;
+  }
+  const queryFolderId = req.query?.folderId;
+  if (queryFolderId && typeof queryFolderId === "string" && queryFolderId !== "null") {
+    return queryFolderId;
+  }
+
   // Get from task
   const taskId =
     req.params.taskId ||

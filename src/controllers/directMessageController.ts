@@ -12,6 +12,13 @@ const startConversation = asyncHandler(async (req: any, res: any) => {
   const { userId: targetUserId } = req.params;
   const workspaceId = req.query.workspaceId || req.body.workspaceId;
 
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required for direct messages",
+    });
+  }
+
   const conversation = await directMessageService.startConversation(
     currentUserId,
     targetUserId,
@@ -34,6 +41,13 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
   const { content, workspaceId } = req.body;
+
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required for direct messages",
+    });
+  }
 
   // Check entitlement
   const entitlement = await EntitlementService.canSendDirectMessage(senderId, targetUserId);
@@ -70,6 +84,13 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
 const getConversations = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const { workspaceId } = req.query;
+
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required",
+    });
+  }
 
   const conversations = await directMessageService.getConversations(userId, workspaceId);
 

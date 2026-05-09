@@ -195,8 +195,26 @@ class FolderService {
         user: userId,
         workspace: space.workspace
       }).select('list').lean();
-      
-      accessibleListIds = userListMemberships.map((lm: any) => lm.list.toString());
+
+      // Also include lists inside folders where user has explicit folder access
+      const userFolderMemberships = await FolderMember.find({
+        user: userId,
+        workspace: space.workspace,
+        space: spaceId
+      }).select('folder').lean();
+
+      const allowedFolderIds = new Set(
+        userFolderMemberships.map((fm: any) => fm.folder.toString())
+      );
+
+      const folderGrantedListIds = allLists
+        .filter((list: any) => list.folderId && allowedFolderIds.has(list.folderId.toString()))
+        .map((list: any) => list._id.toString());
+
+      accessibleListIds = Array.from(new Set([
+        ...userListMemberships.map((lm: any) => lm.list.toString()),
+        ...folderGrantedListIds
+      ]));
     }
 
     // Populate lists for each folder, filtering by access

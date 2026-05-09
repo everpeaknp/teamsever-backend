@@ -35,39 +35,80 @@ const getFolderMembers = asyncHandler(
       .lean();
 
     // Get workspace ID from populated spaceId
-    const workspaceId = folder.spaceId?.workspace;
+    const parentSpaceId =
+      typeof folder.spaceId === "string"
+        ? folder.spaceId
+        : folder.spaceId?._id?.toString?.();
+    const workspaceId =
+      typeof folder.spaceId === "string"
+        ? null
+        : folder.spaceId?.workspace;
+
+    if (!parentSpaceId) {
+      return next(new AppError("Parent space not found for this folder", 404));
+    }
     if (!workspaceId) {
       return next(new AppError("Workspace not found for this folder", 404));
     }
 
-    // Get workspace to show all potential members
+    // Get workspace to map workspace roles
     const workspace = await Workspace.findById(workspaceId).populate(
       "members.user",
       "name email avatar"
     );
+    if (!workspace) {
+      return next(new AppError("Workspace not found", 404));
+    }
 
-    // Format response with override info
-    const members = (workspace.members || [])
-      .filter((member: any) => member?.user?._id)
+    const Space = require("../models/Space");
+    const spaceDoc = await Space.findById(parentSpaceId).populate(
+      "members.user",
+      "name email avatar"
+    );
+
+    if (!spaceDoc) {
+      return next(new AppError("Space not found", 404));
+    }
+
+    const workspaceRoleMap = new Map<string, string>();
+    for (const member of workspace.members || []) {
+      const memberUserId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id?.toString?.();
+      if (memberUserId) {
+        workspaceRoleMap.set(memberUserId, member.role);
+      }
+    }
+
+    // Format response with override info (only users currently inside parent space)
+    const members = (spaceDoc.members || [])
       .map((member: any) => {
+      const userObj = typeof member.user === "string" ? null : member.user;
+      const userId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id?.toString?.();
+
       const override = folderMembers.find((fm: any) => {
         const overrideUserId = fm?.user?._id?.toString?.();
-        const memberUserId = member?.user?._id?.toString?.();
+        const memberUserId = userId?.toString?.();
         return !!overrideUserId && !!memberUserId && overrideUserId === memberUserId;
       });
 
       return {
-        _id: member.user._id,
-        name: member.user.name,
-        email: member.user.email,
-        avatar: member.user.avatar,
-        workspaceRole: member.role,
+        _id: userId,
+        name: userObj?.name || "Unknown",
+        email: userObj?.email || "",
+        avatar: userObj?.avatar || null,
+        workspaceRole: workspaceRoleMap.get(userId?.toString?.() || "") || "member",
+        spaceRole: member.role || "member",
         folderPermissionLevel: override?.permissionLevel || null,
         hasOverride: !!override,
         addedBy: override?.addedBy?.name || null,
         addedAt: override?.createdAt || null,
       };
-    });
+    }).filter((member: any) => !!member._id);
 
     console.log('[FolderMemberController] Members retrieved', { count: members.length });
 
