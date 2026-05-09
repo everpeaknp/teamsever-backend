@@ -3,7 +3,7 @@
 ## 1. Document Scope
 1. This document tracks backend systems and API behavior for the range:
    - Baseline commit: `5c5f61cf733812324f9fa840c243af90a822ec35`
-   - Current HEAD: `5caddb6` (plus current local documentation updates)
+   - Current HEAD: `1c9b145` (plus current local documentation updates)
 2. Audience: Flutter/mobile/web client developers integrating APIs and real-time behaviors.
 3. Goal: clearly list:
    - New APIs
@@ -623,6 +623,7 @@
 
 ### 15.1 Commit Covered
 1. `5caddb6` — `fix(access-cleanup): revoke list visibility and transfer list ownership on scope removal`
+2. `1c9b145` — `fix(rbac): resolve task folder/space/workspace via list fallback for folder FULL access`
 
 ### 15.2 What changed
 1. Space-level member removal now performs full child-scope cleanup inside that space:
@@ -662,6 +663,40 @@
    - folder/list visibility should disappear immediately.
    - created lists in that folder should remain under owner ownership.
 3. Removed user should not retain stale list rows in sidebar/hierarchy due to embedded `List.members[]`.
+
+## 16. Folder FULL Task Access Fix (May 9, 2026)
+
+### 16.1 Problem observed
+1. User invited with `FULL` at folder scope (without space-level permission) could create lists in that folder.
+2. But once inside a list/task, update/delete/status actions were denied with permission errors.
+
+### 16.2 Root cause
+1. Permission middleware relied on denormalized task fields (`task.folder`, `task.space`, `task.workspace`) for context.
+2. Some task rows only had `task.list` linkage, so folder context was missing during permission evaluation.
+3. Missing folder context caused checks to fall back to workspace-role-only behavior, which blocked member actions.
+
+### 16.3 Fix implemented
+1. In permission middleware, task-context derivation now includes list-based fallbacks:
+   - `spaceId`: if `task.space` missing, resolve via `task.list -> list.space`
+   - `folderId`: if `task.folder` missing, resolve via `task.list -> list.folder || list.folderId`
+   - `workspaceId`: if `task.workspace` missing, resolve via `task.list -> list.workspace`
+2. This ensures folder override (`FolderMember.permissionLevel = FULL`) is correctly applied for task/list actions.
+
+### 16.4 Affected file
+1. `src/permissions/permission.middleware.ts`
+
+### 16.5 API contract impact
+1. No endpoint path or payload changes.
+2. Behavior-only change for existing routes guarded by permission middleware, including:
+   - task update/delete/status routes
+   - list/task operations where task-based context resolution is used
+
+### 16.6 Expected behavior after fix
+1. Folder FULL user (without space-level grant) can:
+   - create/update/delete lists inside that folder
+   - create/update/delete tasks inside lists of that folder
+   - change status/assign/comment per FULL matrix
+2. Access outside that folder remains restricted.
    - If recipient is online (socket connected): emit `notification:new` over socket.
    - If recipient is offline: send FCM push to registered device tokens.
 7. Client UI then:
