@@ -40,7 +40,11 @@ const startConversation = asyncHandler(async (req: any, res: any) => {
 const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
-  const { content, workspaceId } = req.body;
+  const { content } = req.body;
+  const workspaceId =
+    req.body?.workspaceId ||
+    req.query?.workspaceId ||
+    req.headers?.["x-workspace-id"];
 
   if (!workspaceId) {
     return res.status(400).json({
