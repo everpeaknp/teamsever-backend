@@ -109,16 +109,25 @@ const startServer = async () => {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://teamsever.everacy.com",
       "https://teamsever.vercel.app",
       "https://teamsever-frontend.vercel.app",
       "https://teamsever-frontend-d22u.vercel.app"
     ].filter(Boolean);
 
+    const allowedOriginPatterns = [
+      /^https:\/\/teamsever(?:-frontend)?(?:-[a-z0-9]+)?\.vercel\.app$/i,
+      /^https:\/\/(?:www\.)?teamsever\.everacy\.com$/i
+    ];
+
     const corsOptions = {
       origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes(origin)) {
+        const isExplicitlyAllowed = allowedOrigins.includes(origin);
+        const matchesPattern = allowedOriginPatterns.some((pattern) => pattern.test(origin));
+        if (isExplicitlyAllowed || matchesPattern) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));

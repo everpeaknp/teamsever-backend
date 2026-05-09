@@ -11,15 +11,30 @@ const initializeSocketIO = (httpServer: any) => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://teamsever.everacy.com",
     "https://teamsever.vercel.app",
     "https://teamsever-frontend.vercel.app",
     "https://teamsever-frontend-d22u.vercel.app"
   ].filter(Boolean) as string[];
 
+  const allowedOriginPatterns = [
+    /^https:\/\/teamsever(?:-frontend)?(?:-[a-z0-9]+)?\.vercel\.app$/i,
+    /^https:\/\/(?:www\.)?teamsever\.everacy\.com$/i
+  ];
+
   // Socket.io configuration
   const socketOptions = {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+        if (!origin) return callback(null, true);
+        const isExplicitlyAllowed = allowedOrigins.includes(origin);
+        const matchesPattern = allowedOriginPatterns.some((pattern) => pattern.test(origin));
+        if (isExplicitlyAllowed || matchesPattern) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+      },
       credentials: true,
       methods: ["GET", "POST"]
     },
