@@ -81,34 +81,58 @@ const getFolderMembers = asyncHandler(
       }
     }
 
-    // Format response with override info (only users currently inside parent space)
-    const members = (spaceDoc.members || [])
-      .map((member: any) => {
+    const membersById = new Map<string, any>();
+
+    // Base set: users currently inside parent space
+    for (const member of (spaceDoc.members || [])) {
       const userObj = typeof member.user === "string" ? null : member.user;
-      const userId =
+      const currentUserId =
         typeof member.user === "string"
           ? member.user
           : member.user?._id?.toString?.();
+      if (!currentUserId) continue;
 
       const override = folderMembers.find((fm: any) => {
         const overrideUserId = fm?.user?._id?.toString?.();
-        const memberUserId = userId?.toString?.();
+        const memberUserId = currentUserId?.toString?.();
         return !!overrideUserId && !!memberUserId && overrideUserId === memberUserId;
       });
 
-      return {
-        _id: userId,
+      membersById.set(currentUserId, {
+        _id: currentUserId,
         name: userObj?.name || "Unknown",
         email: userObj?.email || "",
         avatar: userObj?.avatar || null,
-        workspaceRole: workspaceRoleMap.get(userId?.toString?.() || "") || "member",
+        workspaceRole: workspaceRoleMap.get(currentUserId?.toString?.() || "") || "member",
         spaceRole: member.role || "member",
         folderPermissionLevel: override?.permissionLevel || null,
         hasOverride: !!override,
         addedBy: override?.addedBy?.name || null,
         addedAt: override?.createdAt || null,
-      };
-    }).filter((member: any) => !!member._id);
+      });
+    }
+
+    // Merge explicit folder overrides even if user is not currently a parent-space member.
+    // This keeps directly invited folder users visible in management UI.
+    for (const override of folderMembers) {
+      const overrideUserId = override?.user?._id?.toString?.();
+      if (!overrideUserId || membersById.has(overrideUserId)) continue;
+
+      membersById.set(overrideUserId, {
+        _id: overrideUserId,
+        name: override?.user?.name || "Unknown",
+        email: override?.user?.email || "",
+        avatar: override?.user?.avatar || null,
+        workspaceRole: workspaceRoleMap.get(overrideUserId) || "member",
+        spaceRole: "member",
+        folderPermissionLevel: override?.permissionLevel || null,
+        hasOverride: true,
+        addedBy: override?.addedBy?.name || null,
+        addedAt: override?.createdAt || null,
+      });
+    }
+
+    const members = Array.from(membersById.values());
 
     console.log('[FolderMemberController] Members retrieved', { count: members.length });
 

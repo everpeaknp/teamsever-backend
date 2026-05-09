@@ -733,6 +733,13 @@ class SpaceService {
     // Also remove from SpaceMember collection for granular permissions consistency
     const SpaceMember = require("../models/SpaceMember");
     await SpaceMember.findOneAndDelete({ space: spaceId, user: memberId });
+    // Remove inherited child-scope overrides for this space so visibility/actions are revoked immediately
+    const FolderMember = require("../models/FolderMember");
+    const { ListMember } = require("../models/ListMember");
+    await Promise.all([
+      FolderMember.deleteMany({ workspace: space.workspace, space: spaceId, user: memberId }),
+      ListMember.deleteMany({ workspace: space.workspace, space: spaceId, user: memberId }),
+    ]);
 
     // Log activity
     await logger.logActivity({

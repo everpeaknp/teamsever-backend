@@ -46,6 +46,9 @@ class HierarchyService {
     const spacePermissionById = new Map(
       spaceMemberships.map((m: any) => [m.space.toString(), m.permissionLevel || null])
     );
+    const folderPermissionById = new Map(
+      folderMemberships.map((m: any) => [m.folder.toString(), m.permissionLevel || null])
+    );
     const folderMemberIds = new Set(folderMemberships.map((m: any) => m.folder.toString()));
     const listMemberIds = new Set(listMemberships.map((m: any) => m.list.toString()));
     const directSpaceMemberIds = new Set(
@@ -156,6 +159,7 @@ class HierarchyService {
               name: folder.name,
               color: folder.color,
               icon: folder.icon,
+              folderPermissionLevel: folderPermissionById.get(folderId) || null,
               lists,
               createdAt: folder.createdAt
             };

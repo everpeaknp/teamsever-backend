@@ -159,9 +159,10 @@ async function getFolderId(req: AuthRequest): Promise<string | undefined> {
     (req.path.includes("/lists/") && req.params.id);
 
   if (listId && typeof listId === 'string') {
-    const list = await List.findById(listId).select("folder");
-    if (list && list.folder) {
-      return list.folder.toString();
+    const list = await List.findById(listId).select("folder folderId");
+    const resolvedFolderId = (list as any)?.folder || (list as any)?.folderId;
+    if (resolvedFolderId) {
+      return resolvedFolderId.toString();
     }
   }
 
