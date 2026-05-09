@@ -107,7 +107,10 @@ class PermissionService {
       
       console.log('  ➜ User is NOT admin, continuing checks...');
 
-      // Step 3: Check for list-level override (highest priority for non-admins)
+      // Step 3: Check for list-level override
+      // NOTE: We treat overrides as grants, not hard denials.
+      // If list override does not allow an action, we still fall through to
+      // folder/space/workspace checks (so space FULL can still grant access).
       if (context.listId) {
         const listPermission = await this.getListPermissionLevel(
           userId,
@@ -115,13 +118,15 @@ class PermissionService {
         );
 
         if (listPermission) {
-          // List override exists - use it (no additional task checks needed)
           const hasListPermission = listPermissionHasAction(listPermission, action);
-          return hasListPermission;
+          if (hasListPermission) {
+            return true;
+          }
         }
       }
 
-      // Step 4: Check for folder-level override (second priority)
+      // Step 4: Check for folder-level override
+      // Same behavior: grant if allowed, otherwise continue.
       if (context.folderId) {
         const folderPermission = await this.getFolderPermissionLevel(
           userId,
@@ -129,12 +134,14 @@ class PermissionService {
         );
 
         if (folderPermission) {
-          // Folder override exists - use it (no additional task checks needed)
-          return folderPermissionHasAction(folderPermission, action);
+          const hasFolderPermission = folderPermissionHasAction(folderPermission, action);
+          if (hasFolderPermission) {
+            return true;
+          }
         }
       }
 
-      // Step 5: Check for space-level override (third priority)
+      // Step 5: Check for space-level override
       if (context.spaceId) {
         const spacePermission = await this.getSpacePermissionLevel(
           userId,
@@ -142,8 +149,10 @@ class PermissionService {
         );
 
         if (spacePermission) {
-          // Space override exists - use it (no additional task checks needed)
-          return spacePermissionHasAction(spacePermission, action);
+          const hasSpacePermission = spacePermissionHasAction(spacePermission, action);
+          if (hasSpacePermission) {
+            return true;
+          }
         }
         
         // Only enforce space membership restriction
