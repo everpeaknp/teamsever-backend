@@ -15,6 +15,7 @@ export interface IWorkspaceMember {
   role: WorkspaceRole | "owner" | "admin" | "member" | "guest";
   status?: "active" | "inactive";
   customRoleTitle?: string;
+  lastChatReadAt?: Date;
 }
 
 export interface IWorkspace extends Document {
@@ -67,6 +68,10 @@ const workspaceSchema = new mongoose.Schema(
           type: String,
           trim: true,
           maxlength: [50, "Custom role title cannot exceed 50 characters"],
+          default: null
+        },
+        lastChatReadAt: {
+          type: Date,
           default: null
         }
       }

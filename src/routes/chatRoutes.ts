@@ -220,9 +220,69 @@ workspaceChatRouter
   .patch(protect, chatController.updateChannel)
   .delete(protect, chatController.deleteChannel);
 
+/**
+ * @swagger
+ * /api/workspaces/{workspaceId}/chat/unread:
+ *   get:
+ *     summary: Get workspace chat unread count
+ *     description: Returns unread count for the workspace chat feed using the caller's `Workspace.members[].lastChatReadAt` cursor. Only accessible channels/messages visible to the caller are counted.
+ *     tags: ["5.2 Collaboration — Chat Channels"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     responses:
+ *       200:
+ *         description: Workspace unread count retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
+ *       403:
+ *         description: User is not a member of the workspace
+ *       404:
+ *         description: Workspace not found
+ */
 workspaceChatRouter
   .route("/unread")
   .get(protect, chatController.getWorkspaceUnreadCount);
+
+/**
+ * @swagger
+ * /api/workspaces/{workspaceId}/chat/read:
+ *   patch:
+ *     summary: Mark workspace chat as read
+ *     description: Updates the caller's workspace chat read cursor (`Workspace.members[].lastChatReadAt`) to the current server time. This clears unread state for messages visible up to the mark time.
+ *     tags: ["5.2 Collaboration — Chat Channels"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace ID
+ *     responses:
+ *       200:
+ *         description: Workspace chat marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
+ *       403:
+ *         description: User is not a member of the workspace
+ *       404:
+ *         description: Workspace not found
+ */
+workspaceChatRouter
+  .route("/read")
+  .patch(protect, chatController.markWorkspaceChatAsRead);
 
 // Channel-specific routes
 const channelRouter = express.Router();

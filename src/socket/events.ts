@@ -111,13 +111,17 @@ const emitTaskEvent = (
  */
 const emitChatMessage = (
   channelId: string,
-  message: any
+  message: any,
+  workspaceId?: string
 ): void => {
   const socketIo = getIO();
   if (!socketIo) return;
   
   try {
     socketIo.to(`channel:${channelId}`).emit("chat:new", { message });
+    if (workspaceId) {
+      socketIo.to(`workspace:${workspaceId}`).emit("chat:new", { message });
+    }
   } catch (error) {
     // Silent fail
   }

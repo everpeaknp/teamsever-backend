@@ -269,6 +269,26 @@
     - `General`
     - `Commit Log`
 
+### 4.5.5 New: Workspace chat unread count
+- Method: `GET`
+- Path: `/api/workspaces/:workspaceId/chat/unread`
+- Purpose: return the current user's unread count for workspace chat.
+- Behavior:
+  1. Validates the caller is a member of the workspace.
+  2. Resolves only channels/messages the caller can actually access.
+  3. Excludes the caller's own messages from unread totals.
+  4. Uses `Workspace.members[].lastChatReadAt` as the server-side read cursor.
+  5. If no read cursor exists yet, unread count is computed against the full visible feed.
+
+### 4.5.6 New: Mark workspace chat as read
+- Method: `PATCH`
+- Path: `/api/workspaces/:workspaceId/chat/read`
+- Purpose: mark workspace chat as read for the current user.
+- Behavior:
+  1. Validates the caller is a member of the workspace.
+  2. Updates `Workspace.members[].lastChatReadAt` to the current server time.
+  3. Clears workspace-chat unread state for visible messages up to that mark time.
+
 ## 4.6 Direct Message APIs
 
 ### 4.6.1 Changed: Conversation list (workspace required)
@@ -396,6 +416,15 @@
 1. Added `folderId` (nullable ObjectId, indexed).
 2. Added compound index support for folder-scoped queries.
 
+## 5.7 `Workspace.members[]`
+1. Added `lastChatReadAt: Date | null`
+2. Purpose:
+   - stores per-user workspace chat read cursor
+   - acts as the backend source of truth for workspace-group unread calculation
+3. Scope note:
+   - this is workspace-level read-state, not per-channel read-state
+   - it is used for the current `General`/workspace-feed unread model
+
 ## 6. Service-Layer Behavioral Changes
 
 ## 6.1 `activityService.getActivities()`
@@ -411,9 +440,20 @@
 2. Adds channel delete enforcement logic.
 3. Emits chat events consistently to socket room via `emitChatMessage`.
 4. Supports sender-filtered message queries.
+5. Workspace chat sends now also propagate workspace context into socket emission path so realtime consumers can update:
+   - workspace room `workspace:{workspaceId}`
+   - channel room `channel:{channelId}`
 
 ## 6.3 `directMessageService.getConversations()`
 1. Uses strict workspace scoping when `workspaceId` is provided from controller (now required in API contract for list/start/send flows).
+
+## 6.3A `chatController` workspace unread/read behavior
+1. `getWorkspaceUnreadCount()` now calculates unread using:
+   - accessible channel set
+   - `sender != currentUser`
+   - `createdAt > members[].lastChatReadAt` when cursor exists
+2. `markWorkspaceChatAsRead()` writes the read cursor back into the matching embedded workspace member row.
+3. This replaces placeholder-style unread behavior and lets the client reconcile live socket events against a server-backed read state.
 
 ## 6.4 `folderService.getFolderById()`
 1. Adds robust folder access checks for owner/member/folder-member paths.
@@ -444,6 +484,10 @@
    - `Commit Log` channel message creation
 2. Notification creation hardened:
    - Unknown `type` no longer breaks creation; falls back to `SYSTEM` and retains source in metadata.
+3. Workspace chat realtime fan-out now has dual scope:
+   - channel room emission for room-specific listeners
+   - workspace room emission for sidebar/global listeners
+4. This is important because sidebar/group unread indicators are fed from workspace-level socket updates, while open-room chat views may still subscribe at channel level.
 
 ## 9. Flutter Integration Notes (Actionable)
 1. DM APIs are workspace-required:
@@ -481,6 +525,8 @@
 13. Cleaned duplicated Swagger block for `/api/spaces/{id}/webhook`.
 14. Notification schema enum list updated to include `GITHUB_COMMIT`, `ANNOUNCEMENT_NEW`, and `MENTION`.
 15. Swagger server production URL points to Render deployment.
+16. `GET /api/workspaces/:workspaceId/chat/unread`
+17. `PATCH /api/workspaces/:workspaceId/chat/read`
 
 ### 10.2 Remaining Recommendation
 1. Consider adding dedicated response component schemas for:
@@ -514,6 +560,8 @@
    - [ ] `GET /api/spaces/:spaceId/commits`
 5. Chat
    - [ ] `GET /api/workspaces/:workspaceId/chat?userId=...`
+   - [ ] `GET /api/workspaces/:workspaceId/chat/unread`
+   - [ ] `PATCH /api/workspaces/:workspaceId/chat/read`
    - [ ] `GET /api/chat/channels/:channelId/messages?userId=...`
    - [ ] `DELETE /api/workspaces/:workspaceId/chat/channels/:channelId`
 6. DM
@@ -675,6 +723,45 @@
    - folder/list visibility should disappear immediately.
    - created lists in that folder should remain under owner ownership.
 3. Removed user should not retain stale list rows in sidebar/hierarchy due to embedded `List.members[]`.
+
+## 17. Workspace Chat Read-State + Realtime Alignment (May 9, 2026)
+
+### 17.1 Commits/Scope
+1. Current local/backend update after `1c9b145`
+2. Frontend was aligned in parallel so unread badges, realtime room updates, and active-view read sync now match the backend contract.
+
+### 17.2 Problem observed
+1. Group chat unread badge could stay non-zero even after user was already viewing the workspace chat.
+2. Sidebar/global listeners were not always updated by channel-only socket emissions.
+3. Browser popup behavior could overlap with active realtime handling if frontend/socket state was not aligned.
+
+### 17.3 Backend fix
+1. Added `Workspace.members[].lastChatReadAt`.
+2. Implemented `GET /api/workspaces/:workspaceId/chat/unread`.
+3. Implemented `PATCH /api/workspaces/:workspaceId/chat/read`.
+4. Updated workspace chat send/socket path so workspace-level socket rooms also receive `chat:new`.
+
+### 17.4 Practical runtime behavior now
+1. When user opens workspace chat:
+   - client should call `PATCH /api/workspaces/:workspaceId/chat/read`
+2. When new workspace message arrives:
+   - backend emits to both workspace room and channel room
+3. When client asks for unread:
+   - backend returns count based on read cursor + visible messages only
+4. Result:
+   - active user can clear/stabilize unread correctly
+   - sidebar/global indicators can move in realtime without waiting for refresh
+
+### 17.5 Important limitation
+1. This is currently a workspace-level group chat read model.
+2. It is not a per-channel per-user read cursor system.
+3. That is acceptable for the current `General`/workspace chat UX, but future multi-channel unread precision would need a dedicated channel read-state model.
+
+### 17.6 Client integration requirement
+1. Web/mobile clients should treat these as the authoritative workspace-group endpoints:
+   - `GET /api/workspaces/:workspaceId/chat/unread`
+   - `PATCH /api/workspaces/:workspaceId/chat/read`
+2. Client should still keep local optimistic/socket state, but server read cursor should be used for final reconciliation.
 
 ## 16. Folder FULL Task Access Fix (May 9, 2026)
 

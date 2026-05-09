@@ -359,7 +359,7 @@ class ChatService {
       mentions: message.mentions,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
-    });
+    }, workspaceId);
 
     return message;
   }

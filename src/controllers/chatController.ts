@@ -1,5 +1,8 @@
 const chatService = require("../services/chatService");
 const asyncHandler = require("../utils/asyncHandler");
+const ChatChannel = require("../models/ChatChannel");
+const ChatMessage = require("../models/ChatMessage");
+const Workspace = require("../models/Workspace");
 
 /**
  * @desc    Create a new chat channel
@@ -198,11 +201,69 @@ const getWorkspaceUnreadCount = asyncHandler(async (req: any, res: any) => {
   const { workspaceId } = req.params;
   const userId = req.user.id;
 
-  // For now, this is a placeholder or simplified logic
-  // Real implementation would involve tracking lastRead for each channel per user
+  const { membership } = await chatService.validateWorkspaceMembership(workspaceId, userId);
+  const isAdmin = membership?.role === "admin" || membership?.role === "owner";
+
+  const channelQuery: any = {
+    workspace: workspaceId,
+    isDeleted: false,
+  };
+
+  if (!isAdmin) {
+    channelQuery.$or = [{ type: "public" }, { type: "private", members: userId }];
+  }
+
+  const accessibleChannels = await ChatChannel.find(channelQuery).select("_id").lean();
+  const channelIds = accessibleChannels.map((c: any) => c._id);
+
+  if (channelIds.length === 0) {
+    return res.status(200).json({
+      success: true,
+      data: { unreadCount: 0 },
+    });
+  }
+
+  const unreadQuery: any = {
+    workspace: workspaceId,
+    channel: { $in: channelIds },
+    isDeleted: false,
+    sender: { $ne: userId },
+  };
+
+  if (membership?.lastChatReadAt) {
+    unreadQuery.createdAt = { $gt: membership.lastChatReadAt };
+  }
+
+  const unreadCount = await ChatMessage.countDocuments(unreadQuery);
+
   res.status(200).json({
     success: true,
-    data: { unreadCount: 0 }
+    data: { unreadCount },
+  });
+});
+
+const markWorkspaceChatAsRead = asyncHandler(async (req: any, res: any) => {
+  const { workspaceId } = req.params;
+  const userId = req.user.id;
+
+  await chatService.validateWorkspaceMembership(workspaceId, userId);
+
+  await Workspace.updateOne(
+    {
+      _id: workspaceId,
+      "members.user": userId,
+      isDeleted: false,
+    },
+    {
+      $set: {
+        "members.$.lastChatReadAt": new Date(),
+      },
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace chat marked as read",
   });
 });
 
@@ -216,6 +277,7 @@ module.exports = {
   updateChannel,
   deleteChannel,
   getWorkspaceUnreadCount,
+  markWorkspaceChatAsRead,
   getWorkspaceMessages,
 };
 

@@ -202,6 +202,7 @@ class DirectMessageService {
       const messageData = {
         message: {
           _id: message._id,
+          workspace: conversation.workspace ? conversation.workspace.toString() : undefined,
           conversation: conversation._id,
           sender: message.sender,
           content: message.content,
@@ -210,6 +211,7 @@ class DirectMessageService {
         },
         conversation: {
           _id: conversation._id,
+          workspace: conversation.workspace ? conversation.workspace.toString() : undefined,
           participants: conversation.participants,
           lastMessageAt: conversation.lastMessageAt,
         },
