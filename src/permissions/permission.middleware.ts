@@ -129,9 +129,16 @@ async function getSpaceId(req: AuthRequest): Promise<string | undefined> {
     (req.path.includes("/tasks/") && req.params.id);
 
   if (taskId && typeof taskId === 'string') {
-    const task = await Task.findById(taskId).select("space");
-    if (task) {
+    const task = await Task.findById(taskId).select("space list");
+    if (task?.space) {
       return task.space.toString();
+    }
+    // Fallback for older task rows without denormalized space
+    if (task?.list) {
+      const list = await List.findById(task.list).select("space");
+      if (list?.space) {
+        return list.space.toString();
+      }
     }
   }
 
@@ -183,9 +190,17 @@ async function getFolderId(req: AuthRequest): Promise<string | undefined> {
     (req.path.includes("/tasks/") && req.params.id);
 
   if (taskId && typeof taskId === 'string') {
-    const task = await Task.findById(taskId).select("folder");
-    if (task && task.folder) {
+    const task = await Task.findById(taskId).select("folder list");
+    if (task?.folder) {
       return task.folder.toString();
+    }
+    // Fallback for tasks that only keep list linkage
+    if (task?.list) {
+      const list = await List.findById(task.list).select("folder folderId");
+      const resolvedFolderId = (list as any)?.folder || (list as any)?.folderId;
+      if (resolvedFolderId) {
+        return resolvedFolderId.toString();
+      }
     }
   }
 
@@ -299,9 +314,16 @@ async function getWorkspaceId(req: AuthRequest): Promise<string | null> {
     (req.path.includes("/tasks/") && req.params.id);
 
   if (taskId) {
-    const task = await Task.findById(taskId).select("workspace");
-    if (task) {
+    const task = await Task.findById(taskId).select("workspace list");
+    if (task?.workspace) {
       return task.workspace.toString();
+    }
+    // Fallback for older task rows without denormalized workspace
+    if (task?.list) {
+      const list = await List.findById(task.list).select("workspace");
+      if (list?.workspace) {
+        return list.workspace.toString();
+      }
     }
   }
 
