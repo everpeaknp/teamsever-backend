@@ -39,6 +39,7 @@
 
 ## 3. Commit-Range Change Summary (Since Baseline)
 ### 3.0 Canonical Backend Commits Reviewed (May 7–9, 2026)
+1. `e1bfe1a` fix(dm): auto-resolve workspace scope when client omits workspaceId
 1. `ce922da` docs(swagger): align DM workspace requirements and notification endpoint docs
 1. `02addde` fix(notifications): normalize FCM data payloads and guard missing messaging client
 1. `287ec1c` fix(permissions): honor folder FULL for list actions and clean space-removal access
@@ -115,6 +116,12 @@
    - FCM `data` payload is now normalized to string-only key/value pairs before sending.
    - Prevents Firebase Admin rejection when payload includes object/number/boolean values.
    - Added messaging-client null guard so notification flow degrades safely when Firebase config/app is unavailable.
+15. DM workspace scope auto-resolution:
+   - DM start/send endpoints can now recover from missing client `workspaceId`.
+   - Resolution order:
+     1) most recent existing scoped conversation workspace
+     2) most recently updated shared workspace membership
+   - This reduces accidental `400 workspaceId is required` failures while keeping scoped DMs.
 
 ## 4. API Delta Catalog (New + Changed)
 
@@ -276,22 +283,27 @@
 ### 4.6.2 Changed: Start conversation (workspace required)
 - Method: `POST`
 - Path: `/api/dm/:userId`
-- Required request field:
+- Preferred request field:
   - `workspaceId`
 - Behavior:
   - Creates/finds DM thread only in the provided workspace scope.
   - Both users must belong to that workspace.
-  - Requests without `workspaceId` return `400`.
+  - If `workspaceId` is omitted, backend tries to auto-resolve scope from:
+    1) existing scoped conversation for the pair
+    2) shared workspace membership (latest updated workspace)
+  - Returns `400` only when no valid workspace can be resolved.
 
 ### 4.6.3 Changed: Send message (workspace required)
 - Method: `POST`
 - Path: `/api/dm/:userId/message`
 - Required request fields:
-  - `workspaceId`
   - `content`
+- Preferred scope fields:
+  - `workspaceId` in body/query/header
 - Behavior:
   - Sends DM message only in the provided workspace scope.
-  - Requests without `workspaceId` return `400`.
+  - If `workspaceId` is omitted, backend auto-resolves using the same fallback order as `POST /api/dm/:userId`.
+  - Returns `400` only when no valid workspace can be resolved.
 
 ## 4.7 Space Member / Space Permission APIs
 
