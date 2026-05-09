@@ -2,6 +2,29 @@ const directMessageService = require("../services/directMessageService");
 const asyncHandler = require("../utils/asyncHandler");
 const EntitlementService = require("../services/entitlementService").default;
 
+const WORKSPACE_ID_REGEX = /\/workspace\/([a-f0-9]{24})/i;
+
+const extractWorkspaceId = (req: any): string | undefined => {
+  const direct =
+    req.body?.workspaceId ||
+    req.query?.workspaceId ||
+    req.headers?.["x-workspace-id"];
+
+  if (direct && String(direct).trim()) {
+    return String(direct).trim();
+  }
+
+  const referer = req.headers?.referer || req.headers?.referrer;
+  if (typeof referer === "string") {
+    const match = referer.match(WORKSPACE_ID_REGEX);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+};
+
 /**
  * @desc    Start or get conversation with a user
  * @route   POST /api/dm/:userId
@@ -10,7 +33,7 @@ const EntitlementService = require("../services/entitlementService").default;
 const startConversation = asyncHandler(async (req: any, res: any) => {
   const currentUserId = req.user.id;
   const { userId: targetUserId } = req.params;
-  const workspaceId = req.query.workspaceId || req.body.workspaceId;
+  const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -41,10 +64,7 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
   const { content } = req.body;
-  const workspaceId =
-    req.body?.workspaceId ||
-    req.query?.workspaceId ||
-    req.headers?.["x-workspace-id"];
+  const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -87,7 +107,7 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
  */
 const getConversations = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
-  const { workspaceId } = req.query;
+  const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
     return res.status(400).json({
