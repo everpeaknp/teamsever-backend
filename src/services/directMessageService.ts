@@ -1,6 +1,7 @@
 const Conversation = require("../models/Conversation");
 const DirectMessage = require("../models/DirectMessage");
 const User = require("../models/User");
+const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const enhancedNotificationService = require("./enhancedNotificationService");
@@ -19,6 +20,51 @@ interface GetMessagesOptions {
 }
 
 class DirectMessageService {
+  /**
+   * Resolve a workspace scope for a DM pair when client does not send workspaceId.
+   * Preference order:
+   * 1) Most recent existing scoped conversation between the pair
+   * 2) Most recently updated shared workspace membership
+   */
+  async resolveWorkspaceForUsers(userId1: string, userId2: string): Promise<string | null> {
+    const participants = [userId1, userId2].sort();
+
+    const recentScopedConversation = await Conversation.findOne({
+      participants: { $all: participants },
+      workspace: { $ne: null },
+    })
+      .sort({ lastMessageAt: -1 })
+      .select("workspace")
+      .lean();
+
+    if (recentScopedConversation?.workspace) {
+      return recentScopedConversation.workspace.toString();
+    }
+
+    const candidateWorkspaces = await Workspace.find({
+      isDeleted: false,
+      $or: [
+        { owner: { $in: [userId1, userId2] } },
+        { "members.user": { $in: [userId1, userId2] } },
+      ],
+    })
+      .sort({ updatedAt: -1 })
+      .select("owner members.user")
+      .lean();
+
+    for (const workspace of candidateWorkspaces) {
+      const ids = new Set<string>([
+        workspace.owner?.toString?.(),
+        ...((workspace.members || []).map((m: any) => m.user?.toString?.()).filter(Boolean)),
+      ]);
+      if (ids.has(userId1) && ids.has(userId2)) {
+        return workspace._id.toString();
+      }
+    }
+
+    return null;
+  }
+
   /**
    * Find or create conversation between two users
    */

@@ -33,7 +33,14 @@ const extractWorkspaceId = (req: any): string | undefined => {
 const startConversation = asyncHandler(async (req: any, res: any) => {
   const currentUserId = req.user.id;
   const { userId: targetUserId } = req.params;
-  const workspaceId = extractWorkspaceId(req);
+  let workspaceId = extractWorkspaceId(req);
+
+  if (!workspaceId) {
+    workspaceId = await directMessageService.resolveWorkspaceForUsers(
+      currentUserId,
+      targetUserId
+    );
+  }
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -64,7 +71,14 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
   const { content } = req.body;
-  const workspaceId = extractWorkspaceId(req);
+  let workspaceId = extractWorkspaceId(req);
+
+  if (!workspaceId) {
+    workspaceId = await directMessageService.resolveWorkspaceForUsers(
+      senderId,
+      targetUserId
+    );
+  }
 
   if (!workspaceId) {
     return res.status(400).json({
