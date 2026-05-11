@@ -311,37 +311,25 @@ class InvitationService {
       (member: any) => member.user.toString() === userId
     );
 
-    if (isAlreadyMember) {
-      // User is already a member - return workspace info instead of error
-      const existingWorkspace = await Workspace.findById(workspace._id)
-        .populate("owner", "name email")
-        .populate("members.user", "name email");
-
-      const userMember = workspace.members.find(
-        (member: any) => member.user.toString() === userId
-      );
-
-      return {
-        workspace: existingWorkspace,
-        role: userMember.role,
-        alreadyMember: true
-      };
-    }
-
-    // Add user to workspace members using $push
-    await Workspace.findByIdAndUpdate(
-      workspace._id,
-      {
-        $push: {
-          members: {
-            user: userId,
-            role: invitation.role,
-            status: "inactive"  // New members start clocked out by default
+    if (!isAlreadyMember) {
+      // Add user to workspace members using $push
+      await Workspace.findByIdAndUpdate(
+        workspace._id,
+        {
+          $push: {
+            members: {
+              user: userId,
+              role: invitation.role,
+              status: "inactive"  // New members start clocked out by default
+            }
           }
-        }
-      },
-      { returnDocument: "after" }
-    );
+        },
+        { returnDocument: "after" }
+      );
+      console.log(`[InvitationService] Added user ${userId} to workspace ${workspace._id}`);
+    } else {
+      console.log(`[InvitationService] User ${userId} is already a member of workspace ${workspace._id} — proceeding to space provisioning`);
+    }
 
     // Mark invitation as accepted
     invitation.status = "accepted";
