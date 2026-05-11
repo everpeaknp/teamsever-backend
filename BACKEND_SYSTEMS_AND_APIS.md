@@ -1533,3 +1533,5 @@ Muting is enforced **client-side** inside `SocketContext.tsx` for immediate resp
 - [ ] Unmute that user → notifications resume.
 - [ ] Set `messages: false` → all DM notifications silenced regardless of `mutedUsers`.
 - [ ] Verify mute state persists after page refresh (stored in DB via `PATCH` endpoint).
+
+# Last Update: Mon May 11 18:36:46 UTC 2026
