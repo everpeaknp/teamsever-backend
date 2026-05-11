@@ -591,7 +591,8 @@ class EnhancedNotificationService {
     conversationId: string,
     senderId: string,
     recipientId: string,
-    content: string
+    content: string,
+    recipientPreferences?: any
   ): Promise<void> {
     try {
       const sender = await User.findById(senderId).select("name").lean();
@@ -603,9 +604,16 @@ class EnhancedNotificationService {
           ? conversation.workspace
           : conversation?.workspace?.toString?.();
 
-      // Check preferences
-      const user = await User.findById(recipientId).select("notificationPreferences").lean();
-      if (user?.notificationPreferences?.messages === false) return;
+      let prefs = recipientPreferences;
+      if (!prefs) {
+        const user = await User.findById(recipientId).select("notificationPreferences").lean();
+        prefs = user?.notificationPreferences;
+      }
+
+      if (prefs?.messages === false) return;
+
+      const mutedUsers = Array.isArray(prefs?.mutedUsers) ? prefs.mutedUsers : [];
+      if (mutedUsers.includes(senderId)) return;
 
       await this.createNotification({
         recipientId,

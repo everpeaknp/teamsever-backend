@@ -55,6 +55,43 @@ router.get(
 /**
  * @swagger
  * /api/tasks/{taskId}/comments:
+ *   get:
+ *     summary: Get task comments
+ *     description: Retrieve all comments for a specific task.
+ *     tags: ["5.1 Collaboration — Activity & Comments"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comments retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ActivityListResponse"
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Task not found
+ */
+router.get(
+  "/tasks/:taskId/comments",
+  protect,
+  (req: any, res: any, next: any) => {
+    req.query.type = 'comment';
+    next();
+  },
+  activityController.getTaskActivity
+);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments:
  *   post:
  *     summary: Add comment to task
  *     description: Post a new comment on a task. Supports @mentions by including user IDs in the `mentions` array.

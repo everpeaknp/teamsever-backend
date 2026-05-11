@@ -1,6 +1,9 @@
 import { Server } from "socket.io";
 import { WorkspaceEventPayload, SpaceEventPayload, TaskEventPayload } from "./types";
 import socketService from "../services/socketService";
+const User = require("../models/User");
+const Workspace = require("../models/Workspace");
+const ChatChannel = require("../models/ChatChannel");
 
 let io: Server | null = null;
 
@@ -116,15 +119,119 @@ const emitChatMessage = (
 ): void => {
   const socketIo = getIO();
   if (!socketIo) return;
-  
-  try {
-    socketIo.to(`channel:${channelId}`).emit("chat:new", { message });
-    if (workspaceId) {
-      socketIo.to(`workspace:${workspaceId}`).emit("chat:new", { message });
+
+  const resolveId = (value: any): string | undefined => {
+    if (!value) return undefined;
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && value._id) return value._id.toString();
+    if (typeof value.toString === "function") return value.toString();
+    return undefined;
+  };
+
+  const resolvedWorkspaceId = workspaceId || resolveId(message?.workspace);
+
+  const fallbackEmit = () => {
+    try {
+      socketIo.to(`channel:${channelId}`).emit("chat:new", { message });
+      if (resolvedWorkspaceId) {
+        socketIo.to(`workspace:${resolvedWorkspaceId}`).emit("chat:new", { message });
+      }
+    } catch (error) {
+      // Silent fail
     }
-  } catch (error) {
-    // Silent fail
+  };
+
+  if (!resolvedWorkspaceId) {
+    fallbackEmit();
+    return;
   }
+
+  (async () => {
+    try {
+      const [channel, workspace] = await Promise.all([
+        ChatChannel.findById(channelId)
+          .select("workspace type members createdBy name")
+          .lean(),
+        Workspace.findById(resolvedWorkspaceId)
+          .select("members owner")
+          .lean(),
+      ]);
+
+      if (!channel || !workspace) {
+        fallbackEmit();
+        return;
+      }
+
+      const workspaceMemberIds = (workspace.members || [])
+        .map((member: any) => resolveId(member.user))
+        .filter(Boolean) as string[];
+
+      const ownerId = resolveId(workspace.owner);
+
+      let candidateUserIds = new Set<string>(workspaceMemberIds);
+      if (ownerId) {
+        candidateUserIds.add(ownerId);
+      }
+
+      if (channel.type === "private") {
+        const allowedIds = new Set<string>();
+        (channel.members || []).forEach((memberId: any) => {
+          const resolved = resolveId(memberId);
+          if (resolved) allowedIds.add(resolved);
+        });
+
+        const createdById = resolveId(channel.createdBy);
+        if (createdById) {
+          allowedIds.add(createdById);
+        }
+
+        (workspace.members || []).forEach((member: any) => {
+          if (member?.role === "admin" || member?.role === "owner") {
+            const resolved = resolveId(member.user);
+            if (resolved) allowedIds.add(resolved);
+          }
+        });
+
+        if (ownerId) {
+          allowedIds.add(ownerId);
+        }
+
+        candidateUserIds = allowedIds;
+      }
+
+      const userIds = Array.from(candidateUserIds);
+      if (userIds.length === 0) {
+        return;
+      }
+
+      const users = await User.find({ _id: { $in: userIds } })
+        .select("_id notificationPreferences")
+        .lean();
+
+      const allowedUserIds = users
+        .filter((user: any) => {
+          const prefs = user?.notificationPreferences;
+          if (!prefs) return true;
+
+          if (prefs.groupChats === false) return false;
+
+          const mutedChannels = Array.isArray(prefs.mutedChannels) ? prefs.mutedChannels : [];
+          if (mutedChannels.includes(channelId)) return false;
+          if (mutedChannels.includes(`workspace_${resolvedWorkspaceId}`)) return false;
+
+          return true;
+        })
+        .map((user: any) => user._id.toString());
+
+      if (allowedUserIds.length === 0) {
+        return;
+      }
+
+      socketService.emitToUsers(allowedUserIds, "chat:new", { message });
+    } catch (error) {
+      fallbackEmit();
+    }
+  })();
 };
 
 /**

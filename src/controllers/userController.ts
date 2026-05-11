@@ -84,7 +84,8 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
     mentions, 
     comments,
     notices,
-    mutedChannels
+    mutedChannels,
+    mutedUsers
   } = req.body;
   const userId = req.user.id;
 
@@ -104,7 +105,8 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
       mentions: true,
       comments: true,
       notices: true,
-      mutedChannels: []
+      mutedChannels: [],
+      mutedUsers: []
     };
   }
 
@@ -119,6 +121,7 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
   if (comments !== undefined) prefs.comments = comments;
   if (notices !== undefined) prefs.notices = notices;
   if (mutedChannels !== undefined) prefs.mutedChannels = mutedChannels;
+  if (mutedUsers !== undefined) prefs.mutedUsers = mutedUsers;
 
   user.markModified('notificationPreferences');
   await user.save();

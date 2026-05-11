@@ -155,6 +155,11 @@
 21. DM conversation unread-count query optimization:
    - Replaced per-conversation `countDocuments` N+1 pattern with a single aggregation grouped by `conversation`.
    - Reduces query count and latency for conversation list endpoints.
+22. Group chat socket delivery now respects user notification preferences:
+   - `notificationPreferences.groupChats = false` suppresses `chat:new` delivery.
+   - `notificationPreferences.mutedChannels` suppresses delivery for those channels (including `workspace_<workspaceId>`).
+23. DM realtime + notifications now respect muted users:
+   - `notificationPreferences.mutedUsers` suppresses `dm:new` delivery and DM notifications from those senders.
 
 ## 4. API Delta Catalog (New + Changed)
 
@@ -208,12 +213,16 @@
   - `taskStatusChange`
   - `taskUpdates`
   - `messages`
+   - `groupChats`
   - `mentions`
   - `comments`
   - `notices`
+   - `mutedChannels`
+   - `mutedUsers`
 - Behavior:
   - Initializes defaults if absent.
   - Partially updates only provided fields.
+   - `mutedChannels` accepts channel IDs and `workspace_<workspaceId>` for main group chat mute.
 
 ## 4.3 GitHub Integration APIs
 
@@ -525,7 +534,8 @@
 ## 5.2 `User`
 1. Added `githubUsername`
 2. Added `notificationPreferences` object with defaults:
-   - `githubCommits`, `taskAssigned`, `taskStatusChange`, `taskUpdates`, `messages`, `mentions`, `comments`, `notices`
+   - `githubCommits`, `taskAssigned`, `taskStatusChange`, `taskUpdates`, `messages`, `groupChats`, `mentions`, `comments`, `notices`
+   - `mutedChannels`, `mutedUsers`
 
 ## 5.3 `Notification`
 1. Extended enum types:
@@ -626,6 +636,11 @@
    - channel room emission for room-specific listeners
    - workspace room emission for sidebar/global listeners
 4. This is important because sidebar/group unread indicators are fed from workspace-level socket updates, while open-room chat views may still subscribe at channel level.
+5. Group chat socket delivery is now filtered by user preferences:
+   - `groupChats = false` suppresses all group chat `chat:new` events for that user.
+   - `mutedChannels` suppresses `chat:new` for those channels (including `workspace_<workspaceId>`).
+6. DM socket delivery is filtered by user preferences:
+   - `mutedUsers` suppresses `dm:new` delivery and DM notifications for those senders.
 
 ## 9. Flutter Integration Notes (Actionable)
 1. DM APIs are workspace-scoped:
@@ -644,6 +659,12 @@
 5. Profile settings can now include:
    - `githubUsername`
    - notification preference toggles endpoint.
+6. Group chat mute is enforced server-side:
+   - Update `groupChats` and `mutedChannels` via `PATCH /api/users/notification-preferences`.
+   - Backend suppresses `chat:new` delivery for muted channels and workspace-level mutes.
+7. DM mute is enforced server-side:
+   - Update `mutedUsers` via `PATCH /api/users/notification-preferences`.
+   - Backend suppresses `dm:new` delivery and DM notifications for muted senders.
 
 ## 10. Swagger Sync Status (This Update)
 
@@ -817,6 +838,9 @@
    - Notification is saved in `Notification` collection.
    - Optional activity log entry is created if `workspaceId` present.
 6. Delivery split:
+7. Group chat socket delivery is filtered separately:
+   - `groupChats` and `mutedChannels` suppress `chat:new` delivery.
+   - Message persistence and activity logging are unchanged.
 
 ## 15. Latest Access Cleanup + Ownership Transfer (May 9, 2026)
 
@@ -1435,3 +1459,77 @@ Note: document routes are mounted at /api/docs in the server route map even thou
 ### 18.30 Misc (public)
 - GET /health
 - GET /
+
+## 19. Granular Notification Muting System (May 11, 2026)
+
+### 19.1 Summary
+Users can now mute notifications at three distinct levels:
+1. **Global DM toggle** — `messages: false` silences all DM notifications system-wide.
+2. **Global group chat toggle** — `groupChats: false` silences all workspace group/channel chat notifications.
+3. **Per-channel mute** — add a channel ID to `mutedChannels` to mute a specific channel. Use `workspace_<workspaceId>` to mute the workspace-level group chat feed.
+4. **Per-user DM mute** — add a user's ID to `mutedUsers` to silence DM notifications from that specific person.
+
+### 19.2 Data Model Changes
+
+#### `User.notificationPreferences` (updated)
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `githubCommits` | boolean | true | GitHub commit push notifications |
+| `taskAssigned` | boolean | true | Task assignment alerts |
+| `taskStatusChange` | boolean | true | Task status change alerts |
+| `taskUpdates` | boolean | true | Task edits, subtasks, deps, file uploads |
+| `messages` | boolean | true | Global DM notification toggle |
+| `groupChats` | boolean | true | Global workspace group chat notification toggle |
+| `mentions` | boolean | true | @mention alerts |
+| `comments` | boolean | true | Comment alerts |
+| `notices` | boolean | true | Invites, announcements, system notices |
+| `mutedChannels` | string[] | [] | Channel IDs whose notifications are suppressed |
+| `mutedUsers` | string[] | [] | User IDs whose DM notifications are suppressed |
+
+### 19.3 API Contract
+
+#### `PATCH /api/users/notification-preferences`
+- Auth: Required (Bearer token)
+- All fields optional — only provided fields are updated.
+- `mutedChannels` and `mutedUsers` **replace the full array** when provided. Send the complete desired list each time.
+
+**Request body example:**
+```json
+{
+  "groupChats": false,
+  "mutedChannels": ["<channelId>", "workspace_<workspaceId>"],
+  "mutedUsers": ["<userId>"]
+}
+```
+
+**Response:** `200 OK` with updated `notificationPreferences` object.
+
+### 19.4 Frontend Socket Enforcement
+
+Muting is enforced **client-side** inside `SocketContext.tsx` for immediate responsiveness without requiring socket reconnection:
+
+1. **Group chat messages** (`chat:new` event):
+   - If `groupChats === false` → suppress toast and browser notification.
+   - If the message's channel ID is in `mutedChannels` → suppress.
+   - If the workspace ID (`workspace_<id>`) is in `mutedChannels` → suppress.
+
+2. **Direct messages** (`dm:new` event):
+   - If `messages === false` → suppress all DM notifications.
+   - If the sender's user ID is in `mutedUsers` → suppress toast and browser notification.
+
+### 19.5 UI/UX Implementation
+
+- **Account Settings (`/account` → Notifications tab):** Global toggles for `messages` and `groupChats`.
+- **Chat Sidebar (channel list):** Bell icon appears on hover next to each channel. Click to mute/unmute individual channels. Muted channels show an amber `BellOff` icon.
+- **Chat Sidebar (DM list):** Bell icon appears on hover next to each DM contact. Click to mute/unmute that specific user's DMs.
+- **App Sidebar (workspace group chat):** Bell toggle to mute `workspace_<workspaceId>` at the workspace level.
+
+### 19.6 QA Checklist
+- [ ] Set `groupChats: false` → no toast for new channel messages in any workspace channel.
+- [ ] Set `groupChats: true` → toasts resume for channel messages.
+- [ ] Mute a specific channel → only that channel is silenced; others still notify.
+- [ ] Unmute a channel → toasts resume for that channel.
+- [ ] Mute a specific user in DMs → no toast/browser notification when they message you.
+- [ ] Unmute that user → notifications resume.
+- [ ] Set `messages: false` → all DM notifications silenced regardless of `mutedUsers`.
+- [ ] Verify mute state persists after page refresh (stored in DB via `PATCH` endpoint).

@@ -14,86 +14,9 @@ const taskCommentRouter = express.Router({ mergeParams: true });
 
 taskCommentRouter.use(protect);
 
-/**
- * @swagger
- * /api/tasks/{taskId}/comments:
- *   post:
- *     summary: Create comment
- *     description: Add a comment to a task
- *     tags: ["5.1 Collaboration — Activity & Comments"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: taskId
- *         required: true
- *         schema:
- *           type: string
- *         description: Task ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: "#/components/schemas/CommentCreateInput"
- *     responses:
- *       201:
- *         description: Comment created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       404:
- *         description: Task not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *   get:
- *     summary: Get task comments
- *     description: Retrieve all comments for a task
- *     tags: ["5.1 Collaboration — Activity & Comments"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: taskId
- *         required: true
- *         schema:
- *           type: string
- *         description: Task ID
- *     responses:
- *       200:
- *         description: Comments retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       404:
- *         description: Task not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- */
+// NOTE: taskCommentRouter is currently not mounted in server.ts (commented out).
+// activityRoutes.ts handles POST /api/tasks/:taskId/comments via activityController.
+// The swagger docs for this path live in activityRoutes.ts.
 taskCommentRouter.post(
   "/",
   validate(createCommentSchema),

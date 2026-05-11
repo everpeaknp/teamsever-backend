@@ -49,6 +49,7 @@ interface IUser extends Document {
     comments: boolean;
     notices: boolean;
     mutedChannels: string[]; // IDs of channels to mute
+    mutedUsers: string[]; // IDs of users to mute in DMs
   };
 }
 
@@ -75,6 +76,7 @@ const userSchema = new mongoose.Schema(
       comments: { type: Boolean, default: true },
       notices: { type: Boolean, default: true },
       mutedChannels: [{ type: String }],
+      mutedUsers: [{ type: String }],
     },
     passwordResetToken: {
       type: String

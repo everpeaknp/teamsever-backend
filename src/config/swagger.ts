@@ -132,15 +132,27 @@ const options: swaggerJsdoc.Options = {
         },
         NotificationPreferences: {
           type: "object",
+          description: "Granular notification preference settings. All fields are optional — only send what you want to change.",
           properties: {
-            githubCommits: { type: "boolean", default: true },
-            taskAssigned: { type: "boolean", default: true },
-            taskStatusChange: { type: "boolean", default: true },
-            taskUpdates: { type: "boolean", default: true },
-            messages: { type: "boolean", default: true },
-            mentions: { type: "boolean", default: true },
-            comments: { type: "boolean", default: true },
-            notices: { type: "boolean", default: true }
+            githubCommits: { type: "boolean", default: true, description: "GitHub commit push notifications" },
+            taskAssigned: { type: "boolean", default: true, description: "Notify when a task is assigned to you" },
+            taskStatusChange: { type: "boolean", default: true, description: "Notify when a followed task changes status" },
+            taskUpdates: { type: "boolean", default: true, description: "Notify on task description/priority updates, subtasks, dependencies, file uploads" },
+            messages: { type: "boolean", default: true, description: "Notify on new Direct Messages (DMs)" },
+            groupChats: { type: "boolean", default: true, description: "Global toggle for all workspace group chat notifications" },
+            mentions: { type: "boolean", default: true, description: "Notify when @mentioned in a comment or chat" },
+            comments: { type: "boolean", default: true, description: "Notify on comments on tasks you follow" },
+            notices: { type: "boolean", default: true, description: "Notify on invitations, announcements, and system notices" },
+            mutedChannels: { 
+              type: "array", 
+              items: { type: "string" }, 
+              description: "Array of channel IDs (or 'workspace_<workspaceId>') whose notifications are suppressed. Pass full array to replace." 
+            },
+            mutedUsers: { 
+              type: "array", 
+              items: { type: "string" }, 
+              description: "Array of user IDs whose DM notifications are suppressed. Pass full array to replace." 
+            }
           }
         },
         AuthResponse: {

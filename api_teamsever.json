@@ -264,7 +264,12 @@
 					"name": "Update notification preferences",
 					"request": {
 						"method": "PATCH",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/api/users/notification-preferences",
 							"host": [
@@ -278,14 +283,14 @@
 						},
 						"body": {
 							"mode": "raw",
-							"raw": "{}",
+							"raw": "{\n  \"githubCommits\": true,\n  \"taskAssigned\": true,\n  \"taskStatusChange\": true,\n  \"taskUpdates\": true,\n  \"messages\": true,\n  \"groupChats\": false,\n  \"mentions\": true,\n  \"comments\": true,\n  \"notices\": true,\n  \"mutedChannels\": [\n    \"<channelId>\",\n    \"workspace_<workspaceId>\"\n  ],\n  \"mutedUsers\": [\n    \"<userId>\"\n  ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"description": "Update notification preferences\n\nToggle notifications for GitHub commits, tasks, messages, etc."
+						"description": "Update notification preferences (granular muting).\n\nAll fields are optional. Only send what you want to change.\n\n- githubCommits (bool): GitHub commit push notifications\n- taskAssigned (bool): Task assignment alerts\n- taskStatusChange (bool): Task status change alerts\n- taskUpdates (bool): Task edits, priority, subtasks, deps, file uploads\n- messages (bool): Global DM notification toggle\n- groupChats (bool): Global workspace group chat toggle\n- mentions (bool): @mention alerts\n- comments (bool): Comment alerts\n- notices (bool): Invites, announcements, system notices\n- mutedChannels (string[]): Channel IDs to mute. Use workspace_<id> for workspace group chat. Pass full array to overwrite.\n- mutedUsers (string[]): User IDs whose DMs are muted. Pass full array to overwrite."
 					},
 					"response": []
 				}
@@ -3768,7 +3773,7 @@
 					"response": []
 				},
 				{
-					"name": "Edit comment",
+					"name": "Edit activity comment (legacy PUT)",
 					"request": {
 						"method": "PUT",
 						"header": [],
@@ -3803,7 +3808,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete comment",
+					"name": "Delete activity comment (legacy)",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -3991,7 +3996,7 @@
 					"response": []
 				},
 				{
-					"name": "Edit comment",
+					"name": "Edit task comment (PATCH)",
 					"request": {
 						"method": "PATCH",
 						"header": [],
@@ -4026,7 +4031,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete comment",
+					"name": "Delete task comment",
 					"request": {
 						"method": "DELETE",
 						"header": [],

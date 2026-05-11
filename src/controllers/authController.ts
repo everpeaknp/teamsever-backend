@@ -42,7 +42,8 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
       user: {
         _id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        notificationPreferences: user.notificationPreferences
       }
     }
   });
@@ -77,7 +78,8 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        isSuperUser: user.isSuperUser || false
+        isSuperUser: user.isSuperUser || false,
+        notificationPreferences: user.notificationPreferences
       }
     }
   });
@@ -152,7 +154,8 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
         name: user.name,
         email: user.email,
         profilePicture: user.profilePicture,
-        isSuperUser: user.isSuperUser || false
+        isSuperUser: user.isSuperUser || false,
+        notificationPreferences: user.notificationPreferences
       }
     }
   });
@@ -234,7 +237,8 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
         name: user.name,
         email: user.email,
         profilePicture: user.profilePicture,
-        isSuperUser: user.isSuperUser || false
+        isSuperUser: user.isSuperUser || false,
+        notificationPreferences: user.notificationPreferences
       }
     }
   });

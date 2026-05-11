@@ -156,6 +156,23 @@ class DirectMessageService {
     // Populate message
     await message.populate("sender", "name email avatar profilePicture");
 
+    let recipientPreferences: any = null;
+    let isSenderMutedByRecipient = false;
+
+    try {
+      const recipient = await User.findById(targetUserId)
+        .select("notificationPreferences")
+        .lean();
+      recipientPreferences = recipient?.notificationPreferences || null;
+
+      const mutedUsers = Array.isArray(recipientPreferences?.mutedUsers)
+        ? recipientPreferences.mutedUsers
+        : [];
+      isSenderMutedByRecipient = mutedUsers.includes(senderId);
+    } catch (error) {
+      recipientPreferences = null;
+    }
+
     // Log activity (use first participant's workspace if available, or skip workspace)
     try {
       await logger.logActivity({
@@ -194,8 +211,10 @@ class DirectMessageService {
         },
       };
       
-      // Emit to receiver
-      emitToUser(targetUserId, "dm:new", messageData);
+      // Emit to receiver unless they muted the sender
+      if (!isSenderMutedByRecipient) {
+        emitToUser(targetUserId, "dm:new", messageData);
+      }
       
       // Also emit to sender so they see their own message
       emitToUser(senderId, "dm:new", messageData);
@@ -206,12 +225,15 @@ class DirectMessageService {
     // Send notification to receiver using enhanced notification service
     // This handles both online (socket) and offline (FCM push) users automatically
     try {
-      await enhancedNotificationService.notifyDirectMessage(
-        conversation._id.toString(),
-        senderId,
-        targetUserId,
-        content
-      );
+      if (!isSenderMutedByRecipient) {
+        await enhancedNotificationService.notifyDirectMessage(
+          conversation._id.toString(),
+          senderId,
+          targetUserId,
+          content,
+          recipientPreferences
+        );
+      }
     } catch (error) {
       console.error("[DirectMessage] Failed to send notification:", error);
     }
