@@ -3,7 +3,7 @@
 ## 1. Document Scope
 1. This document tracks backend systems and API behavior for the range:
    - Baseline commit: `5c5f61cf733812324f9fa840c243af90a822ec35`
-   - Current HEAD: `b5dfe16` (plus current local documentation updates)
+   - Current HEAD: `36847a8` (plus current local documentation updates)
 2. Audience: Flutter/mobile/web client developers integrating APIs and real-time behaviors.
 3. Goal: clearly list:
    - New APIs
@@ -39,7 +39,11 @@
 
 ## 3. Commit-Range Change Summary (Since Baseline)
 ### 3.0 Canonical Backend Commits Reviewed (May 7–9, 2026)
-1. `b5dfe16` fix(dm): relax scoped message validation and align docs
+1. `36847a8` feat: implement short-code invitation system for mobile/in-app flow
+2. `075ffc4` fix: crash on link-type invite acceptance — skip email match when invitation.email is null
+3. `e1b5386` fix: websocket reliability — live github commits and always-on socket notifications
+4. `bc0e594` feat: fast-pass invitation system with space+permission bundling
+5. `b5dfe16` fix(dm): relax scoped message validation and align docs
 2. `711ee68` fix(chat): align workspace unread state and document realtime flow
 3. `aad5f59` docs(dm): document workspace auto-resolution fallback for start/send *(historical, later superseded by strict workspace requirement)*.
 4. `e1bfe1a` fix(dm): auto-resolve workspace scope when client omits workspaceId *(historical, later superseded)*.
@@ -89,6 +93,12 @@
 6. DM conversations are now strictly workspace-scoped (workspaceId required).
 7. Custom tables now support folder scoping.
 8. User notification preference update endpoint added.
+9. Short-code invitation system added:
+   - 8-character human-friendly codes generated for link-type invites.
+   - Allows in-app redemption on dashboard without deep-linking.
+10. Fast-Pass invitation system:
+    - Invitations can now bundle a `spaceId` and `spacePermissionLevel`.
+    - Accepting a workspace invite automatically joins the user to the specified space with the correct permissions.
 
 ### 3.2 Critical Fixes/Behavioral Fixes
 1. Folder permission update 500 errors fixed:
@@ -458,6 +468,12 @@
    - Scope: invites non-workspace users into a space through the space route
    - API: `POST /api/spaces/:id/invite-external`
    - Used when the target user is not already part of the workspace.
+5. Short-code redemption (In-App)
+   - Scope: join workspace via 8-character alphanumeric code
+   - API: `POST /api/invites/redeem`
+   - Auth: Required
+   - Behavior: matches code to pending invite, provisions workspace access, and handles fast-pass space/permission bundle.
+   - Response: includes `workspace` object and optional `spaceId` if fast-pass was used.
 
 ### 4.10.2 Bulk onboarding rule set
 1. There is no single built-in bulk-invite endpoint today.
@@ -649,6 +665,7 @@
 15. Swagger server production URL points to Render deployment.
 16. `GET /api/workspaces/:workspaceId/chat/unread`
 17. `PATCH /api/workspaces/:workspaceId/chat/read`
+18. `POST /api/invites/redeem` (Join by short code)
 
 ### 10.2 Remaining Recommendation
 1. Consider adding dedicated response component schemas for:

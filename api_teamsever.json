@@ -1223,6 +1223,35 @@
 					"response": []
 				},
 				{
+					"name": "Redeem invite by short code",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"A3BX9K2T\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/invites/redeem",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"invites",
+								"redeem"
+							]
+						},
+						"description": "Redeem invite by short code\n\nJoin a workspace using a short human-friendly code (e.g. \"A3BX9K2T\"). Works identically to the link-based flow including fast-pass space provisioning."
+					},
+					"response": []
+				},
+				{
 					"name": "Get my pending invitations",
 					"request": {
 						"method": "GET",
