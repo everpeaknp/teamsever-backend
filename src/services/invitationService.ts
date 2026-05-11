@@ -176,6 +176,12 @@ class InvitationService {
       spacePermissionLevel: (spaceId && spaceId !== "none") ? (spacePermissionLevel || "EDIT") : "EDIT"
     });
 
+    console.log(`[InvitationService] Created invitation ${invitation._id}:`, {
+      token: invitation.token.substring(0, 8) + "...",
+      spaceId: invitation.spaceId,
+      spacePermissionLevel: invitation.spacePermissionLevel
+    });
+
     // Log activity
     await logger.logActivity({
       userId: invitedBy,

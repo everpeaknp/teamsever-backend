@@ -12,6 +12,10 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
   const { email, role, spaceId, spacePermissionLevel, inviteType, expiresInHours } = req.body;
   const { workspaceId } = req.params;
 
+  console.log(`[InvitationController] Received invite request for workspace ${workspaceId}:`, { 
+    email, role, spaceId, spacePermissionLevel, inviteType, expiresInHours 
+  });
+
   // For email-type invites, email is required (also enforced by validator)
   if (inviteType !== "link" && !email) {
     throw new AppError("Email is required", 400);
