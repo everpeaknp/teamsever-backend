@@ -80,9 +80,11 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
     taskStatusChange,
     taskUpdates,
     messages,
+    groupChats,
     mentions, 
     comments,
-    notices
+    notices,
+    mutedChannels
   } = req.body;
   const userId = req.user.id;
 
@@ -98,9 +100,11 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
       taskStatusChange: true,
       taskUpdates: true,
       messages: true,
+      groupChats: true,
       mentions: true,
       comments: true,
-      notices: true
+      notices: true,
+      mutedChannels: []
     };
   }
 
@@ -110,9 +114,11 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
   if (taskStatusChange !== undefined) prefs.taskStatusChange = taskStatusChange;
   if (taskUpdates !== undefined) prefs.taskUpdates = taskUpdates;
   if (messages !== undefined) prefs.messages = messages;
+  if (groupChats !== undefined) prefs.groupChats = groupChats;
   if (mentions !== undefined) prefs.mentions = mentions;
   if (comments !== undefined) prefs.comments = comments;
   if (notices !== undefined) prefs.notices = notices;
+  if (mutedChannels !== undefined) prefs.mutedChannels = mutedChannels;
 
   user.markModified('notificationPreferences');
   await user.save();

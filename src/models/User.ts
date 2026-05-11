@@ -43,10 +43,12 @@ interface IUser extends Document {
     taskAssigned: boolean;
     taskStatusChange: boolean;
     taskUpdates: boolean;
-    messages: boolean;
+    messages: boolean; // For Direct Messages
+    groupChats: boolean; // For all Group Chats
     mentions: boolean;
     comments: boolean;
     notices: boolean;
+    mutedChannels: string[]; // IDs of channels to mute
   };
 }
 
@@ -68,9 +70,11 @@ const userSchema = new mongoose.Schema(
       taskStatusChange: { type: Boolean, default: true },
       taskUpdates: { type: Boolean, default: true },
       messages: { type: Boolean, default: true },
+      groupChats: { type: Boolean, default: true },
       mentions: { type: Boolean, default: true },
       comments: { type: Boolean, default: true },
       notices: { type: Boolean, default: true },
+      mutedChannels: [{ type: String }],
     },
     passwordResetToken: {
       type: String
