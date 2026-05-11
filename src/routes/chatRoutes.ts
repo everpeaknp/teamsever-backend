@@ -106,6 +106,18 @@ workspaceChatRouter
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 30
  *     responses:
  *       200:
  *         description: List of accessible channels

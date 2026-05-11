@@ -24,6 +24,18 @@ router.use(protect);
  *         schema:
  *           type: string
  *         description: Workspace scope. Only conversations involving members of this workspace are returned.
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
  *         description: Conversations retrieved successfully
@@ -42,6 +54,12 @@ router.use(protect);
  *                     sender: "69bce50b96fe109fe4e14ff6"
  *                     createdAt: "2026-03-30T12:00:00Z"
  *                   unreadCount: 2
+ *               pagination:
+ *                 total: 42
+ *                 page: 1
+ *                 pages: 3
+ *                 limit: 20
+ *                 hasMore: true
  *       401:
  *         description: Authentication required
  *       400:
@@ -58,7 +76,7 @@ router.get("/", directMessageController.getConversations);
  * /api/dm/{userId}:
  *   post:
  *     summary: Start conversation
- *     description: Start a new conversation with a user in a workspace scope or retrieve the existing one.
+ *     description: Start a new conversation with a user in a strict workspace scope or retrieve the existing one.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
@@ -75,10 +93,12 @@ router.get("/", directMessageController.getConversations);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - workspaceId
  *             properties:
  *               workspaceId:
  *                 type: string
- *                 description: Optional workspace ID used to scope the DM conversation. If omitted, the backend will auto-resolve a shared workspace between the two users.
+ *                 description: Required workspace ID used to scope the DM conversation.
  *     responses:
  *       200:
  *         description: Conversation started or retrieved successfully
@@ -90,7 +110,7 @@ router.get("/", directMessageController.getConversations);
  *                 _id: "69bbf827a96fe78f71675700"
  *                 participants: [...]
  *       400:
- *         description: Bad Request (e.g. starting conversation with yourself or no shared workspace found)
+ *         description: Bad Request (e.g. starting conversation with yourself or missing workspaceId)
  *         content:
  *           application/json:
  *             schema:
@@ -126,6 +146,12 @@ router.post("/:userId", directMessageController.startConversation);
  *         schema:
  *           type: string
  *         description: Conversation ID
+ *       - in: query
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace scope for this conversation.
  *     responses:
  *       200:
  *         description: Conversation retrieved successfully
@@ -159,7 +185,7 @@ router.get("/:conversationId", directMessageController.getConversation);
  *     description: |
  *       Sends a message to another user. If no conversation exists, it creates one automatically.
  *       **Note:** Message content cannot be empty unless attachments are provided.
- *       `workspaceId` is optional. When omitted, the backend will auto-resolve a shared workspace between the sender and recipient.
+ *       `workspaceId` is required to scope the DM strictly to one workspace.
  *     tags: ["5.3 Collaboration — Direct Messages"]
  *     security:
  *       - bearerAuth: []
@@ -230,6 +256,12 @@ router.post(
  *           type: string
  *         description: Conversation ID
  *       - in: query
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace scope for this conversation.
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -289,6 +321,12 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  *         schema:
  *           type: string
  *         description: Conversation ID
+ *       - in: query
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workspace scope for this conversation.
  *     responses:
  *       200:
  *         description: Conversation marked as read

@@ -303,36 +303,8 @@ const registerHandlers = (io, socket) => {
         mentions: mentions || [],
       });
 
-      // Broadcast to channel room
-      const targetChannelId = message.channel.toString();
-      
-      io.to(`channel:${targetChannelId}`).emit("chat:new", {
-        message: {
-          _id: message._id,
-          workspace: message.workspace,
-          channel: targetChannelId,
-          sender: message.sender,
-          content: message.content,
-          type: message.type,
-          mentions: message.mentions,
-          createdAt: message.createdAt,
-          updatedAt: message.updatedAt,
-        },
-      });
-
-      io.to(`workspace:${workspaceId}`).emit("chat:new", {
-        message: {
-          _id: message._id,
-          workspace: message.workspace,
-          channel: targetChannelId,
-          sender: message.sender,
-          content: message.content,
-          type: message.type,
-          mentions: message.mentions,
-          createdAt: message.createdAt,
-          updatedAt: message.updatedAt,
-        },
-      });
+      // `chatService.createMessage` already emits `chat:new` to channel/workspace rooms.
+      // Avoid duplicate broadcasts from socket handler.
     } catch (error) {
       socket.emit("error", { 
         message: error.message || "Failed to send message" 

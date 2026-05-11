@@ -1,0 +1,293 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Teamsever Backend API",
+    "version": "1.0.0",
+    "description": "OpenAPI spec covering Teamsever backend APIs (channels, DM, notifications, invites, webhooks, activity)."
+  },
+  "servers": [
+    {
+      "url": "{protocol}://{host}",
+      "description": "Selectable environment — change variables for local or deployed host",
+      "variables": {
+        "protocol": { "enum": ["http", "https"], "default": "http" },
+        "host": { "enum": ["localhost:3000", "teamsever.everacy.com", "teamsever.vercel.app"], "default": "localhost:3000" }
+      }
+    }
+  ],
+  "paths": {
+    
+    "/api/auth/github": {
+      "post": {
+        "summary": "GitHub OAuth login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GithubAuthRequest" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Auth success", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/auth/login": {
+      "post": {
+        "summary": "User login — returns access & refresh tokens",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication tokens",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokensResponse" } } }
+          }
+        }
+      }
+    },
+
+    "/api/auth/refresh": {
+      "post": {
+        "summary": "Refresh access token using refresh token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New access token",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokensResponse" } } }
+          }
+        }
+      }
+    },
+
+    "/api/users/notification-preferences": {
+      "patch": {
+        "summary": "Update notification preferences",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NotificationPreferences" } } } },
+        "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/spaces/{id}/webhook": {
+      "get": {
+        "summary": "Get webhook config for a space",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Webhook config", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "summary": "Generate webhook secret",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/webhooks/github/{spaceId}": {
+      "post": {
+        "summary": "GitHub webhook receiver",
+        "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Webhook processed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/folders/{folderId}/activity": {
+      "get": {
+        "summary": "Folder activity feed",
+        "parameters": [{ "name": "folderId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Activity list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/workspaces/{workspaceId}/chat": {
+      "get": {
+        "summary": "Get workspace message feed",
+        "parameters": [
+          { "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 30 } },
+          { "name": "userId", "in": "query", "schema": { "type": "string" }, "description": "Optional sender filter" }
+        ],
+        "responses": { "200": { "description": "Messages", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "summary": "Send chat message (workspace)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatMessageInput" } } } },
+        "responses": { "201": { "description": "Message sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/workspaces/{workspaceId}/chat/channels": {
+      "get": {
+        "summary": "List accessible channels",
+        "parameters": [
+          { "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 30 } }
+        ],
+        "responses": { "200": { "description": "Channels", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "summary": "Create channel",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatChannelCreateInput" } } } },
+        "responses": { "201": { "description": "Channel created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/workspaces/{workspaceId}/chat/channels/{channelId}": {
+      "delete": {
+        "summary": "Delete a channel",
+        "parameters": [
+          { "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "channelId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/chat/channels/{channelId}/messages": {
+      "get": {
+        "summary": "Get channel messages",
+        "parameters": [
+          { "name": "channelId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "userId", "in": "query", "schema": { "type": "string" }, "description": "Optional sender filter" }
+        ],
+        "responses": { "200": { "description": "Messages", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/chat/channels/{channelId}/unread": {
+      "get": {
+        "summary": "Get channel unread count",
+        "parameters": [{ "name": "channelId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Unread count", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/workspaces/{workspaceId}/chat/unread": {
+      "get": { "summary": "Workspace unread count", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Unread", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+    ,
+
+    "/api/workspaces/{workspaceId}/chat/read": {
+      "patch": { "summary": "Mark workspace chat read", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Marked", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+
+    ,
+
+    "/api/dm": {
+      "get": {
+        "summary": "Conversation list (workspace required)",
+        "parameters": [
+          { "name": "workspaceId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Conversations", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+
+    "/api/dm/{userId}": {
+      "post": { "summary": "Start conversation (workspace required)", "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "workspaceId": { "type": "string" } }, "required": ["workspaceId"] } } } }, "responses": { "200": { "description": "Conversation ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+    ,
+
+    "/api/dm/{userId}/message": {
+      "post": { "summary": "Send DM message (workspace required)", "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DMMessageInput" } } } }, "responses": { "201": { "description": "Message sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+    },
+
+    "/api/spaces/{spaceId}/tables": {
+      "post": { "summary": "Create table (folder-aware)", "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "folderId": { "type": ["string", "null"] } }, "required": ["name"] } } } }, "responses": { "201": { "description": "Table created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+      "get": { "summary": "Get tables", "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "folderId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "Tables", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+
+    ,
+
+    "/api/workspaces/{workspaceId}/invites": {
+      "post": { "summary": "Create workspace invite", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" }, "role": { "type": "string" } }, "required": ["email"] } } } }, "responses": { "201": { "description": "Invitation sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+
+    ,
+
+    "/api/invites/accept/{token}": { "post": { "summary": "Accept workspace invite", "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } } ,
+
+    "/api/spaces/{spaceId}/invitations": { "post": { "summary": "Create space invitation", "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" }, "role": { "type": "string" } }, "required": ["email"] } } } }, "responses": { "201": { "description": "Space invite created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+
+    ,
+
+    "/api/notifications": {
+      "get": { "summary": "Get user notifications", "parameters": [{ "name": "workspaceId", "in": "query", "schema": { "type": "string" } }, { "name": "page", "in": "query", "schema": { "type": "integer" } }], "responses": { "200": { "description": "Notifications", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/notifications/unread-count": { "get": { "summary": "Get unread count", "parameters": [{ "name": "workspaceId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "Unread count", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/notifications/read-all": { "patch": { "summary": "Mark notifications read (workspace)", "parameters": [{ "name": "workspaceId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "Marked", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/notifications/devices/register": { "post": { "summary": "Register device token", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "fcmToken": { "type": "string" }, "deviceId": { "type": "string" } }, "required": ["fcmToken"] } } } }, "responses": { "201": { "description": "Registered", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/notifications/devices/unregister": { "delete": { "summary": "Unregister device token", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "fcmToken": { "type": "string" } }, "required": ["fcmToken"] } } } }, "responses": { "200": { "description": "Unregistered", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Use `Bearer <accessToken>`.\nAccess tokens expire according to your workspace policy (short-lived). Use `/api/auth/refresh` with a refresh token to obtain a new access token. Set `DEBUG_TESTS=1` to see logs when running tests." 
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "properties": { "email": { "type": "string" }, "password": { "type": "string" } },
+        "required": ["email", "password"]
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "properties": { "refreshToken": { "type": "string" } },
+        "required": ["refreshToken"]
+      },
+      "AuthTokens": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string", "description": "JWT access token" },
+          "refreshToken": { "type": "string", "description": "Long-lived refresh token" },
+          "expiresIn": { "type": "integer", "description": "Access token lifetime in seconds" },
+          "expiresAt": { "type": "string", "format": "date-time", "description": "UTC timestamp when access token expires" }
+        }
+      },
+      "AuthTokensResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "$ref": "#/components/schemas/AuthTokens" }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "type": ["object", "array", "null"] },
+          "pagination": { "type": "object" }
+        }
+      },
+      "GithubAuthRequest": { "type": "object", "properties": { "idToken": { "type": "string" } }, "required": ["idToken"] },
+      "NotificationPreferences": { "type": "object", "properties": { "githubCommits": { "type": "boolean" }, "messages": { "type": "boolean" }, "mentions": { "type": "boolean" }, "notices": { "type": "boolean" } } },
+      "ChatMessageInput": { "type": "object", "properties": { "channelId": { "type": "string" }, "content": { "type": "string" }, "mentions": { "type": "array", "items": { "type": "string" } } }, "required": ["content"] },
+      "ChatChannelCreateInput": { "type": "object", "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "type": { "type": "string", "enum": ["public","private"] }, "members": { "type": "array", "items": { "type": "string" } } }, "required": ["name"] },
+      "DMMessageInput": { "type": "object", "properties": { "workspaceId": { "type": "string" }, "content": { "type": "string" } }, "required": ["workspaceId","content"] }
+    }
+  }
+}

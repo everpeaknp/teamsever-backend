@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Teamsever Backend API (Full)",
+    "version": "1.0.0",
+    "description": "Comprehensive OpenAPI 3.0 specification generated from the Postman collection. Covers Auth, Users, Workspaces, Spaces, Tasks, Invitations, Notifications, Super Admin, Subscriptions, Performance, and misc endpoints. Use servers variables to switch between local and deployed hosts."
+  },
+  "servers": [
+    {
+      "url": "{protocol}://{host}",
+      "description": "Environment",
+      "variables": {
+        "protocol": { "enum": ["http", "https"], "default": "http" },
+        "host": { "default": "localhost:5000" }
+      }
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "ApiResponse": { "type": "object", "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "data": { "type": ["object","array","null"] }, "pagination": { "type": "object" } } },
+      "ErrorResponse": { "type": "object", "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "errorCode": { "type": "string" } } },
+      "LoginRequest": { "type": "object", "properties": { "email": { "type": "string" }, "password": { "type": "string" } }, "required": ["email","password"] },
+      "AuthTokens": { "type": "object", "properties": { "accessToken": { "type": "string" }, "refreshToken": { "type": "string" }, "expiresIn": { "type": "integer" }, "expiresAt": { "type": "string", "format": "date-time" } } },
+      "AuthTokensResponse": { "type": "object", "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/AuthTokens" } } },
+      "RegisterRequest": { "type": "object", "properties": { "name": { "type": "string" }, "email": { "type": "string" }, "password": { "type": "string" } }, "required": ["name","email","password"] },
+      "UserProfile": { "type": "object", "properties": { "_id": { "type": "string" }, "name": { "type": "string" }, "email": { "type": "string" }, "avatar": { "type": "string" } } },
+      "Workspace": { "type": "object", "properties": { "_id": { "type": "string" }, "name": { "type": "string" }, "owner": { "type": "string" } } },
+      "Space": { "type": "object", "properties": { "_id": { "type": "string" }, "name": { "type": "string" }, "description": { "type": "string" }, "color": { "type": "string" } } },
+      "ListCreate": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] },
+      "TaskCreate": { "type": "object", "properties": { "title": { "type": "string" }, "priority": { "type": "string" } }, "required": ["title"] },
+      "InviteRequest": { "type": "object", "properties": { "email": { "type": "string" }, "role": { "type": "string" } }, "required": ["email"] }
+    }
+  },
+  "security": [ { "bearerAuth": [] } ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register new user",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } } },
+        "responses": { "201": { "description": "User registered", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } }, "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } } },
+        "security": []
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login (returns access & refresh tokens)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } },
+        "responses": { "200": { "description": "Auth tokens", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokensResponse" }, "example": { "success": true, "message": "Logged in", "data": { "accessToken": "ey...", "refreshToken": "rt...", "expiresIn": 3600, "expiresAt": "2026-05-11T12:34:56Z" } } } } },
+        "security": []
+      }
+    },
+    "/api/auth/google": { "post": { "summary": "Google OAuth login", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "token": { "type": "string" } }, "required": ["token"] } } } }, "responses": { "200": { "description": "Auth tokens", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokensResponse" } } } } }, "security": [] } },
+    "/api/auth/forgot-password": { "post": { "summary": "Send password reset email", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" } }, "required": ["email"] } } } }, "responses": { "200": { "description": "Email sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }, "security": [] } },
+    "/api/auth/reset-password": { "post": { "summary": "Reset password using token", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "token": { "type": "string" }, "password": { "type": "string" } }, "required": ["token","password"] } } } }, "responses": { "200": { "description": "Password reset", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }, "security": [] } },
+
+    "/api/users/profile": {
+      "get": { "summary": "Get current user profile", "responses": { "200": { "description": "Profile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } }, "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } } } ,
+      "patch": { "summary": "Update profile (multipart or JSON)", "requestBody": { "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "jobTitle": { "type": "string" }, "file": { "type": "string", "format": "binary" } } } }, "application/json": { "schema": { "type": "object" } } } }, "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+    },
+
+    "/api/workspaces": {
+      "get": { "summary": "List workspaces", "responses": { "200": { "description": "Workspaces", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } ,
+      "post": { "summary": "Create workspace", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } }
+    },
+
+    "/api/workspaces/{workspaceId}/spaces": {
+      "get": { "summary": "Get spaces in workspace", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Spaces", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+    "/api/workspaces/{workspaceId}/spaces": { "post": { "summary": "Create space", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "color": { "type": "string" } }, "required": ["name"] } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } } ,
+
+    "/api/spaces/{id}/metadata": { "get": { "summary": "Get space metadata", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/spaces/{spaceId}/lists": { "post": { "summary": "Create list", "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ListCreate" } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/lists/{listId}/tasks": { "post": { "summary": "Create task", "parameters": [{ "name": "listId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TaskCreate" } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/workspaces/{workspaceId}/invites": { "post": { "summary": "Create workspace invite", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InviteRequest" } } } }, "responses": { "201": { "description": "Invitation sent", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/spaces/{spaceId}/invitations": { "post": { "summary": "Create space invitation", "parameters": [{ "name": "spaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InviteRequest" } } } }, "responses": { "201": { "description": "Space invite created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/tasks/{taskId}/comments": { "post": { "summary": "Add comment to task", "parameters": [{ "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "content": { "type": "string" } }, "required": ["content"] } } } }, "responses": { "201": { "description": "Comment added", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/activities": { "get": { "summary": "Get activity feed", "parameters": [{ "name": "workspaceId", "in": "query", "schema": { "type": "string" } }, { "name": "limit", "in": "query", "schema": { "type": "integer" } }], "responses": { "200": { "description": "Activity list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/notification-center": { "get": { "summary": "Get user notifications", "responses": { "200": { "description": "Notifications", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+    "/api/notification-center/unread-count": { "get": { "summary": "Get unread notification count", "responses": { "200": { "description": "Unread count", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/super-admin/users": { "get": { "summary": "Get admin users (super-admin)", "responses": { "200": { "description": "List", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+    "/api/super-admin/users/{userId}/subscription": { "patch": { "summary": "Update user subscription (super-admin)", "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "isPaid": { "type": "boolean" }, "planId": { "type": "string" }, "status": { "type": "string" } } } } } }, "responses": { "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/subscription/info": { "get": { "summary": "Get subscription info", "responses": { "200": { "description": "Subscription info", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/performance/me/workspace/{workspaceId}": { "get": { "summary": "Get my performance data", "parameters": [{ "name": "workspaceId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Performance", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/api/search": { "get": { "summary": "Search endpoint", "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }, { "name": "workspaceId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "Search results", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } } },
+
+    "/health": { "get": { "summary": "Health check", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "timestamp": { "type": "string" } } } } } } } }
+  }
+}

@@ -35,12 +35,15 @@ const createChannel = asyncHandler(async (req: any, res: any) => {
 const getChannels = asyncHandler(async (req: any, res: any) => {
   const { workspaceId } = req.params;
   const userId = req.user.id;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
 
-  const channels = await chatService.getChannels(workspaceId, userId);
+  const result = await chatService.getChannels(workspaceId, userId, { page, limit });
 
   res.status(200).json({
     success: true,
-    data: channels,
+    data: result.channels,
+    pagination: result.pagination,
   });
 });
 

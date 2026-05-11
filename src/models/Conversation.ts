@@ -20,6 +20,14 @@ const conversationSchema = new Schema(
         message: "A conversation must have exactly 2 participants",
       },
     },
+    // Deterministic key: `${workspaceId}:${sortedUserA}:${sortedUserB}`
+    // Prevents duplicate DM conversations for the same pair inside one workspace.
+    conversationKey: {
+      type: String,
+      index: true,
+      sparse: true,
+      trim: true,
+    },
     lastMessage: {
       type: Schema.Types.ObjectId,
       ref: "DirectMessage",
@@ -39,6 +47,7 @@ const conversationSchema = new Schema(
 // Compound index for efficient participant queries
 conversationSchema.index({ participants: 1 });
 conversationSchema.index({ workspace: 1, participants: 1 });
+conversationSchema.index({ conversationKey: 1 }, { unique: true, sparse: true });
 
 // Index for sorting conversations by last message
 conversationSchema.index({ lastMessageAt: -1 });

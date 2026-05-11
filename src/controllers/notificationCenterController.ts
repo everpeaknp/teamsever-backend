@@ -2,6 +2,14 @@ const notificationService = require("../services/notificationService");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
+const requireWorkspaceId = (req: any): string => {
+  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId).trim() : "";
+  if (!workspaceId) {
+    throw new AppError("workspaceId is required", 400);
+  }
+  return workspaceId;
+};
+
 /**
  * @desc    Get user notifications with pagination
  * @route   GET /api/notifications
@@ -12,7 +20,7 @@ const getNotifications = asyncHandler(async (req: any, res: any) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const unreadOnly = req.query.unreadOnly === "true";
-  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
+  const workspaceId = requireWorkspaceId(req);
 
   const result = await notificationService.getUserNotifications(userId, {
     page,
@@ -53,7 +61,7 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
  */
 const markAllAsRead = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
-  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
+  const workspaceId = requireWorkspaceId(req);
 
   const count = await notificationService.markAllAsRead(userId, workspaceId);
 
@@ -71,7 +79,7 @@ const markAllAsRead = asyncHandler(async (req: any, res: any) => {
  */
 const getUnreadCount = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
-  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId) : undefined;
+  const workspaceId = requireWorkspaceId(req);
 
   const unreadCount = await notificationService.getUnreadCount(userId, workspaceId);
 

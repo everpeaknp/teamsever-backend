@@ -5,6 +5,7 @@ const DeviceToken = require("../models/DeviceToken");
 const User = require("../models/User");
 const Task = require("../models/Task");
 const Workspace = require("../models/Workspace");
+const Conversation = require("../models/Conversation");
 const AppError = require("../utils/AppError");
 const { getMessaging, isFirebaseConfigured } = require("../config/firebase");
 const logger = require("../utils/logger");
@@ -597,6 +598,11 @@ class EnhancedNotificationService {
       const sender = await User.findById(senderId).select("name").lean();
       const senderName = sender?.name || "Someone";
       const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+      const conversation = await Conversation.findById(conversationId).select("workspace").lean();
+      const workspaceId =
+        typeof conversation?.workspace === "string"
+          ? conversation.workspace
+          : conversation?.workspace?.toString?.();
 
       // Check preferences
       const user = await User.findById(recipientId).select("notificationPreferences").lean();
@@ -605,13 +611,15 @@ class EnhancedNotificationService {
       await this.createNotification({
         recipientId,
         type: "DM_NEW",
-        title: `Message from ${senderName}`,
+        title: senderName,
         body: contentPreview,
         data: {
           resourceId: conversationId,
           resourceType: "DirectMessage",
           conversationId,
           senderId,
+          senderName,
+          workspaceId,
         },
       });
     } catch (error) {

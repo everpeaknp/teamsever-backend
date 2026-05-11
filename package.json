@@ -12,7 +12,9 @@
     "migrate:task-status": "ts-node src/scripts/migrateTaskStatus.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "dm:dedup:dry": "node scripts/dedup-dm-conversations.js --dry-run",
+    "dm:dedup": "node scripts/dedup-dm-conversations.js"
   },
   "keywords": [],
   "author": "",
@@ -61,12 +63,14 @@
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.3",
+    "@types/supertest": "^7.2.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "fast-check": "^4.5.3",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.11",
+    "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"

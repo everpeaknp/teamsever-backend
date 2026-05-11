@@ -1,28 +1,51 @@
 {
 	"info": {
-		"_postman_id": "teamsever-api-collection-complete",
-		"name": "Teamsever API (Complete)",
-		"description": "Full API documentation for Teamsever backend services, covering all modules including Auth, Workspaces, Spaces, Tasks, Invitations, Notifications, Super Admin, Performance, and Subscriptions.",
+		"_postman_id": "teamsever-api-from-swagger",
+		"name": "Teamsever API (Synced from Swagger)",
+		"description": "Auto-synced from src/config/swagger.ts. Includes latest documented endpoints, request params, and example bodies where available.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Authentication",
+			"name": "0. ⭐ Primary Dashboard",
 			"item": [
 				{
-					"name": "Register",
+					"name": "🚀 PRIMARY DASHBOARD — Get All Workspace Data in One Call",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/analytics",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"analytics"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "🚀 PRIMARY DASHBOARD — Get All Workspace Data in One Call\n\n### ⭐ Consolidated Workspace Data\n**What you get in one call:**\n\n| Field | Description |\n|---|---|\n| `workspace` | Workspace name and details |\n| `stats` | Total tasks, completion rate, priority & status breakdown |\n| `hierarchy` | Full tree: Spaces → Folders → Lists |\n| `members` | Who is clocked in right now (sorted: active first) |\n| `tasks` | Workspace tasks (full set, newest first) |\n| `announcements` | Latest workspace announcements |\n| `currentRunningTimer` | The logged-in user's active timer (if any) |\n| `stickyNote` | The logged-in user's personal sticky note for this workspace |\n| `recentActivity` | Recent actions performed in this workspace |\n| `performance` | Performance metrics for the user (and team for admins) |\n\n**Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.\n\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1.1 Auth — Login & Registration",
+			"item": [
+				{
+					"name": "Register a new user",
 					"request": {
 						"method": "POST",
 						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"securePassword123\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/register",
 							"host": [
@@ -33,24 +56,25 @@
 								"auth",
 								"register"
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Login",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"securePassword123\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Register a new user\n\nCreates a new user account with email and password"
+					},
+					"response": []
+				},
+				{
+					"name": "Login user",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
 							"host": [
@@ -61,24 +85,25 @@
 								"auth",
 								"login"
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Google Auth",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"google-oauth-token\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Login user\n\nAuthenticates user and returns JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Google OAuth authentication",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/google",
 							"host": [
@@ -89,24 +114,59 @@
 								"auth",
 								"google"
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Forgot Password",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"john@example.com\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Google OAuth authentication\n\nAuthenticate user with Google OAuth token"
+					},
+					"response": []
+				},
+				{
+					"name": "GitHub OAuth authentication",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/github",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"github"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "GitHub OAuth authentication\n\nAuthenticate user with GitHub OAuth token (Firebase ID Token)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1.2 Auth — Password & Profile",
+			"item": [
+				{
+					"name": "Request password reset",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/forgot-password",
 							"host": [
@@ -117,24 +177,25 @@
 								"auth",
 								"forgot-password"
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Reset Password",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"reset-token\",\n    \"password\": \"newSecurePassword123\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Request password reset\n\nSends a password reset email if the account exists (always returns 200 on success to prevent enumeration)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset password",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/reset-password",
 							"host": [
@@ -145,17 +206,22 @@
 								"auth",
 								"reset-password"
 							]
-						}
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Reset password\n\nResets the password using a valid reset token"
 					},
 					"response": []
-				}
-			]
-		},
-		{
-			"name": "User Profile",
-			"item": [
+				},
 				{
-					"name": "Get Profile",
+					"name": "Get current user profile",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -169,35 +235,16 @@
 								"users",
 								"profile"
 							]
-						}
+						},
+						"description": "Get current user profile\n\nRetrieve the profile details of the authenticated user."
 					},
 					"response": []
 				},
 				{
-					"name": "Update Profile",
+					"name": "Update user profile",
 					"request": {
 						"method": "PATCH",
 						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "name",
-									"value": "John Updated",
-									"type": "text"
-								},
-								{
-									"key": "jobTitle",
-									"value": "Senior Developer",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
 						"url": {
 							"raw": "{{baseUrl}}/api/users/profile",
 							"host": [
@@ -208,47 +255,537 @@
 								"users",
 								"profile"
 							]
-						}
+						},
+						"description": "Update user profile\n\nUpdate name, job title, department, bio, and profile picture. Uses multipart/form-data for file uploads."
+					},
+					"response": []
+				},
+				{
+					"name": "Update notification preferences",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/notification-preferences",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"notification-preferences"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update notification preferences\n\nToggle notifications for GitHub commits, tasks, messages, etc."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Workspaces",
+			"name": "10.1 Utilities — Global Search",
 			"item": [
 				{
-					"name": "Get All Workspaces",
+					"name": "Global search across tasks, spaces, and lists",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/workspaces",
+							"raw": "{{baseUrl}}/api/search?q=",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"workspaces"
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Global search across tasks, spaces, and lists\n\nPerforms a full-text search across the user's accessible tasks, spaces, and lists in the current workspace (if provided in headers).\n\nRequired params: query:q"
 					},
 					"response": []
-				},
+				}
+			]
+		},
+		{
+			"name": "10.2 Utilities — Notification Center",
+			"item": [
 				{
-					"name": "Create Workspace",
+					"name": "Register FCM device token (legacy alias)",
 					"request": {
 						"method": "POST",
 						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/fcm-token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"fcm-token"
+							]
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"New Workspace\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Register FCM device token (legacy alias)\n\nLegacy alias kept for backward compatibility. Prefer `POST /api/notifications/devices/fcm-token`. Accepts `fcmToken` (preferred) and `token` (legacy)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?limit=20&offset=0&workspaceId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get notifications\n\nRetrieve the current user's in-app notifications, newest first, scoped to one workspace.\n\nRequired params: query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Create manual notification",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create manual notification\n\nManually trigger an in-app and push notification for a specific user. Used by background services or administrative actions (e.g. workspace invites, task assignments)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get unread notification count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/unread-count?workspaceId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"unread-count"
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get unread notification count\n\nReturns unread count for current user in one workspace scope.\n\nRequired params: query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark all notifications as read",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/read-all?workspaceId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"read-all"
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Mark all notifications as read\n\nMarks current user's unread notifications as read inside one workspace scope.\n\nRequired params: query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark notification as read",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/:id/read",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								":id",
+								"read"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Mark notification as read\n\nMark a single notification as read.\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "10.3 Utilities — Push Notification Devices",
+			"item": [
+				{
+					"name": "Register FCM token (canonical)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/devices/fcm-token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"devices",
+								"fcm-token"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Register FCM token (canonical)\n\nCanonical endpoint for raw FCM token registration. Accepts `fcmToken` (preferred) and `token` (legacy compatibility)."
+					},
+					"response": []
+				},
+				{
+					"name": "Register device details",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/devices/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"devices",
+								"register"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Register device details\n\nRegister full device details including platform and FCM token."
+					},
+					"response": []
+				},
+				{
+					"name": "Unregister device",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/devices/unregister",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"devices",
+								"unregister"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Unregister device"
+					},
+					"response": []
+				},
+				{
+					"name": "List registered devices",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/devices",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"notifications",
+								"devices"
+							]
+						},
+						"description": "List registered devices"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "11.1 Personal — Sticky Notes",
+			"item": [
+				{
+					"name": "Get personal sticky note",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/sticky-note",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"sticky-note"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get personal sticky note\n\nRetrieve the user's personal sticky note content for this workspace. Returns a blank note if none exists.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update personal sticky note",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/sticky-note",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"sticky-note"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update personal sticky note\n\nSave the user's personal sticky note content for this workspace.\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "12. Webhooks",
+			"item": [
+				{
+					"name": "Handle GitHub push webhooks",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/webhooks/github/:spaceId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"webhooks",
+								"github",
+								":spaceId"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Handle GitHub push webhooks\n\nReceiver for GitHub Push events. \n1. Verifies 'x-hub-signature-256' header using the Space's secret.\n2. Attributes commits to users by email or verified githubUsername.\n3. Logs activity to the space.\n4. Posts notification to the #Commit Log channel.\n\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "13. GitHub Integration",
+			"item": [
+				{
+					"name": "Get GitHub webhook configuration",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id/webhook",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"webhook"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get GitHub webhook configuration\n\nRetrieve the webhook URL and secret for connecting a GitHub repository to this space.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Setup GitHub repo for space",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id/webhook",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"webhook"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Setup GitHub repo for space\n\nGenerate an HMAC secret and link a GitHub repository name to this space.\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.1 Workspaces — Core CRUD",
+			"item": [
+				{
+					"name": "Create a new workspace",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/workspaces",
 							"host": [
@@ -258,76 +795,44 @@
 								"api",
 								"workspaces"
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Workspace Hierarchy",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/hierarchy",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"hierarchy"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Workspace Analytics",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/analytics",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"analytics"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Workspace",
-					"request": {
-						"method": "PUT",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Workspace Name\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Create a new workspace\n\nCreates a new workspace with the authenticated user as owner"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all user workspaces",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces"
+							]
+						},
+						"description": "Get all user workspaces\n\nReturns all workspaces where the user is a member, including member count and owner info."
+					},
+					"response": []
+				},
+				{
+					"name": "Get a single workspace",
+					"request": {
+						"method": "GET",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/workspaces/:id",
 							"host": [
@@ -344,17 +849,648 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get a single workspace\n\nReturns full workspace details including members, settings, and subscription status.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update workspace",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update workspace\n\nUpdates workspace properties (owner/admin only)\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete workspace",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete workspace\n\nDeletes a workspace (owner only)\n\nRequired params: path:id"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Spaces",
+			"name": "2.2 Workspaces — Members",
 			"item": [
 				{
-					"name": "Get Workspace Spaces",
+					"name": "Get workspace members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace members\n\nReturns all members of a workspace with their roles and status.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Invite member directly",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members/invite",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members",
+								"invite"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Invite member directly\n\nAdds an existing user to the workspace by email (skips invitation link). Use the Invitations endpoints for external users.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update my status",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members/me/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members",
+								"me",
+								"status"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update my status\n\nUpdate the current user's status label within the workspace (e.g. \"In a meeting\", \"Focus mode\").\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update member role",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update member role\n\nChange a member's role (Admin/Owner only).\n\nRequired params: path:workspaceId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove member",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove member\n\nRemove a member from the workspace (Owner only).\n\nRequired params: path:workspaceId, path:userId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.3 Workspaces — Invitations",
+			"item": [
+				{
+					"name": "Send workspace invitation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/invites",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"invites"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Send workspace invitation\n\nCreate an invitation link for a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace invitations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/invites",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"invites"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace invitations\n\nReturns all pending (not yet accepted or cancelled) invitations for a workspace.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel invitation",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/invites/:invitationId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"invites",
+								":invitationId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "invitationId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Cancel invitation\n\nCancels a pending invitation (admin/owner only)\n\nRequired params: path:workspaceId, path:invitationId"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept workspace invitation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/invites/accept/:token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"invites",
+								"accept",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": ""
+								}
+							]
+						},
+						"description": "Accept workspace invitation\n\nAccepts an invitation and adds the user to the workspace\n\nRequired params: path:token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get my pending invitations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/invites/my-invitations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"invites",
+								"my-invitations"
+							]
+						},
+						"description": "Get my pending invitations\n\nReturns all workspace invitations sent to the current user that are still pending (not yet accepted or declined)."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify invitation token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/invites/verify/:token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"invites",
+								"verify",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": ""
+								}
+							]
+						},
+						"description": "Verify invitation token\n\nRetrieves invitation details by token (public endpoint)\n\nRequired params: path:token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.4 Workspaces — Custom Roles",
+			"item": [
+				{
+					"name": "Update member custom role",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/members/:memberId/custom-role",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members",
+								":memberId",
+								"custom-role"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "memberId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update member custom role\n\nUpdate custom role for a workspace member (Owner only)\n\nRequired params: path:workspaceId, path:memberId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.5 Workspaces — Logo",
+			"item": [
+				{
+					"name": "Upload workspace logo",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/logo",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"logo"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Upload workspace logo\n\nUpload a new logo for the workspace (Owner only)\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.6 Workspaces — Announcements",
+			"item": [
+				{
+					"name": "Get workspace announcements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"announcements"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace announcements\n\nRetrieve all active announcements for a specific workspace, ordered by creation date (newest first).\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Create workspace announcement",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"announcements"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create workspace announcement\n\nCreate a new announcement that will be visible to all workspace members.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete workspace announcement",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/announcements/:announcementId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"announcements",
+								":announcementId"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								},
+								{
+									"key": "announcementId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete workspace announcement\n\nDelete an announcement from a workspace\n\nRequired params: path:id, path:announcementId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.1 Hierarchy — Spaces",
+			"item": [
+				{
+					"name": "Create space",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/spaces",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"spaces"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create space\n\nCreate a new space in a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace spaces",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -375,47 +1511,100 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get workspace spaces\n\nRetrieve all spaces in a workspace\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Create Space",
+					"name": "Get space",
 					"request": {
-						"method": "POST",
+						"method": "GET",
 						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get space\n\nRetrieve a specific space by ID\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update space",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Engineering\",\n    \"description\": \"Development tasks\",\n    \"color\": \"#3357FF\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Update space\n\nUpdate space details\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete space",
+					"request": {
+						"method": "DELETE",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/spaces",
+							"raw": "{{baseUrl}}/api/spaces/:id",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"workspaces",
-								":workspaceId",
-								"spaces"
+								"spaces",
+								":id"
 							],
 							"variable": [
 								{
-									"key": "workspaceId",
+									"key": "id",
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Delete space\n\nDelete a space and its contents\n\nRequired params: path:id"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Space Metadata",
+					"name": "Get space metadata",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -436,31 +1625,182 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get space metadata\n\nReturns lightweight metadata for a space (name, members count, settings) without full nested data\n\nRequired params: path:id"
 					},
 					"response": []
-				}
-			]
-		},
-		{
-			"name": "Tasks & Lists",
-			"item": [
+				},
 				{
-					"name": "Create List",
+					"name": "Get space lists metadata",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id/lists/metadata",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"lists",
+								"metadata"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get space lists metadata\n\nReturns all lists within a space with lightweight metadata (no task data). Useful for sidebar/navigation rendering.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Add member to space",
 					"request": {
 						"method": "POST",
 						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"members"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Sprint 1\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Add member to space\n\nAdd a workspace member to a space\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove member from space",
+					"request": {
+						"method": "DELETE",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/spaces/:spaceId/lists",
+							"raw": "{{baseUrl}}/api/spaces/:id/members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove member from space\n\nRemove a member from a space\n\nRequired params: path:id, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Invite external users to space",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:id/invite-external",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":id",
+								"invite-external"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Invite external users to space\n\nInvite users who are not workspace members to a space\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace hierarchy (Path-aware)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/hierarchy",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"hierarchy"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace hierarchy (Path-aware)\n\nReturns the complete workspace structure (Spaces -> Folders -> Lists). Automatically ensures \"Pathway Visibility\" for users with granular access to nested lists. Includes task counts per list and space.\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.2 Hierarchy — Space Members",
+			"item": [
+				{
+					"name": "Get space members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/space-members",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -468,7 +1808,7 @@
 								"api",
 								"spaces",
 								":spaceId",
-								"lists"
+								"space-members"
 							],
 							"variable": [
 								{
@@ -476,134 +1816,130 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get space members\n\nRetrieve all space members with their permission overrides\n\nRequired params: path:spaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Create Task",
+					"name": "Add space member override",
 					"request": {
 						"method": "POST",
 						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/space-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"space-members"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"Implement API\",\n    \"priority\": \"high\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Add space member override\n\nAdd or update space-level permission override for a member\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update space member permissions",
+					"request": {
+						"method": "PATCH",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/lists/:listId/tasks",
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/space-members/:userId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"lists",
-								":listId",
-								"tasks"
+								"spaces",
+								":spaceId",
+								"space-members",
+								":userId"
 							],
 							"variable": [
 								{
-									"key": "listId",
+									"key": "spaceId",
+									"value": ""
+								},
+								{
+									"key": "userId",
 									"value": ""
 								}
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Add Task Dependency",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"dependencySource\": \"source-task-id\",\n    \"type\": \"FS\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Update space member permissions\n\nUpdate space-level permission override for a member\n\nRequired params: path:spaceId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove space member override",
+					"request": {
+						"method": "DELETE",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/tasks/:taskId/dependencies",
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/space-members/:userId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"tasks",
-								":taskId",
-								"dependencies"
+								"spaces",
+								":spaceId",
+								"space-members",
+								":userId"
 							],
 							"variable": [
 								{
-									"key": "taskId",
+									"key": "spaceId",
+									"value": ""
+								},
+								{
+									"key": "userId",
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Remove space member override\n\nRemove space-level permission override for a member\n\nRequired params: path:spaceId, path:userId"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Invitations",
+			"name": "3.3 Hierarchy — Space Invitations",
 			"item": [
 				{
-					"name": "Send Workspace Invite",
+					"name": "Send space invitation",
 					"request": {
 						"method": "POST",
 						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"user@example.com\",\n    \"role\": \"member\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/invites",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"invites"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Send Space Invite",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"user@example.com\",\n    \"permissionLevel\": \"FULL\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
 							"raw": "{{baseUrl}}/api/spaces/:spaceId/invitations",
 							"host": [
@@ -621,29 +1957,1665 @@
 									"value": ""
 								}
 							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Activity & Comments",
-			"item": [
-				{
-					"name": "Add Comment",
-					"request": {
-						"method": "POST",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"content\": \"Looks good!\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Send space invitation\n\nInvite a user to join a space\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get space invitations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/invitations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"invitations"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get space invitations\n\nRetrieve all pending invitations for a space\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel space invitation",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/invitations/:invitationId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"invitations",
+								":invitationId"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								},
+								{
+									"key": "invitationId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Cancel space invitation\n\nCancel a pending space invitation\n\nRequired params: path:spaceId, path:invitationId"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept space invitation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/space-invitations/accept/:token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"space-invitations",
+								"accept",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": ""
+								}
+							]
+						},
+						"description": "Accept space invitation\n\nAccept a space invitation using token\n\nRequired params: path:token"
+					},
+					"response": []
+				},
+				{
+					"name": "Decline space invitation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/space-invitations/decline/:token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"space-invitations",
+								"decline",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": ""
+								}
+							]
+						},
+						"description": "Decline space invitation\n\nDecline a space invitation using token\n\nRequired params: path:token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get my space invitations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/space-invitations/my-invitations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"space-invitations",
+								"my-invitations"
+							]
+						},
+						"description": "Get my space invitations\n\nRetrieve all pending space invitations for current user"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.4 Hierarchy — Folders",
+			"item": [
+				{
+					"name": "Create folder",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"folders"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create folder\n\nCreate a new folder in a space\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get folders in a space",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"folders"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get folders in a space\n\nRetrieve all folders in a space, ordered by creation date.\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get folder",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get folder\n\nReturns a single folder with its lists.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update folder",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update folder\n\nUpdate folder details\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete folder",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete folder\n\nDelete a folder and its contents\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.5 Hierarchy — Folder Members",
+			"item": [
+				{
+					"name": "Get folder members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:folderId/folder-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":folderId",
+								"folder-members"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get folder members\n\nRetrieve folder member permission view. Returns users currently in parent space plus direct folder overrides.\n\nRequired params: path:folderId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add folder member override",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:folderId/folder-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":folderId",
+								"folder-members"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add folder member override\n\nAdd or update folder-level permission override for a member\n\nRequired params: path:folderId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update folder member permissions",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:folderId/folder-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":folderId",
+								"folder-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update folder member permissions\n\nUpdate folder-level permission override for a member\n\nRequired params: path:folderId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove folder member override",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:folderId/folder-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":folderId",
+								"folder-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove folder member override\n\nRemove folder-level permission override for a member\n\nRequired params: path:folderId, path:userId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.6 Hierarchy — Lists",
+			"item": [
+				{
+					"name": "Create list",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/lists",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"lists"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create list\n\nCreate a new list in a space\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get lists in a space",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/lists",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"lists"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get lists in a space\n\nRetrieve all lists in a space (not inside a folder).\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get list\n\nGet a single list with its tasks count and metadata.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update list",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update list\n\nUpdate list details\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete list",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete list\n\nDelete a list and its contents\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.7 Hierarchy — List Members",
+			"item": [
+				{
+					"name": "Get list members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/list-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"list-members"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get list members\n\nRetrieve all list members with their permission overrides\n\nRequired params: path:listId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add list member override",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/list-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"list-members"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add list member override\n\nAdd or update list-level permission override for a member\n\nRequired params: path:listId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update list member permissions",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/list-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"list-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update list member permissions\n\nUpdate list-level permission override for a member\n\nRequired params: path:listId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove list member override",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/list-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"list-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove list member override\n\nRemove list-level permission override for a member\n\nRequired params: path:listId, path:userId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3.8 Hierarchy — Projects (Overview)",
+			"item": [
+				{
+					"name": "Create project",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"projects"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create project\n\nCreate a new project in a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"projects"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all projects\n\nRetrieve all projects in a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get project\n\nRetrieve a specific project by ID\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update project",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update project\n\nUpdate project details\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete project",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/projects/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete project\n\nDelete a project\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4.1 Tasks — Core CRUD",
+			"item": [
+				{
+					"name": "Create a new task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/tasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"tasks"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create a new task\n\nCreates a new task within a specific list. Supports regular tasks, recurring tasks, and milestones.\n\nRequired params: path:listId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all tasks in a list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/lists/:listId/tasks?status=&priority=&assignee=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"lists",
+								":listId",
+								"tasks"
+							],
+							"variable": [
+								{
+									"key": "listId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": ""
+								},
+								{
+									"key": "priority",
+									"value": ""
+								},
+								{
+									"key": "assignee",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all tasks in a list\n\nRetrieves all tasks within a specific list with optional filtering\n\nRequired params: path:listId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get a single task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get a single task\n\nReturns full task details including assignee, custom fields, subtask count, and time tracking summary.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update a task",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update a task\n\nUpdates task properties. Automatically tracks changes and creates activity entries.\n\n**Auto-tracked fields:**\n- Status changes\n- Assignee changes\n- Priority changes\n- Due date changes\n- Start date changes\n- Title changes\n\n**Gantt Integration:**\nWhen startDate or dueDate is changed, dependent tasks are automatically cascaded\nbased on their dependency type (FS, SS, FF, SF).\n\n**Completion Tracking:**\nWhen status changes to 'done', completedAt timestamp is automatically set.\n\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a task",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete a task\n\nSoft deletes a task (sets isDeleted flag). Also cleans up associated attachments from Cloudinary.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Create a subtask",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/subtasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"subtasks"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create a subtask\n\nCreates a subtask under a parent task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all subtasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/subtasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"subtasks"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all subtasks\n\nRetrieves all subtasks of a parent task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add a task dependency",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/dependencies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"dependencies"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dependencySource\": \"507f1f77bcf86cd799439011\",\n  \"type\": \"FS\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add a task dependency\n\nCreates a dependency relationship between two tasks for Gantt chart functionality.\n\n**Dependency Types:**\n- **FS (Finish-to-Start):** Target task can't start until source task finishes\n- **SS (Start-to-Start):** Target task can't start until source task starts\n- **FF (Finish-to-Finish):** Target task can't finish until source task finishes\n- **SF (Start-to-Finish):** Target task can't finish until source task starts\n\n**Cascading Logic:**\nWhen the source task's dates change, the target task's dates are automatically\nadjusted based on the dependency type. This cascades through the entire dependency chain.\n\n**Circular Dependency Protection:**\nThe system prevents circular dependencies using a visited set during cascade operations.\n\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task dependencies (blockers)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/dependencies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"dependencies"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task dependencies (blockers)\n\nRetrieves all tasks that the current task depends on (tasks blocking this one)\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove a task dependency",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/dependencies/:depId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"dependencies",
+								":depId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								},
+								{
+									"key": "depId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove a task dependency\n\nRemoves a dependency relationship between two tasks\n\nRequired params: path:taskId, path:depId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get dependent tasks (blocked tasks)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/dependents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"dependents"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get dependent tasks (blocked tasks)\n\nRetrieves all tasks that depend on the current task (tasks blocked by this one)\n\nRequired params: path:taskId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4.2 Tasks — Dependencies",
+			"item": [
+				{
+					"name": "Create task dependency",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/task-dependencies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"task-dependencies"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create task dependency\n\nCreate a dependency relationship between two tasks"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete task dependency",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/task-dependencies/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"task-dependencies",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete task dependency\n\nRemove a dependency relationship between tasks\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task dependencies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/task-dependencies/task/:taskId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"task-dependencies",
+								"task",
+								":taskId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task dependencies\n\nRetrieve all dependencies for a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get blocking tasks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/task-dependencies/task/:taskId/blocking",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"task-dependencies",
+								"task",
+								":taskId",
+								"blocking"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get blocking tasks\n\nRetrieve all tasks that are blocking this task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4.3 Tasks — Recurring",
+			"item": [
+				{
+					"name": "Get all recurring tasks in a workspace",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recurring/workspace/:workspaceId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"recurring",
+								"workspace",
+								":workspaceId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all recurring tasks in a workspace\n\nRetrieves all active recurring tasks within a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get instances of a recurring task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recurring/:taskId/instances",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"recurring",
+								":taskId",
+								"instances"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get instances of a recurring task\n\nRetrieves all task instances that were automatically created from a recurring task.\n\nEach time a recurring task is processed by the cron job, a new instance is created\nwith isRecurring=false and recurringTaskId pointing to the original task.\n\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop a recurring task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recurring/:taskId/stop",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"recurring",
+								":taskId",
+								"stop"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Stop a recurring task\n\nStops a recurring task from creating new instances.\n\nThis sets isRecurring=false and clears the nextOccurrence date.\nExisting instances are not affected.\n\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Manually trigger recurring task processing",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/recurring/process",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"recurring",
+								"process"
+							]
+						},
+						"description": "Manually trigger recurring task processing\n\nManually triggers the recurring task processor (normally runs via cron every hour).\n\n**Processing Logic:**\n1. Finds all tasks where isRecurring=true AND nextOccurrence <= now\n2. Checks if recurrenceEnd has not been exceeded\n3. Clones each task (copies title, description, priority, assignee, etc.)\n4. Sets cloned task status to 'todo' and isRecurring to false\n5. Updates original task's nextOccurrence based on frequency and interval\n6. Emits real-time socket events for new tasks\n\n**Frequency Calculation:**\n- daily: adds interval days\n- weekly: adds interval * 7 days\n- monthly: adds interval months\n- custom: adds interval days\n\n**Use Case:** Testing or immediate processing without waiting for cron\n"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4.4 Tasks — Custom Fields",
+			"item": [
+				{
+					"name": "Create custom field",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/custom-fields",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"custom-fields"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create custom field\n\nCreate a new custom field definition for a workspace"
+					},
+					"response": []
+				},
+				{
+					"name": "Update custom field",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/custom-fields/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"custom-fields",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update custom field\n\nUpdate an existing custom field definition\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete custom field",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/custom-fields/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"custom-fields",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete custom field\n\nRemove a custom field definition\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace custom fields",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/custom-fields/workspace/:workspaceId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"custom-fields",
+								"workspace",
+								":workspaceId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace custom fields\n\nRetrieve all custom fields for a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get project custom fields",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/custom-fields/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"custom-fields",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get project custom fields\n\nRetrieve all custom fields for a project\n\nRequired params: path:projectId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5.1 Collaboration — Activity & Comments",
+			"item": [
+				{
+					"name": "Get activity logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/activities?workspaceId=&taskId=&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"activities"
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "taskId",
+									"value": ""
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get activity logs\n\nRetrieve activity logs with optional filters.\n**Access Control:** Owners/Admins see all workspace activity; regular members see only their own logs.\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Create comment",
+					"request": {
+						"method": "POST",
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/tasks/:taskId/comments",
 							"host": [
@@ -661,129 +3633,805 @@
 									"value": ""
 								}
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Activity Feed",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/activities?workspaceId=id&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"activities"
-							],
-							"query": [
-								{
-									"key": "workspaceId",
-									"value": "id"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								}
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Notification Center",
-			"item": [
-				{
-					"name": "Get Notifications",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/notification-center",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"notification-center"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Unread Count",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/notification-center/unread-count",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"notification-center",
-								"unread-count"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Super Admin",
-			"item": [
-				{
-					"name": "Get Admin Users",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/super-admin/users",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"super-admin",
-								"users"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update User Subscription",
-					"request": {
-						"method": "PATCH",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"isPaid\": true,\n    \"planId\": \"plan-id\",\n    \"status\": \"active\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Create comment\n\nAdd a comment to a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task comments",
+					"request": {
+						"method": "GET",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/super-admin/users/:userId/subscription",
+							"raw": "{{baseUrl}}/api/tasks/:taskId/comments",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"super-admin",
-								"users",
-								":userId",
-								"subscription"
+								"tasks",
+								":taskId",
+								"comments"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task comments\n\nRetrieve all comments for a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task activity feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/activity",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"activity"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task activity feed\n\nReturns all activity (comments, status changes, assignments) for a specific task, newest first.\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get folder activity feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/folders/:folderId/activity?limit=50&skip=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"folders",
+								":folderId",
+								"activity"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "skip",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get folder activity feed\n\nAggregates activity from all lists inside the folder and returns a unified, time-sorted feed.\n\nRequired params: path:folderId"
+					},
+					"response": []
+				},
+				{
+					"name": "Edit comment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/activities/:activityId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								":activityId"
+							],
+							"variable": [
+								{
+									"key": "activityId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Edit comment\n\nEdit an existing comment. Only the comment author can edit it.\n\nRequired params: path:activityId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete comment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/activities/:activityId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								":activityId"
+							],
+							"variable": [
+								{
+									"key": "activityId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete comment\n\nDelete a comment. Author or workspace admin can delete.\n\nRequired params: path:activityId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add emoji reaction",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/activities/:activityId/reactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								":activityId",
+								"reactions"
+							],
+							"variable": [
+								{
+									"key": "activityId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add emoji reaction\n\nAdd an emoji reaction to a comment. If the same emoji already exists from the user, it toggles off.\n\nRequired params: path:activityId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove emoji reaction",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/activities/:activityId/reactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								":activityId",
+								"reactions"
+							],
+							"variable": [
+								{
+									"key": "activityId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Remove emoji reaction\n\nRemove your emoji reaction from a comment.\n\nRequired params: path:activityId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace activity feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/activity?limit=20&offset=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"activity"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get workspace activity feed\n\nReturns activity logs for the entire workspace.\n**Access Control:**\n- **Owners/Admins:** See all workspace activity\n- **Members:** See only their own personal activity\n\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get space GitHub commits",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/commits",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"commits"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get space GitHub commits"
+					},
+					"response": []
+				},
+				{
+					"name": "Get single comment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/comments/:commentId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"comments",
+								":commentId"
+							],
+							"variable": [
+								{
+									"key": "commentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get single comment\n\nRetrieve a specific comment by ID\n\nRequired params: path:commentId"
+					},
+					"response": []
+				},
+				{
+					"name": "Edit comment",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/comments/:commentId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"comments",
+								":commentId"
+							],
+							"variable": [
+								{
+									"key": "commentId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Edit comment\n\nUpdate a comment's content\n\nRequired params: path:commentId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete comment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/comments/:commentId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"comments",
+								":commentId"
+							],
+							"variable": [
+								{
+									"key": "commentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete comment\n\nRemove a comment from a task\n\nRequired params: path:commentId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5.2 Collaboration — Chat Channels",
+			"item": [
+				{
+					"name": "Get workspace message feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat?page=&limit=&userId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": ""
+								},
+								{
+									"key": "limit",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace message feed\n\nRetrieve paginated workspace message feed. Supports optional sender filtering.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Send chat message",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Send chat message\n\nSend a message to a specific channel within a workspace. If channelId is omitted, it defaults to the\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "List accessible channels",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/channels?page=1&limit=30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"channels"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "30"
+								}
+							]
+						},
+						"description": "List accessible channels\n\nRetrieve all public channels and any private channels the user is a member of.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Create new channel",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/channels",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"channels"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create new channel\n\nCreate a new public or private chat channel. Only Admins/Owners can create channels.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update channel details",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/channels/:channelId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"channels",
+								":channelId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "channelId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update channel details\n\nRename channel, change description or visibility. Only Admins/Owners or the creator can update.\n\nRequired params: path:workspaceId, path:channelId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete a channel",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/channels/:channelId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"channels",
+								":channelId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "channelId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete a channel\n\nDelete a custom channel. `General` and `Commit Log` are permanent and cannot be deleted.\n\nRequired params: path:workspaceId, path:channelId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace chat unread count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/unread",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"unread"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace chat unread count\n\nReturns unread count for the workspace chat feed using the caller's `Workspace.members[].lastChatReadAt` cursor. Only accessible channels/messages visible to the caller are counted.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark workspace chat as read",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/chat/read",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"chat",
+								"read"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Mark workspace chat as read\n\nUpdates the caller's workspace chat read cursor (`Workspace.members[].lastChatReadAt`) to the current server time. This clears unread state for messages visible up to the mark time.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get message history for a channel",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/channels/:channelId/messages?page=&limit=&userId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"chat",
+								"channels",
+								":channelId",
+								"messages"
+							],
+							"variable": [
+								{
+									"key": "channelId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": ""
+								},
+								{
+									"key": "limit",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get message history for a channel\n\nRetrieve paginated chat history. User must have access to the channel.\n\nRequired params: path:channelId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get unread count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/channels/:channelId/unread",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"chat",
+								"channels",
+								":channelId",
+								"unread"
+							],
+							"variable": [
+								{
+									"key": "channelId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get unread count\n\nRequired params: path:channelId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5.3 Collaboration — Direct Messages",
+			"item": [
+				{
+					"name": "Get all conversations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/dm?workspaceId=&page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"dm"
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get all conversations\n\nRetrieve direct message conversations for the current user inside a specific workspace.\n\nRequired params: query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Start conversation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/dm/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"dm",
+								":userId"
 							],
 							"variable": [
 								{
@@ -791,106 +4439,1670 @@
 									"value": ""
 								}
 							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update System Settings",
-					"request": {
-						"method": "PUT",
-						"header": [],
+						},
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"whatsappContactNumber\": \"+1234567890\"\n}",
+							"raw": "{}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
+						"description": "Start conversation\n\nStart a new conversation with a user in a strict workspace scope or retrieve the existing one.\n\nRequired params: path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get conversation details",
+					"request": {
+						"method": "GET",
+						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/super-admin/settings",
+							"raw": "{{baseUrl}}/api/dm/:conversationId?workspaceId=",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"super-admin",
-								"settings"
+								"dm",
+								":conversationId"
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Get conversation details\n\nRetrieve a specific conversation by its ID, including full participant details.\n\nRequired params: path:conversationId, query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Send direct message",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/dm/:userId/message",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"dm",
+								":userId",
+								"message"
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Send direct message\n\nSends a message to another user. If no conversation exists, it creates one automatically.\n**Note:** Message content cannot be empty unless attachments are provided.\n`workspaceId` is required to scope the DM strictly to one workspace.\n\n\nRequired params: path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get conversation messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/dm/:conversationId/messages?workspaceId=&page=1&limit=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"dm",
+								":conversationId",
+								"messages"
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get conversation messages\n\nRetrieve paginated messages in a conversation, newest first.\n\nRequired params: path:conversationId, query:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark conversation as read",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/dm/:conversationId/read?workspaceId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"dm",
+								":conversationId",
+								"read"
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Mark conversation as read\n\nMarks all unread messages in the conversation as read for the current user.\n\nRequired params: path:conversationId, query:workspaceId"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Subscription & Plans",
+			"name": "5.4 Collaboration — Presence",
 			"item": [
 				{
-					"name": "Get Subscription Info",
+					"name": "Get workspace presence",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/subscription/info",
+							"raw": "{{baseUrl}}/api/presence/:workspaceId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"subscription",
-								"info"
+								"presence",
+								":workspaceId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Get workspace presence\n\nReturns the online/offline status and last seen timestamp for all members of a specific workspace.\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Next Plan",
+					"name": "Get online users",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/subscription/next-plan",
+							"raw": "{{baseUrl}}/api/presence/:workspaceId/online",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"subscription",
-								"next-plan"
+								"presence",
+								":workspaceId",
+								"online"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Get online users\n\nReturns a list of users who are currently connected via WebSockets in the specified workspace.\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Get All Plans",
+					"name": "Get user presence",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/plans",
+							"raw": "{{baseUrl}}/api/presence/user/:userId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"plans"
+								"presence",
+								"user",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Get user presence\n\nGet the real-time presence status and last seen time for a specific user.\n\nRequired params: path:userId"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Performance",
+			"name": "6.1 Files — Uploads (Cloudinary)",
 			"item": [
 				{
-					"name": "Get My Performance",
+					"name": "Upload task attachment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/tasks/:taskId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"tasks",
+								":taskId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Upload task attachment\n\nUpload a file attachment to a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task attachments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/tasks/:taskId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"tasks",
+								":taskId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task attachments\n\nRetrieve all attachments for a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload comment attachment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/comments/:commentId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"comments",
+								":commentId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "commentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Upload comment attachment\n\nUpload a file attachment to a comment\n\nRequired params: path:commentId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get comment attachments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/comments/:commentId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"comments",
+								":commentId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "commentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get comment attachments\n\nRetrieve all attachments for a comment\n\nRequired params: path:commentId"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload DM attachment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/dm/:conversationId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"dm",
+								":conversationId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Upload DM attachment\n\nUpload a file attachment to a direct message\n\nRequired params: path:conversationId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get conversation attachments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/dm/:conversationId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"dm",
+								":conversationId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get conversation attachments\n\nRetrieve all attachments in a conversation\n\nRequired params: path:conversationId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete attachment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/upload/attachments/:attachmentId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"upload",
+								"attachments",
+								":attachmentId"
+							],
+							"variable": [
+								{
+									"key": "attachmentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete attachment\n\nDelete a file attachment\n\nRequired params: path:attachmentId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6.2 Files — Task Attachments",
+			"item": [
+				{
+					"name": "Initialize Cloudinary upload",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/attachments/init-upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"attachments",
+								"init-upload"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Initialize Cloudinary upload\n\nGenerates a signed upload URL for direct client-to-Cloudinary uploads.\n\n**Two-Step Upload Process:**\n1. Call this endpoint to get upload credentials\n2. Upload file directly to Cloudinary from client\n3. Call confirm endpoint with Cloudinary response\n\n**Benefits:**\n- Faster uploads (direct to CDN)\n- Reduced server load\n- Better user experience\n\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Cloudinary upload",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/attachments/confirm",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"attachments",
+								"confirm"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Confirm Cloudinary upload\n\nSaves attachment metadata after successful Cloudinary upload.\n\n**Call this after:**\n1. Getting credentials from init-upload\n2. Uploading file to Cloudinary\n3. Receiving Cloudinary response\n\n**Automatic Features:**\n- Thumbnail generation for images\n- File size and MIME type extraction\n- Secure URL generation\n\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all attachments for a task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:taskId/attachments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":taskId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all attachments for a task\n\nRetrieves all file attachments associated with a task from Cloudinary\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete an attachment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/attachments/:attachmentId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"attachments",
+								":attachmentId"
+							],
+							"variable": [
+								{
+									"key": "attachmentId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete an attachment\n\nDeletes an attachment from both the database and Cloudinary.\n\n**Cleanup Process:**\n1. Removes file from Cloudinary using public_id\n2. Deletes database record\n3. Returns confirmation\n\n**Automatic Cleanup:**\nWhen a task is hard-deleted, all attachments are automatically removed.\n\n\nRequired params: path:attachmentId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6.3 Files — Workspace Files",
+			"item": [
+				{
+					"name": "Generate Cloudinary upload signature",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/files/init-upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"files",
+								"init-upload"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Generate Cloudinary upload signature\n\nGet signature and credentials for direct Cloudinary upload\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm file upload",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/files/confirm",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"files",
+								"confirm"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Confirm file upload\n\nSave file metadata after successful Cloudinary upload\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace files",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:workspaceId/files?page=1&limit=20&search=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"files"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "search",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace files\n\nList all files in workspace with pagination and search\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get single file",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspace-files/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspace-files",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get single file\n\nGet file details by ID\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete file",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspace-files/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspace-files",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete file\n\nDelete file (uploader or workspace admin/owner only)\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6.4 Files — Documents",
+			"item": [
+				{
+					"name": "Create document",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create document\n\nCreate a new document"
+					},
+					"response": []
+				},
+				{
+					"name": "Get my documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"me"
+							]
+						},
+						"description": "Get my documents\n\nRetrieve all documents created by the current user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/workspace/:workspaceId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"workspace",
+								":workspaceId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace documents\n\nRetrieve all documents in a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get document hierarchy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/workspace/:workspaceId/hierarchy",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"workspace",
+								":workspaceId",
+								"hierarchy"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get document hierarchy\n\nRetrieve document hierarchy for a workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get document",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get document\n\nRetrieve a specific document by ID\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update document",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update document\n\nUpdate document content or metadata\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete document",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete document\n\nDelete a document\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7.1 Time — Entries (Timesheets)",
+			"item": [
+				{
+					"name": "Get workspace active timers (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/workspace/:workspaceId/active",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"workspace",
+								":workspaceId",
+								"active"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace active timers (Admin)\n\nGet all active timers in workspace (Admin only)\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get team timesheets (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/workspace/:workspaceId/timesheets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"workspace",
+								":workspaceId",
+								"timesheets"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get team timesheets (Admin)\n\nGet team timesheets for workspace (Admin only)\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace time stats (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/workspace/:workspaceId/stats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"workspace",
+								":workspaceId",
+								"stats"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace time stats (Admin)\n\nGet workspace time statistics (Admin only)\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Admin force-stop timer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/stop/:entryId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"stop",
+								":entryId"
+							],
+							"variable": [
+								{
+									"key": "entryId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Admin force-stop timer\n\nForce stop a running timer (Admin only)\n\nRequired params: path:entryId"
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup orphaned timers (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/workspace/:workspaceId/cleanup-orphaned",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"workspace",
+								":workspaceId",
+								"cleanup-orphaned"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Cleanup orphaned timers (Admin)\n\nCleanup orphaned timers in workspace (Admin only)\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop all user timers (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/admin/workspace/:workspaceId/stop-user-timers/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"admin",
+								"workspace",
+								":workspaceId",
+								"stop-user-timers",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Stop all user timers (Admin)\n\nStop all running timers for a user (Admin only)\n\nRequired params: path:workspaceId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Start timer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/start/:taskId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"start",
+								":taskId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Start timer\n\nStart a time tracking timer for a task\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop timer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/stop/:entryId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"stop",
+								":entryId"
+							],
+							"variable": [
+								{
+									"key": "entryId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Stop timer\n\nStop a running timer\n\nRequired params: path:entryId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add manual time entry",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/manual",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"manual"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add manual time entry\n\nAdd a manual time entry for a task"
+					},
+					"response": []
+				},
+				{
+					"name": "Get my running timer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/running",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"running"
+							]
+						},
+						"description": "Get my running timer\n\nReturns the user's currently active timer. Returns null data if no timer is running. Check this on app startup to restore the timer UI."
+					},
+					"response": []
+				},
+				{
+					"name": "Get task time summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/task/:taskId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"task",
+								":taskId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task time summary\n\nReturns total time logged for a task plus a breakdown of individual entries.\n\nRequired params: path:taskId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get project time summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/project/:projectId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get project time summary\n\nGet time tracking summary for a project\n\nRequired params: path:projectId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete time entry",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/time/:entryId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"time",
+								":entryId"
+							],
+							"variable": [
+								{
+									"key": "entryId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete time entry\n\nDelete a time entry\n\nRequired params: path:entryId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7.2 Time — Tracking (Live Timer)",
+			"item": [
+				{
+					"name": "Get my active timer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/time/active",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"time",
+								"active"
+							]
+						},
+						"description": "Get my active timer\n\nReturns the currently running timer for the authenticated user, or null if no timer is running. Useful for showing a persistent timer widget at the top of the app."
+					},
+					"response": []
+				},
+				{
+					"name": "Start task timer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id/time/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id",
+								"time",
+								"start"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Start task timer\n\nStart a timer for a specific task. Only one timer can run at a time per user.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop task timer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id/time/stop",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id",
+								"time",
+								"stop"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Stop task timer\n\nStop the active timer for a task and record the time entry.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Log manual time",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id/time/manual",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id",
+								"time",
+								"manual"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Log manual time\n\nAdd a manual time entry for a task without using the timer. Useful for logging offline work.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get task time logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id/time/logs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id",
+								"time",
+								"logs"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get task time logs\n\nReturns all time entries for a specific task.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete time log",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tasks/:id/time/logs/:logId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								":id",
+								"time",
+								"logs",
+								":logId"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								},
+								{
+									"key": "logId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete time log\n\nDelete a specific time log entry.\n\nRequired params: path:id, path:logId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7.3 Time — Attendance (Clock In/Out)",
+			"item": [
+				{
+					"name": "Get attendance report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/attendance/workspace/:workspaceId/report?startDate=&endDate=&userId=&projectId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"attendance",
+								"workspace",
+								":workspaceId",
+								"report"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								},
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get attendance report\n\nRetrieve detailed attendance / clock-in records for a workspace. Admins can filter by userId; regular users only see their own. Supports \"Lifetime\" view if dates are omitted.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Export attendance report (CSV)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/attendance/workspace/:workspaceId/export?startDate=&endDate=&userId=&projectId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"attendance",
+								"workspace",
+								":workspaceId",
+								"export"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								},
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Export attendance report (CSV)\n\nDownload a CSV file containing attendance records based on filters.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Export attendance report (Excel)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/attendance/workspace/:workspaceId/export-excel?startDate=&endDate=&userId=&projectId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"attendance",
+								"workspace",
+								":workspaceId",
+								"export-excel"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								},
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Export attendance report (Excel)\n\nDownload a native Excel (.xlsx) file containing attendance records.\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle workspace clock",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workspaces/:id/clock/toggle",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":id",
+								"clock",
+								"toggle"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Toggle workspace clock\n\nClock in or clock out of workspace\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7.4 Time — Performance Metrics",
+			"item": [
+				{
+					"name": "Get my performance",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -912,12 +6124,46 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get my performance\n\nRetrieve current user's performance metrics\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Team Performance",
+					"name": "Get user performance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/performance/user/:userId/workspace/:workspaceId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"performance",
+								"user",
+								":userId",
+								"workspace",
+								":workspaceId"
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": ""
+								},
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get user performance\n\nRetrieve specific user's performance metrics\n\nRequired params: path:userId, path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get team performance",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -939,75 +6185,1332 @@
 									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get team performance\n\nRetrieve team performance metrics\n\nRequired params: path:workspaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get workspace performance summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/performance/workspace/:workspaceId/summary",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"performance",
+								"workspace",
+								":workspaceId",
+								"summary"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get workspace performance summary\n\nRetrieve workspace performance summary\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Miscellaneous",
+			"name": "8.1 Tables — Core CRUD",
 			"item": [
 				{
-					"name": "Search",
+					"name": "Create custom table",
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/search?q=query&workspaceId=id",
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/tables",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"search"
+								"spaces",
+								":spaceId",
+								"tables"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sprint Tracker\",\n  \"folderId\": \"69bc340a830a5703d3979d1c\",\n  \"columns\": [\n    {\n      \"name\": \"Task\",\n      \"type\": \"text\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create custom table\n\nCreate a new custom table in a space\n\nRequired params: path:spaceId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get space tables",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/spaces/:spaceId/tables?folderId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"spaces",
+								":spaceId",
+								"tables"
+							],
+							"variable": [
+								{
+									"key": "spaceId",
+									"value": ""
+								}
 							],
 							"query": [
 								{
-									"key": "q",
-									"value": "query"
-								},
-								{
-									"key": "workspaceId",
-									"value": "id"
+									"key": "folderId",
+									"value": ""
 								}
 							]
-						}
+						},
+						"description": "Get space tables\n\nRetrieve all tables in a space\n\nRequired params: path:spaceId"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Currencies",
+					"name": "Get table",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/currency",
+							"raw": "{{baseUrl}}/api/tables/:tableId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"currency"
+								"tables",
+								":tableId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"description": "Get table\n\nRetrieve a specific table by ID\n\nRequired params: path:tableId"
 					},
 					"response": []
 				},
 				{
-					"name": "Health Check",
+					"name": "Update table",
 					"request": {
-						"method": "GET",
+						"method": "PATCH",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/health",
+							"raw": "{{baseUrl}}/api/tables/:tableId",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
-								"health"
+								"api",
+								"tables",
+								":tableId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
 							]
-						}
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update table\n\nUpdate table name\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete table",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete table\n\nSoft delete a table\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add column to table",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/columns",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"columns"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add column to table\n\nAdd a new column to a custom table\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update column",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/columns/:columnId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"columns",
+								":columnId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "columnId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update column\n\nUpdate a column's title or type\n\nRequired params: path:tableId, path:columnId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete column",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/columns/:columnId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"columns",
+								":columnId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "columnId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete column\n\nDelete a column and its data from all rows\n\nRequired params: path:tableId, path:columnId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add row to table",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/rows",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"rows"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add row to table\n\nAdd a new row to a custom table\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete row from table",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/rows/:rowId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"rows",
+								":rowId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "rowId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Delete row from table\n\nDelete a row from a custom table\n\nRequired params: path:tableId, path:rowId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update cell value",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/rows/:rowId/cells/:columnId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"rows",
+								":rowId",
+								"cells",
+								":columnId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "rowId",
+									"value": ""
+								},
+								{
+									"key": "columnId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update cell value\n\nUpdate a cell value with type validation\n\nRequired params: path:tableId, path:rowId, path:columnId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update cell background color",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/rows/:rowId/colors/:columnId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"rows",
+								":rowId",
+								"colors",
+								":columnId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "rowId",
+									"value": ""
+								},
+								{
+									"key": "columnId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update cell background color\n\nUpdate a cell's background color with hex format validation\n\nRequired params: path:tableId, path:rowId, path:columnId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update cell text color",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/rows/:rowId/text-colors/:columnId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"rows",
+								":rowId",
+								"text-colors",
+								":columnId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "rowId",
+									"value": ""
+								},
+								{
+									"key": "columnId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update cell text color\n\nUpdate a cell's text color with hex format validation\n\nRequired params: path:tableId, path:rowId, path:columnId"
+					},
+					"response": []
+				},
+				{
+					"name": "Export table to Excel",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/export",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"export"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Export table to Excel\n\nExport a custom table to Excel format with color preservation\n\nRequired params: path:tableId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8.2 Tables — Members",
+			"item": [
+				{
+					"name": "Get table members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/table-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"table-members"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get table members\n\nRetrieve all table members with their permission overrides\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Add table member override",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/table-members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"table-members"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Add table member override\n\nAdd or update table-level permission override for a member\n\nRequired params: path:tableId"
+					},
+					"response": []
+				},
+				{
+					"name": "Update table member permissions",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/table-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"table-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update table member permissions\n\nUpdate table-level permission override for a member\n\nRequired params: path:tableId, path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove table member override",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tables/:tableId/table-members/:userId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tables",
+								":tableId",
+								"table-members",
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "tableId",
+									"value": ""
+								},
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Remove table member override\n\nRemove table-level permission override for a member\n\nRequired params: path:tableId, path:userId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.1 Admin — Plans",
+			"item": [
+				{
+					"name": "Create a new plan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"plans"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create a new plan\n\nCreate a new subscription plan with specific feature limits. Restricted to Super Admins."
+					},
+					"response": []
+				},
+				{
+					"name": "Get all plans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans?includeInactive=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"plans"
+							],
+							"query": [
+								{
+									"key": "includeInactive",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all plans\n\nRetrieve all subscription plans. Active plans are returned by default."
+					},
+					"response": []
+				},
+				{
+					"name": "Get a single plan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get a single plan\n\nRetrieve full details of a specific subscription plan by its ID.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update a plan",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update a plan\n\nUpdate features, pricing, or status of an existing plan. Restricted to Super Admins.\n\nRequired params: path:id"
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate or Delete a plan",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Deactivate or Delete a plan\n\nMarks a plan as inactive or removes it if no users are subscribed. Restricted to Super Admins.\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.2 Admin — Subscriptions",
+			"item": [
+				{
+					"name": "Get current user's subscription information",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/subscription/info",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscription",
+								"info"
+							]
+						},
+						"description": "Get current user's subscription information\n\nReturns detailed subscription info including plan features, unified global usage, and expiry details."
+					},
+					"response": []
+				},
+				{
+					"name": "Get the next higher tier plan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/subscription/next-plan",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscription",
+								"next-plan"
+							]
+						},
+						"description": "Get the next higher tier plan\n\nReturns the details of the next available plan with a higher price than the current user's plan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.3 Admin — Payments",
+			"item": [
+				{
+					"name": "Initiate eSewa payment for plan upgrade",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/payment/initiate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"initiate"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Initiate eSewa payment for plan upgrade"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify eSewa payment and activate plan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/payment/verify",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"verify"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Verify eSewa payment and activate plan"
+					},
+					"response": []
+				},
+				{
+					"name": "Get user's payment transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/payment/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"transactions"
+							]
+						},
+						"description": "Get user's payment transactions"
+					},
+					"response": []
+				},
+				{
+					"name": "Get transaction details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/payment/transaction/:transactionId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"transaction",
+								":transactionId"
+							],
+							"variable": [
+								{
+									"key": "transactionId",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get transaction details\n\nRequired params: path:transactionId"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.4 Admin — Entitlements",
+			"item": [
+				{
+					"name": "Check if user can perform a specific action",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/entitlements/check?action=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"entitlements",
+								"check"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": ""
+								}
+							]
+						},
+						"description": "Check if user can perform a specific action\n\nValidates entitlement for actions like useCustomRoles, createTable, addRow\n\nRequired params: query:action"
+					},
+					"response": []
+				},
+				{
+					"name": "Get aggregated usage and limits",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/entitlements/usage",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"entitlements",
+								"usage"
+							]
+						},
+						"description": "Get aggregated usage and limits\n\nReturns total usage across all owned workspaces and plan limits"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.5 Admin — Super Admin",
+			"item": [
+				{
+					"name": "Get all workspace admins/owners",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/super-admin/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"super-admin",
+								"users"
+							]
+						},
+						"description": "Get all workspace admins/owners\n\nRetrieve all workspace owners with their full subscription details. Restricted to Super Admins only."
+					},
+					"response": []
+				},
+				{
+					"name": "Update user subscription",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/super-admin/users/:userId/subscription",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"super-admin",
+								"users",
+								":userId",
+								"subscription"
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": ""
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update user subscription\n\nManually override or update a user's subscription status and plan.\n\nRequired params: path:userId"
+					},
+					"response": []
+				},
+				{
+					"name": "Get system-wide financial analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/super-admin/analytics",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"super-admin",
+								"analytics"
+							]
+						},
+						"description": "Get system-wide financial analytics\n\nRetrieve global revenue, conversion rates, and user signup trends."
+					},
+					"response": []
+				},
+				{
+					"name": "Get global system settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/super-admin/settings",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"super-admin",
+								"settings"
+							]
+						},
+						"description": "Get global system settings\n\nRetrieve system-wide configuration settings like support contact numbers."
+					},
+					"response": []
+				},
+				{
+					"name": "Update global system settings",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/super-admin/settings",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"super-admin",
+								"settings"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update global system settings\n\nUpdate system-wide configuration."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.6 Admin — Feedback",
+			"item": [
+				{
+					"name": "Submit feedback",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/feedback",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"feedback"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Submit feedback\n\nCreate a new feedback submission (Workspace admin/owner only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all feedback submissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/feedback?status=&category=&priority=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"feedback"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": ""
+								},
+								{
+									"key": "category",
+									"value": ""
+								},
+								{
+									"key": "priority",
+									"value": ""
+								}
+							]
+						},
+						"description": "Get all feedback submissions\n\nRetrieve all feedback (Super User only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark feedback as resolved",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/feedback/:id/resolve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"feedback",
+								":id",
+								"resolve"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						},
+						"description": "Mark feedback as resolved\n\nUpdate feedback status to resolved (Super User only)\n\nRequired params: path:id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9.7 Admin — Currency",
+			"item": [
+				{
+					"name": "Get current USD to NPR exchange rate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/currency/rate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"currency",
+								"rate"
+							]
+						},
+						"description": "Get current USD to NPR exchange rate\n\nReturns the current exchange rate with caching information. Uses stale-while-revalidate strategy (12-hour cache)."
+					},
+					"response": []
+				},
+				{
+					"name": "Convert amount between USD and NPR",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/currency/convert",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"currency",
+								"convert"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Convert amount between USD and NPR\n\nConverts a given amount from one currency to another using the current exchange rate"
+					},
+					"response": []
+				},
+				{
+					"name": "Force refresh exchange rate (Admin only)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/currency/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"currency",
+								"refresh"
+							]
+						},
+						"description": "Force refresh exchange rate (Admin only)\n\nForces a refresh of the cached exchange rate. Requires super admin privileges."
 					},
 					"response": []
 				}
@@ -1033,6 +7536,11 @@
 		{
 			"key": "bearerToken",
 			"value": "your-jwt-token-here",
+			"type": "string"
+		},
+		{
+			"key": "workspaceId",
+			"value": "69bbf827a96fe78f716752bb",
 			"type": "string"
 		}
 	]

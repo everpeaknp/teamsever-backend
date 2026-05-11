@@ -309,15 +309,20 @@ const startServer = async () => {
   }
 };
 
-// Start the server
+// Start the server only when not running tests to avoid spawning listeners during unit tests
 let httpServer, io;
-startServer().then((servers) => {
-  httpServer = servers.httpServer;
-  io = servers.io;
-}).catch((error) => {
-  console.error("[Server] Startup error:", error);
-  process.exit(1);
-});
+if (process.env.NODE_ENV !== 'test') {
+  startServer().then((servers) => {
+    httpServer = servers.httpServer;
+    io = servers.io;
+  }).catch((error) => {
+    console.error("[Server] Startup error:", error);
+    process.exit(1);
+  });
+} else {
+  // In test environment, export startServer for manual startup if needed
+  module.exports.startServer = startServer;
+}
 // ============================================================================
 // GRACEFUL SHUTDOWN - Safe cleanup even if modules are missing
 // ============================================================================

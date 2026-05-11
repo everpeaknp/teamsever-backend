@@ -24,6 +24,11 @@ interface GetMessagesOptions {
   limit?: number;
 }
 
+interface GetChannelsOptions {
+  page?: number;
+  limit?: number;
+}
+
 interface CreateChannelData {
   name: string;
   description?: string;
@@ -229,7 +234,7 @@ class ChatService {
   /**
    * Get all accessible channels for a workspace
    */
-  async getChannels(workspaceId: string, userId: string) {
+  async getChannels(workspaceId: string, userId: string, options: GetChannelsOptions = {}) {
     const { membership } = await this.validateWorkspaceMembership(workspaceId, userId);
     const isAdmin = membership.role === 'admin' || membership.role === 'owner';
 
@@ -250,11 +255,28 @@ class ChatService {
       ];
     }
 
+    const page = options.page || 1;
+    const limit = options.limit || 30;
+    const skip = (page - 1) * limit;
+
+    const total = await ChatChannel.countDocuments(query);
+
     const channels = await ChatChannel.find(query)
       .sort({ lastMessageAt: -1, name: 1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    return channels;
+    return {
+      channels,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+        hasMore: page * limit < total,
+      },
+    };
   }
 
   /**
@@ -353,6 +375,7 @@ class ChatService {
       _id: message._id,
       workspace: message.workspace,
       channel: targetChannelId,
+      channelName: channel.name,
       sender: message.sender,
       content: message.content,
       type: message.type,

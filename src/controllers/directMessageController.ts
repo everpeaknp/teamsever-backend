@@ -2,8 +2,6 @@ const directMessageService = require("../services/directMessageService");
 const asyncHandler = require("../utils/asyncHandler");
 const EntitlementService = require("../services/entitlementService").default;
 
-const WORKSPACE_ID_REGEX = /\/workspace\/([a-f0-9]{24})/i;
-
 const extractWorkspaceId = (req: any): string | undefined => {
   const direct =
     req.body?.workspaceId ||
@@ -13,15 +11,6 @@ const extractWorkspaceId = (req: any): string | undefined => {
   if (direct && String(direct).trim()) {
     return String(direct).trim();
   }
-
-  const referer = req.headers?.referer || req.headers?.referrer;
-  if (typeof referer === "string") {
-    const match = referer.match(WORKSPACE_ID_REGEX);
-    if (match?.[1]) {
-      return match[1];
-    }
-  }
-
   return undefined;
 };
 
@@ -33,14 +22,7 @@ const extractWorkspaceId = (req: any): string | undefined => {
 const startConversation = asyncHandler(async (req: any, res: any) => {
   const currentUserId = req.user.id;
   const { userId: targetUserId } = req.params;
-  let workspaceId = extractWorkspaceId(req);
-
-  if (!workspaceId) {
-    workspaceId = await directMessageService.resolveWorkspaceForUsers(
-      currentUserId,
-      targetUserId
-    );
-  }
+  const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -71,14 +53,7 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
   const { content } = req.body;
-  let workspaceId = extractWorkspaceId(req);
-
-  if (!workspaceId) {
-    workspaceId = await directMessageService.resolveWorkspaceForUsers(
-      senderId,
-      targetUserId
-    );
-  }
+  const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -122,6 +97,8 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
 const getConversations = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const workspaceId = extractWorkspaceId(req);
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -130,12 +107,16 @@ const getConversations = asyncHandler(async (req: any, res: any) => {
     });
   }
 
-  const conversations = await directMessageService.getConversations(userId, workspaceId);
+  const result = await directMessageService.getConversations(userId, workspaceId, {
+    page,
+    limit,
+  });
 
   res.status(200).json({
     success: true,
-    data: conversations,
-    count: conversations.length,
+    data: result.conversations,
+    count: result.conversations.length,
+    pagination: result.pagination,
   });
 });
 
@@ -147,10 +128,19 @@ const getConversations = asyncHandler(async (req: any, res: any) => {
 const getMessages = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const { conversationId } = req.params;
+  const workspaceId = extractWorkspaceId(req);
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
 
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required",
+    });
+  }
+
   const result = await directMessageService.getMessages(conversationId, userId, {
+    workspaceId,
     page,
     limit,
   });
@@ -170,10 +160,19 @@ const getMessages = asyncHandler(async (req: any, res: any) => {
 const getConversation = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const { conversationId } = req.params;
+  const workspaceId = extractWorkspaceId(req);
+
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required",
+    });
+  }
 
   const conversation = await directMessageService.getConversationById(
     conversationId,
-    userId
+    userId,
+    workspaceId
   );
 
   res.status(200).json({
@@ -190,8 +189,16 @@ const getConversation = asyncHandler(async (req: any, res: any) => {
 const markAsRead = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const { conversationId } = req.params;
+  const workspaceId = extractWorkspaceId(req);
 
-  await directMessageService.markConversationAsRead(conversationId, userId);
+  if (!workspaceId) {
+    return res.status(400).json({
+      success: false,
+      message: "workspaceId is required",
+    });
+  }
+
+  await directMessageService.markConversationAsRead(conversationId, userId, workspaceId);
 
   res.status(200).json({
     success: true,

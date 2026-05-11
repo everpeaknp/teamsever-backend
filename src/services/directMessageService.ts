@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const DirectMessage = require("../models/DirectMessage");
 const User = require("../models/User");
@@ -11,64 +12,30 @@ interface SendMessageData {
   senderId: string;
   targetUserId: string;
   content: string;
-  workspaceId?: string;
+  workspaceId: string;
 }
 
 interface GetMessagesOptions {
+  workspaceId: string;
+  page?: number;
+  limit?: number;
+}
+
+interface GetConversationsOptions {
   page?: number;
   limit?: number;
 }
 
 class DirectMessageService {
-  /**
-   * Resolve a workspace scope for a DM pair when client does not send workspaceId.
-   * Preference order:
-   * 1) Most recent existing scoped conversation between the pair
-   * 2) Most recently updated shared workspace membership
-   */
-  async resolveWorkspaceForUsers(userId1: string, userId2: string): Promise<string | null> {
-    const participants = [userId1, userId2].sort();
-
-    const recentScopedConversation = await Conversation.findOne({
-      participants: { $all: participants },
-      workspace: { $ne: null },
-    })
-      .sort({ lastMessageAt: -1 })
-      .select("workspace")
-      .lean();
-
-    if (recentScopedConversation?.workspace) {
-      return recentScopedConversation.workspace.toString();
-    }
-
-    const candidateWorkspaces = await Workspace.find({
-      isDeleted: false,
-      $or: [
-        { owner: { $in: [userId1, userId2] } },
-        { "members.user": { $in: [userId1, userId2] } },
-      ],
-    })
-      .sort({ updatedAt: -1 })
-      .select("owner members.user")
-      .lean();
-
-    for (const workspace of candidateWorkspaces) {
-      const ids = new Set<string>([
-        workspace.owner?.toString?.(),
-        ...((workspace.members || []).map((m: any) => m.user?.toString?.()).filter(Boolean)),
-      ]);
-      if (ids.has(userId1) && ids.has(userId2)) {
-        return workspace._id.toString();
-      }
-    }
-
-    return null;
+  private buildConversationKey(workspaceId: string, userId1: string, userId2: string): string {
+    const [a, b] = [userId1, userId2].map(String).sort();
+    return `${workspaceId}:${a}:${b}`;
   }
 
   /**
    * Find or create conversation between two users
    */
-  async findOrCreateConversation(userId1: string, userId2: string, workspaceId?: string): Promise<any> {
+  async findOrCreateConversation(userId1: string, userId2: string, workspaceId: string): Promise<any> {
     // Prevent self-conversation
     if (userId1 === userId2) {
       throw new AppError("Cannot create conversation with yourself", 400);
@@ -86,35 +53,28 @@ class DirectMessageService {
     // Sort participants for consistent ordering
     const participants = [userId1, userId2].sort();
 
-    // If workspace-scoped DM is requested, enforce both users belong to that workspace
-    if (workspaceId) {
-      const Workspace = require("../models/Workspace");
-      const workspace = await Workspace.findOne({
-        _id: workspaceId,
-        isDeleted: false,
-      }).select("members.user owner").lean();
+    const workspace = await Workspace.findOne({
+      _id: workspaceId,
+      isDeleted: false,
+    }).select("members.user owner").lean();
 
-      if (!workspace) {
-        throw new AppError("Workspace not found", 404);
-      }
-
-      const memberIds = new Set([
-        workspace.owner?.toString?.(),
-        ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
-      ]);
-
-      if (!memberIds.has(userId1) || !memberIds.has(userId2)) {
-        throw new AppError("Both users must be members of the same workspace for this DM", 403);
-      }
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
     }
 
-    // Find existing conversation
-    const findQuery: any = {
-      participants: { $all: participants },
-    };
-    if (workspaceId) {
-      findQuery.workspace = workspaceId;
+    const memberIds = new Set([
+      workspace.owner?.toString?.(),
+      ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
+    ]);
+
+    if (!memberIds.has(userId1) || !memberIds.has(userId2)) {
+      throw new AppError("Both users must be members of the same workspace for this DM", 403);
     }
+
+    const conversationKey = this.buildConversationKey(workspaceId, userId1, userId2);
+
+    // Prefer key-based lookup (fast + deterministic).
+    const findQuery: any = { conversationKey };
 
     let conversation = await Conversation.findOne(findQuery)
       .populate("participants", "name email avatar profilePicture")
@@ -125,13 +85,30 @@ class DirectMessageService {
 
     // Create if doesn't exist
     if (!conversation) {
-      conversation = await Conversation.create({
-        workspace: workspaceId || null,
-        participants,
-        lastMessageAt: new Date(),
-      });
+      try {
+        conversation = await Conversation.create({
+          workspace: workspaceId,
+          participants,
+          conversationKey,
+          lastMessageAt: new Date(),
+        });
+      } catch (error: any) {
+        // Another request may have inserted the same conversation concurrently.
+        if (error?.code === 11000) {
+          conversation = await Conversation.findOne(findQuery)
+            .populate("participants", "name email avatar profilePicture")
+            .populate({
+              path: "lastMessage",
+              populate: { path: "sender", select: "name email avatar profilePicture" },
+            });
+        } else {
+          throw error;
+        }
+      }
 
-      await conversation.populate("participants", "name email avatar profilePicture");
+      if (conversation && !conversation.populated?.("participants")) {
+        await conversation.populate("participants", "name email avatar profilePicture");
+      }
     }
 
     return conversation;
@@ -140,7 +117,7 @@ class DirectMessageService {
   /**
    * Start a conversation (find or create)
    */
-  async startConversation(userId: string, targetUserId: string, workspaceId?: string): Promise<any> {
+  async startConversation(userId: string, targetUserId: string, workspaceId: string): Promise<any> {
     const conversation = await this.findOrCreateConversation(userId, targetUserId, workspaceId);
     return conversation;
   }
@@ -246,114 +223,97 @@ class DirectMessageService {
   }
 
   /**
-   * Get user's conversations, optionally filtered by workspace members
+   * Get user's conversations in a workspace
    */
-  async getConversations(userId: string, workspaceId?: string): Promise<any[]> {
-    if (workspaceId) {
-      const Workspace = require("../models/Workspace");
-      const workspace = await Workspace.findOne({
-        _id: workspaceId,
-        isDeleted: false
-      }).select("members.user owner").lean();
+  async getConversations(
+    userId: string,
+    workspaceId: string,
+    options: GetConversationsOptions = {}
+  ): Promise<any> {
+    const workspace = await Workspace.findOne({
+      _id: workspaceId,
+      isDeleted: false
+    }).select("members.user owner").lean();
 
-      if (!workspace) {
-        throw new AppError("Workspace not found", 404);
-      }
-
-      const memberIds = new Set([
-        workspace.owner?.toString?.(),
-        ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
-      ]);
-
-      if (!memberIds.has(userId)) {
-        throw new AppError("You do not have access to this workspace", 403);
-      }
-
-      // Primary: explicit workspace-scoped conversations
-      const scopedConversations = await Conversation.find({
-        workspace: workspaceId,
-        participants: userId,
-      })
-        .populate("participants", "name email avatar profilePicture")
-        .populate({
-          path: "lastMessage",
-          populate: { path: "sender", select: "name email avatar profilePicture" },
-        })
-        .sort({ lastMessageAt: -1 })
-        .lean();
-
-      // Backward compatibility: legacy conversations without workspace set
-      const legacy = await Conversation.find({
-        workspace: { $in: [null, undefined] },
-        participants: userId,
-      })
-        .populate("participants", "name email avatar profilePicture")
-        .populate({
-          path: "lastMessage",
-          populate: { path: "sender", select: "name email avatar profilePicture" },
-        })
-        .sort({ lastMessageAt: -1 })
-        .lean();
-
-      const legacyFiltered = legacy.filter((conv: any) =>
-        conv.participants.every((p: any) => memberIds.has(p._id.toString()))
-      );
-
-      const dedup = new Map<string, any>();
-      [...scopedConversations, ...legacyFiltered].forEach((c: any) => {
-        dedup.set(c._id.toString(), c);
-      });
-
-      const conversations = Array.from(dedup.values()).sort(
-        (a: any, b: any) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      );
-
-      const conversationsWithUnread = await Promise.all(
-        conversations.map(async (conv: any) => {
-          const unreadCount = await DirectMessage.countDocuments({
-            conversation: conv._id,
-            sender: { $ne: userId },
-            readBy: { $ne: userId },
-          });
-
-          return {
-            ...conv,
-            unreadCount,
-          };
-        })
-      );
-
-      return conversationsWithUnread;
+    if (!workspace) {
+      throw new AppError("Workspace not found", 404);
     }
 
-    const conversations = await Conversation.find({
+    const memberIds = new Set([
+      workspace.owner?.toString?.(),
+      ...(workspace.members || []).map((m: any) => m.user?.toString?.()),
+    ]);
+
+    if (!memberIds.has(userId)) {
+      throw new AppError("You do not have access to this workspace", 403);
+    }
+
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const baseQuery: any = {
+      workspace: workspaceId,
       participants: userId,
-    })
+    };
+
+    const total = await Conversation.countDocuments(baseQuery);
+
+    const conversations = await Conversation.find(baseQuery)
       .populate("participants", "name email avatar profilePicture")
       .populate({
         path: "lastMessage",
         populate: { path: "sender", select: "name email avatar profilePicture" },
       })
       .sort({ lastMessageAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    // Calculate unread count for each conversation
-    const conversationsWithUnread = await Promise.all(
-      conversations.map(async (conv: any) => {
-        const unreadCount = await DirectMessage.countDocuments({
-          conversation: conv._id,
-          sender: { $ne: userId },
-          readBy: { $ne: userId },
-        });
-
-        return {
-          ...conv,
-          unreadCount,
-        };
-      })
+    // Aggregate unread counts in one query (avoid N+1 countDocuments).
+    const conversationIds = conversations.map((c: any) => c._id);
+    const unreadRows = await DirectMessage.aggregate([
+      {
+        $match: {
+          conversation: { $in: conversationIds },
+          sender: { $ne: new mongoose.Types.ObjectId(userId) },
+          readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+        },
+      },
+      { $group: { _id: "$conversation", unreadCount: { $sum: 1 } } },
+    ]);
+    const unreadMap = new Map(
+      unreadRows.map((row: any) => [row._id.toString(), row.unreadCount || 0])
     );
 
-    return conversationsWithUnread;
+    // Soft de-dup for legacy duplicate conversations:
+    // keep only most recent conversation per other participant in this workspace.
+    const dedupMap = new Map<string, any>();
+    for (const conv of conversations) {
+      const otherParticipant = (conv.participants || []).find(
+        (p: any) => p?._id?.toString?.() !== userId
+      );
+      const dedupKey = otherParticipant?._id?.toString?.() || conv._id.toString();
+      if (!dedupMap.has(dedupKey)) {
+        dedupMap.set(dedupKey, {
+          ...conv,
+          unreadCount: unreadMap.get(conv._id.toString()) || 0,
+        });
+      }
+    }
+
+    const conversationsWithUnread = Array.from(dedupMap.values());
+
+    return {
+      conversations: conversationsWithUnread,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+        hasMore: page * limit < total,
+      },
+    };
   }
 
   /**
@@ -362,7 +322,7 @@ class DirectMessageService {
   async getMessages(
     conversationId: string,
     userId: string,
-    options: GetMessagesOptions = {}
+    options: GetMessagesOptions
   ): Promise<any> {
     // Verify user is participant
     const conversation = await Conversation.findById(conversationId).lean();
@@ -377,6 +337,9 @@ class DirectMessageService {
 
     if (!isParticipant) {
       throw new AppError("You do not have access to this conversation", 403);
+    }
+    if ((conversation as any).workspace?.toString?.() !== options.workspaceId) {
+      throw new AppError("Conversation does not belong to the requested workspace", 403);
     }
 
     const page = options.page || 1;
@@ -431,7 +394,7 @@ class DirectMessageService {
   /**
    * Get single conversation by ID
    */
-  async getConversationById(conversationId: string, userId: string): Promise<any> {
+  async getConversationById(conversationId: string, userId: string, workspaceId: string): Promise<any> {
     const conversation = await Conversation.findById(conversationId)
       .populate("participants", "name email avatar profilePicture")
       .populate({
@@ -452,6 +415,9 @@ class DirectMessageService {
     if (!isParticipant) {
       throw new AppError("You do not have access to this conversation", 403);
     }
+    if ((conversation as any).workspace?.toString?.() !== workspaceId) {
+      throw new AppError("Conversation does not belong to the requested workspace", 403);
+    }
 
     // Calculate unread count
     const unreadCount = await DirectMessage.countDocuments({
@@ -469,7 +435,7 @@ class DirectMessageService {
   /**
    * Mark conversation as read
    */
-  async markConversationAsRead(conversationId: string, userId: string): Promise<void> {
+  async markConversationAsRead(conversationId: string, userId: string, workspaceId: string): Promise<void> {
     // Verify user is participant
     const conversation = await Conversation.findById(conversationId).lean();
 
@@ -483,6 +449,9 @@ class DirectMessageService {
 
     if (!isParticipant) {
       throw new AppError("You do not have access to this conversation", 403);
+    }
+    if ((conversation as any).workspace?.toString?.() !== workspaceId) {
+      throw new AppError("Conversation does not belong to the requested workspace", 403);
     }
 
     // Mark all messages as read
