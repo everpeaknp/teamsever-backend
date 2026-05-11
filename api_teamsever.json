@@ -1130,14 +1130,14 @@
 						},
 						"body": {
 							"mode": "raw",
-							"raw": "{}",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"role\": \"member\",\n  \"inviteType\": \"email\",\n  \"expiresInHours\": 168,\n  \"spaceId\": \"{{spaceId}}\",\n  \"spacePermissionLevel\": \"EDIT\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"description": "Send workspace invitation\n\nCreate an invitation link for a workspace\n\nRequired params: path:workspaceId"
+						"description": "Send workspace invitation\n\nCreate an invitation link for a workspace. Supports custom expiry and auto-space assignment.\n\nRequired params: path:workspaceId"
 					},
 					"response": []
 				},

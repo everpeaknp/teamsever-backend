@@ -54,6 +54,21 @@ const router = express.Router({ mergeParams: true });
  *               role:
  *                 type: string
  *                 enum: [member, admin]
+ *               inviteType:
+ *                 type: string
+ *                 enum: [email, link]
+ *                 default: email
+ *               expiresInHours:
+ *                 type: integer
+ *                 description: Custom expiry duration in hours (e.g. 24, 168)
+ *                 default: 168
+ *               spaceId:
+ *                 type: string
+ *                 description: Optional space ID for auto-provisioning
+ *               spacePermissionLevel:
+ *                 type: string
+ *                 enum: [FULL, EDIT, COMMENT, VIEW]
+ *                 default: EDIT
  *     responses:
  *       201:
  *         description: Invitation created successfully

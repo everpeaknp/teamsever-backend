@@ -1206,10 +1206,11 @@ This section lists the current HTTP endpoints as mounted in the server route map
 - DELETE /api/workspaces/:workspaceId/members/:userId
 
 ### 18.5 Workspace Invitations (auth unless noted)
-- POST /api/workspaces/:workspaceId/invites
+- POST /api/workspaces/:workspaceId/invites (accepts `email`, `role`, `inviteType`, `expiresInHours`, `spaceId`, `spacePermissionLevel`)
 - GET /api/workspaces/:workspaceId/invites
 - DELETE /api/workspaces/:workspaceId/invites/:invitationId
 - POST /api/invites/accept/:token
+- POST /api/invites/redeem (accepts `code`)
 - GET /api/invites/my-invitations
 - GET /api/invites/verify/:token (public)
 
