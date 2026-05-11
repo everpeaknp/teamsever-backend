@@ -341,36 +341,42 @@ class InvitationService {
       try {
         const Space = require("../models/Space");
         const space = await Space.findOne({ _id: invitation.spaceId, isDeleted: false });
+        
         if (space) {
+          const permissionLevel = invitation.spacePermissionLevel || "EDIT";
+          const role = permissionLevel === "FULL" ? "admin" : "member";
+
           // Check if user is already in the space
-          const alreadyInSpace = space.members.some(
+          const memberIndex = space.members.findIndex(
             (m: any) => m.user.toString() === userId
           );
-          if (!alreadyInSpace) {
-            const permissionLevel = invitation.spacePermissionLevel || "EDIT";
-            const role = permissionLevel === "FULL" ? "admin" : "member";
-            console.log(`[InvitationService] Auto-provisioning user ${userId} into space ${space._id} with level: ${permissionLevel}, role: ${role}`);
-            
+
+          if (memberIndex === -1) {
+            console.log(`[InvitationService] Auto-provisioning user ${userId} into space ${space._id} with level: ${permissionLevel}`);
             space.members.push({ user: userId, role, permissionLevel });
-            await space.save();
-
-            // Sync SpaceMember collection
-            const SpaceMember = require("../models/SpaceMember");
-            await SpaceMember.findOneAndUpdate(
-              { space: space._id, user: userId },
-              { workspace: workspace._id, permissionLevel, addedBy: workspace.owner },
-              { upsert: true, new: true }
-            );
-
-            console.log(`[InvitationService] Successfully provisioned user ${userId} into space ${space._id}`);
+          } else {
+            console.log(`[InvitationService] User ${userId} already in space — updating permission to: ${permissionLevel}`);
+            space.members[memberIndex].permissionLevel = permissionLevel;
+            space.members[memberIndex].role = role;
           }
+          
+          await space.save();
+
+          // Sync SpaceMember collection
+          const SpaceMember = require("../models/SpaceMember");
+          await SpaceMember.findOneAndUpdate(
+            { space: space._id, user: userId },
+            { workspace: workspace._id, permissionLevel, addedBy: workspace.owner },
+            { upsert: true, new: true }
+          );
+
+          console.log(`[InvitationService] Successfully provisioned/updated user ${userId} in space ${space._id}`);
           joinedSpace = space;
         } else {
           console.warn(`[InvitationService] Space ${invitation.spaceId} not found or deleted — skipping space provisioning`);
         }
       } catch (spaceError) {
-        // Don't fail the workspace join if space provisioning fails
-        console.error(`[InvitationService] Space provisioning failed, workspace join still succeeded:`, spaceError);
+        console.error(`[InvitationService] Space provisioning failed:`, spaceError);
       }
     }
 
