@@ -31,9 +31,21 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     ? `Join link created successfully`
     : `Invitation sent to ${email}`;
 
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
   res.status(201).json({
     success: true,
-    data: invitation,
+    data: {
+      _id: invitation._id,
+      token: invitation.token,
+      shortCode: invitation.shortCode || null,
+      inviteLink: `${frontendUrl}/join?token=${invitation.token}`,
+      role: invitation.role,
+      inviteType: invitation.inviteType,
+      spaceId: invitation.spaceId || null,
+      spacePermissionLevel: invitation.spacePermissionLevel || null,
+      expiresAt: invitation.expiresAt
+    },
     message
   });
 });
@@ -151,9 +163,44 @@ const getMyInvitations = asyncHandler(
   }
 );
 
+// @desc    Redeem invitation by short code (in-app / mobile flow)
+// @route   POST /api/invites/redeem
+// @access  Private
+const redeemInvite = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { code } = req.body;
+
+  if (!code || typeof code !== "string" || code.trim().length === 0) {
+    throw new AppError("Invite code is required", 400);
+  }
+
+  const result = await invitationService.redeemByShortCode(code.trim(), req.user!.id);
+
+  const message = result.alreadyMember
+    ? `You are already a member of ${result.workspace.name}`
+    : `Successfully joined ${result.workspace.name}`;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      workspace: {
+        _id: result.workspace._id,
+        name: result.workspace.name,
+        description: result.workspace.description
+      },
+      role: result.role,
+      alreadyMember: result.alreadyMember || false,
+      spaceId: result.spaceId || null,
+      spaceName: result.spaceName || null,
+      spacePermissionLevel: result.spacePermissionLevel || null
+    },
+    message
+  });
+});
+
 module.exports = {
   sendInvite,
   acceptInvite,
+  redeemInvite,
   getWorkspaceInvitations,
   cancelInvitation,
   getMyInvitations,

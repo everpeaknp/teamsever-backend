@@ -141,6 +141,12 @@ class InvitationService {
     // Generate secure token
     const token = crypto.randomBytes(32).toString("hex");
 
+    // Generate short code for link-type invites (8 uppercase alphanumeric chars)
+    // e.g. "A3BX9K2T" — easy to type on mobile
+    const shortCode = inviteType === "link"
+      ? crypto.randomBytes(4).toString("hex").toUpperCase()
+      : null;
+
     // Set expiry to 7 days from now
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -152,6 +158,7 @@ class InvitationService {
       role,
       invitedBy,
       token,
+      shortCode,
       expiresAt,
       inviteType,
       spaceId: spaceId || null,
@@ -542,6 +549,28 @@ class InvitationService {
       spaceName,
       spacePermissionLevel: invitation.spacePermissionLevel || null
     };
+  }
+
+  /**
+   * Redeem an invitation by short code (mobile / in-app flow)
+   * Finds the invitation by shortCode then delegates to acceptInvite
+   */
+  async redeemByShortCode(shortCode: string, userId: string) {
+    // Normalise — strip spaces and uppercase
+    const code = shortCode.trim().toUpperCase();
+
+    const invitation = await Invitation.findOne({
+      shortCode: code,
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!invitation) {
+      throw new AppError("Invalid or expired invite code", 404);
+    }
+
+    // Delegate to the existing acceptInvite method using the full token
+    return this.acceptInvite(invitation.token, userId);
   }
 }
 

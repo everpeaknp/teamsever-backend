@@ -30,6 +30,14 @@ const invitationSchema = new mongoose.Schema(
       required: true,
       unique: true
     },
+    shortCode: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      index: true,
+      sparse: true, // allows null for old invites
+      default: null
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "expired"],

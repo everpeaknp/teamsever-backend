@@ -2,6 +2,7 @@ const express = require("express");
 const {
   sendInvite,
   acceptInvite,
+  redeemInvite,
   getWorkspaceInvitations,
   cancelInvitation,
   getMyInvitations,
@@ -228,6 +229,38 @@ const inviteRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  */
 inviteRouter.post("/accept/:token", protect, acceptInvite);
+
+/**
+ * @swagger
+ * /api/invites/redeem:
+ *   post:
+ *     summary: Redeem invite by short code
+ *     description: Join a workspace using a short human-friendly code (e.g. "A3BX9K2T"). Works identically to the link-based flow including fast-pass space provisioning.
+ *     tags: ["2.3 Workspaces — Invitations"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 example: "A3BX9K2T"
+ *                 description: The 8-character invite code
+ *     responses:
+ *       200:
+ *         description: Successfully joined workspace
+ *       400:
+ *         description: Code is required
+ *       404:
+ *         description: Invalid or expired invite code
+ */
+inviteRouter.post("/redeem", protect, redeemInvite);
 
 /**
  * @swagger
