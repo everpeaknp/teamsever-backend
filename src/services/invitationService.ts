@@ -16,6 +16,7 @@ interface SendInviteData {
   inviteType?: "email" | "link";
   spaceId?: string;
   spacePermissionLevel?: "FULL" | "EDIT" | "COMMENT" | "VIEW";
+  expiresInHours?: number;
 }
 
 class InvitationService {
@@ -23,7 +24,16 @@ class InvitationService {
    * Send invitation to join workspace
    */
   async sendInvite(data: SendInviteData) {
-    const { email, workspaceId, role, invitedBy, inviteType = "email", spaceId, spacePermissionLevel = "EDIT" } = data;
+    const { 
+      email, 
+      workspaceId, 
+      role, 
+      invitedBy, 
+      inviteType = "email", 
+      spaceId, 
+      spacePermissionLevel = "EDIT",
+      expiresInHours
+    } = data;
 
     // Verify workspace exists and is not deleted
     const workspace = await Workspace.findOne({
@@ -147,9 +157,10 @@ class InvitationService {
       ? crypto.randomBytes(4).toString("hex").toUpperCase()
       : null;
 
-    // Set expiry to 7 days from now
+    // Set expiry (defaults to 7 days if not provided)
+    const hours = expiresInHours && expiresInHours > 0 ? expiresInHours : (7 * 24);
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setHours(expiresAt.getHours() + hours);
 
     // Create invitation
     const invitation = await Invitation.create({
@@ -161,8 +172,8 @@ class InvitationService {
       shortCode,
       expiresAt,
       inviteType,
-      spaceId: spaceId || null,
-      spacePermissionLevel: spaceId ? spacePermissionLevel : "EDIT"
+      spaceId: (spaceId && spaceId !== "none") ? spaceId : null,
+      spacePermissionLevel: (spaceId && spaceId !== "none") ? (spacePermissionLevel || "EDIT") : "EDIT"
     });
 
     // Log activity
@@ -344,6 +355,8 @@ class InvitationService {
           if (!alreadyInSpace) {
             const permissionLevel = invitation.spacePermissionLevel || "EDIT";
             const role = permissionLevel === "FULL" ? "admin" : "member";
+            console.log(`[InvitationService] Auto-provisioning user ${userId} into space ${space._id} with level: ${permissionLevel}, role: ${role}`);
+            
             space.members.push({ user: userId, role, permissionLevel });
             await space.save();
 
@@ -355,7 +368,7 @@ class InvitationService {
               { upsert: true, new: true }
             );
 
-            console.log(`[InvitationService] Auto-provisioned user ${userId} into space ${space._id} with ${permissionLevel}`);
+            console.log(`[InvitationService] Successfully provisioned user ${userId} into space ${space._id}`);
           }
           joinedSpace = space;
         } else {

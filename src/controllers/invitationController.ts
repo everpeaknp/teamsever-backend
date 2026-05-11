@@ -9,7 +9,7 @@ const AppError = require("../utils/AppError");
 // @route   POST /api/workspaces/:workspaceId/invites
 // @access  Private (Admin/Owner only)
 const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { email, role, spaceId, spacePermissionLevel, inviteType } = req.body;
+  const { email, role, spaceId, spacePermissionLevel, inviteType, expiresInHours } = req.body;
   const { workspaceId } = req.params;
 
   // For email-type invites, email is required (also enforced by validator)
@@ -24,7 +24,8 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     invitedBy: req.user!.id,
     inviteType: inviteType || "email",
     spaceId,
-    spacePermissionLevel
+    spacePermissionLevel,
+    expiresInHours: expiresInHours ? parseInt(expiresInHours) : undefined
   });
 
   const message = inviteType === "link"
