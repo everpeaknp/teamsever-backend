@@ -148,7 +148,7 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
             ? `Pushed ${commitCount} commits to ${repoName} [${branchName}]`
             : `Pushed a commit to ${repoName} [${branchName}]: "${commitMessage}"`;
 
-          await ChatMessage.create({
+          const message = await ChatMessage.create({
             workspace: space.workspace,
             channel: commitLogChannel._id,
             sender: senderId,
@@ -169,8 +169,23 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
           
           // Update channel last message
           await ChatChannel.findByIdAndUpdate(commitLogChannel._id, { lastMessageAt: new Date() });
+
+          // Broadcast to channel room via socket
+          const { emitChatMessage } = require("../socket/events");
+          emitChatMessage(commitLogChannel._id.toString(), {
+            _id: message._id,
+            workspace: message.workspace,
+            channel: commitLogChannel._id,
+            channelName: commitLogChannel.name,
+            sender: message.sender, // Note: This might need population if the frontend expects it, but we have senderId
+            content: message.content,
+            type: message.type,
+            metadata: message.metadata,
+            createdAt: message.createdAt,
+            updatedAt: message.updatedAt,
+          }, space.workspace.toString());
           
-          console.log(`[Webhook] Posted commit notification to channel: ${commitLogChannel.name}`);
+          console.log(`[Webhook] Posted and broadcasted commit notification to channel: ${commitLogChannel.name}`);
         }
       }
     } catch (chatErr: any) {

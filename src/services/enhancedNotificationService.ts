@@ -149,25 +149,24 @@ class EnhancedNotificationService {
         console.error("[Notification] Failed to log activity:", error);
       }
 
-      // 3. Check if user is online
-      const isOnline = socketService.isUserOnline(recipientId);
+      // 3. Emit socket event for real-time UI update
+      // We always emit to the user's personal room. This ensures that any open tab 
+      // receives the notification instantly.
+      socketService.emitToUser(recipientId, "notification:new", {
+        notification: {
+          _id: notification._id,
+          type: notification.type,
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          read: notification.read,
+          createdAt: notification.createdAt,
+        },
+      });
 
-      if (isOnline) {
-        // User is online - emit socket event to all devices
-        console.log(`[Notification] User ${recipientId} is online, emitting to all devices`);
-        socketService.emitToUser(recipientId, "notification:new", {
-          notification: {
-            _id: notification._id,
-            type: notification.type,
-            title: notification.title,
-            body: notification.body,
-            data: notification.data,
-            read: notification.read,
-            createdAt: notification.createdAt,
-          },
-        });
-      } else {
-        // User is offline - send push notification
+      // 4. Send push notification if user is offline (or as redundancy)
+      const isOnline = socketService.isUserOnline(recipientId);
+      if (!isOnline) {
         console.log(`[Notification] User ${recipientId} is offline, sending push`);
         await this.sendPushNotification(recipientId, {
           title,
