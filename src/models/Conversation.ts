@@ -24,7 +24,6 @@ const conversationSchema = new Schema(
     // Prevents duplicate DM conversations for the same pair inside one workspace.
     conversationKey: {
       type: String,
-      index: true,
       sparse: true,
       trim: true,
     },

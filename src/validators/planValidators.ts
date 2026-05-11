@@ -10,7 +10,7 @@ const createPlanSchema = z.object({
     
     description: z.string({
       required_error: "Description is required"
-    }).min(10, "Description must be at least 10 characters").max(500, "Description must not exceed 500 characters"),
+    }).trim().min(1, "Description is required").max(2000, "Description must not exceed 2000 characters"),
     
     parentPlanId: z.string().optional().nullable(),
     
@@ -42,7 +42,7 @@ const updatePlanSchema = z.object({
     
     price: z.number().min(0, "Price must be 0 or greater").optional(),
     
-    description: z.string().min(10, "Description must be at least 10 characters").max(500, "Description must not exceed 500 characters").optional(),
+    description: z.string().trim().min(1, "Description cannot be empty").max(2000, "Description must not exceed 2000 characters").optional(),
     
     parentPlanId: z.string().optional().nullable(),
     

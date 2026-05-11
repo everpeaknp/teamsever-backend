@@ -53,8 +53,8 @@ const systemSettingsSchema = new mongoose.Schema(
   }
 );
 
-// Ensure only one settings document exists
-systemSettingsSchema.index({ _id: 1 }, { unique: true });
+// Only one settings document should exist in practice, 
+// handled by logic in controllers (upsert or singleton).
 
 const SystemSettingsModel = mongoose.model<ISystemSettings>("SystemSettings", systemSettingsSchema);
 
