@@ -263,8 +263,9 @@ class InvitationService {
       throw new AppError("User not found", 404);
     }
 
-    // Verify email matches (case-insensitive)
-    if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+    // Verify email matches (case-insensitive) — only for email-type invites
+    // Link-type invites have no email, so skip this check
+    if (invitation.email && user.email.toLowerCase() !== invitation.email.toLowerCase()) {
       throw new AppError(
         "This invitation was sent to a different email address",
         403
