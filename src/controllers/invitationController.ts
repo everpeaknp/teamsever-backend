@@ -9,10 +9,11 @@ const AppError = require("../utils/AppError");
 // @route   POST /api/workspaces/:workspaceId/invites
 // @access  Private (Admin/Owner only)
 const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { email, role } = req.body;
+  const { email, role, spaceId, spacePermissionLevel, inviteType } = req.body;
   const { workspaceId } = req.params;
 
-  if (!email) {
+  // For email-type invites, email is required (also enforced by validator)
+  if (inviteType !== "link" && !email) {
     throw new AppError("Email is required", 400);
   }
 
@@ -20,13 +21,20 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     email,
     workspaceId,
     role: role || "member",
-    invitedBy: req.user!.id
+    invitedBy: req.user!.id,
+    inviteType: inviteType || "email",
+    spaceId,
+    spacePermissionLevel
   });
+
+  const message = inviteType === "link"
+    ? `Join link created successfully`
+    : `Invitation sent to ${email}`;
 
   res.status(201).json({
     success: true,
     data: invitation,
-    message: `Invitation sent to ${email}`
+    message
   });
 });
 
@@ -73,7 +81,11 @@ const acceptInvite = asyncHandler(async (req: AuthRequest, res: Response, next: 
         description: result.workspace.description
       },
       role: result.role,
-      alreadyMember: result.alreadyMember || false
+      alreadyMember: result.alreadyMember || false,
+      // Fast-Pass: space the user was provisioned into (null if no space attached)
+      spaceId: result.spaceId || null,
+      spaceName: result.spaceName || null,
+      spacePermissionLevel: result.spacePermissionLevel || null
     },
     message
   });

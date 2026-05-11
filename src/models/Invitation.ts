@@ -4,9 +4,10 @@ const invitationSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: [true, "Email is required"],
+      // Not required when inviteType is "link"
       lowercase: true,
-      trim: true
+      trim: true,
+      default: null
     },
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -37,6 +38,22 @@ const invitationSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true
+    },
+    // --- Fast-Pass fields (all optional) ---
+    inviteType: {
+      type: String,
+      enum: ["email", "link"],
+      default: "email"
+    },
+    spaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Space",
+      default: null
+    },
+    spacePermissionLevel: {
+      type: String,
+      enum: ["FULL", "EDIT", "COMMENT", "VIEW"],
+      default: "EDIT"
     }
   },
   {

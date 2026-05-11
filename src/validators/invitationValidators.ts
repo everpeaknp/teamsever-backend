@@ -5,12 +5,24 @@ const sendInviteSchema = z.object({
     email: z
       .string()
       .email("Please provide a valid email address")
-      .min(1, "Email is required")
-      .toLowerCase(),
+      .toLowerCase()
+      .optional(),
     role: z
       .enum(["admin", "member"])
-      .default("member")
-  }),
+      .default("member"),
+    inviteType: z
+      .enum(["email", "link"])
+      .default("email"),
+    spaceId: z
+      .string()
+      .optional(),
+    spacePermissionLevel: z
+      .enum(["FULL", "EDIT", "COMMENT", "VIEW"])
+      .optional()
+  }).refine(
+    (data) => data.inviteType === "link" || !!data.email,
+    { message: "Email is required for email invitations", path: ["email"] }
+  ),
   params: z.object({
     workspaceId: z.string()
   }),

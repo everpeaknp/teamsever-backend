@@ -9,10 +9,13 @@ const emailService = require("./emailService");
 const notificationService = require("./enhancedNotificationService");
 
 interface SendInviteData {
-  email: string;
+  email?: string;
   workspaceId: string;
   role: "admin" | "member";
   invitedBy: string;
+  inviteType?: "email" | "link";
+  spaceId?: string;
+  spacePermissionLevel?: "FULL" | "EDIT" | "COMMENT" | "VIEW";
 }
 
 class InvitationService {
@@ -20,7 +23,7 @@ class InvitationService {
    * Send invitation to join workspace
    */
   async sendInvite(data: SendInviteData) {
-    const { email, workspaceId, role, invitedBy } = data;
+    const { email, workspaceId, role, invitedBy, inviteType = "email", spaceId, spacePermissionLevel = "EDIT" } = data;
 
     // Verify workspace exists and is not deleted
     const workspace = await Workspace.findOne({
@@ -32,34 +35,46 @@ class InvitationService {
       throw new AppError("Workspace not found", 404);
     }
 
-    // Check if user is already a member
-    const existingMember = workspace.members.find(
+    // Check if inviter is a workspace member
+    const inviterMember = workspace.members.find(
       (member: any) => member.user && member.user.toString() === invitedBy
     );
+    const isWorkspaceOwner = workspace.owner.toString() === invitedBy;
 
-    if (!existingMember) {
+    if (!inviterMember && !isWorkspaceOwner) {
       throw new AppError("You are not a member of this workspace", 403);
     }
 
-    // Check if email is already a member (by finding user with this email)
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      const isAlreadyMember = workspace.members.some(
-        (member: any) => member.user.toString() === existingUser._id.toString()
-      );
-
-      if (isAlreadyMember) {
-        throw new AppError("User is already a member of this workspace", 400);
+    // If email invite: check target user isn't already a member
+    if (inviteType === "email" && email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        const isAlreadyMember = workspace.members.some(
+          (member: any) => member.user.toString() === existingUser._id.toString()
+        );
+        if (isAlreadyMember) {
+          throw new AppError("User is already a member of this workspace", 400);
+        }
       }
     }
 
-    // Check for existing pending invitation
-    const existingInvite = await Invitation.findOne({
+    // If spaceId provided: validate it belongs to this workspace
+    let validatedSpace: any = null;
+    if (spaceId) {
+      const Space = require("../models/Space");
+      validatedSpace = await Space.findOne({ _id: spaceId, workspace: workspaceId, isDeleted: false });
+      if (!validatedSpace) {
+        throw new AppError("Space not found or does not belong to this workspace", 400);
+      }
+    }
+
+    // Check for existing pending invitation (only for email-type invites)
+    const existingInvite = inviteType === "email" && email ? await Invitation.findOne({
       email: email.toLowerCase(),
       workspaceId,
       status: "pending",
       expiresAt: { $gt: new Date() }
-    });
+    }) : null;
 
     // If there's an existing pending invitation, just resend the email with the same token
     if (existingInvite) {
@@ -132,12 +147,15 @@ class InvitationService {
 
     // Create invitation
     const invitation = await Invitation.create({
-      email: email.toLowerCase(),
+      email: inviteType === "email" && email ? email.toLowerCase() : null,
       workspaceId,
       role,
       invitedBy,
       token,
-      expiresAt
+      expiresAt,
+      inviteType,
+      spaceId: spaceId || null,
+      spacePermissionLevel: spaceId ? spacePermissionLevel : "EDIT"
     });
 
     // Log activity
@@ -158,54 +176,60 @@ class InvitationService {
     await invitation.populate("invitedBy", "name email");
     await invitation.populate("workspaceId", "name");
 
-    // Create notification for invited user (if they have an account)
-    try {
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
-      if (existingUser) {
-        const inviter = await User.findById(invitedBy);
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-        
-        await notificationService.createNotification({
-          recipientId: existingUser._id.toString(),
-          type: "INVITATION",
-          title: "Workspace Invitation",
-          body: `${inviter?.name || 'Someone'} invited you to join ${workspace.name}`,
-          data: {
-            workspaceId,
-            token,
-            inviteUrl: `${frontendUrl}/join?token=${token}`,
-            workspaceName: workspace.name,
-            inviterName: inviter?.name,
-          },
-        });
+    // Create notification for invited user (if they have an account) — email invites only
+    if (inviteType === "email" && email) {
+      try {
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+          const inviter = await User.findById(invitedBy);
+          const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+          const spaceSuffix = validatedSpace ? ` → ${validatedSpace.name}` : "";
+          
+          await notificationService.createNotification({
+            recipientId: existingUser._id.toString(),
+            type: "INVITATION",
+            title: "Workspace Invitation",
+            body: `${inviter?.name || 'Someone'} invited you to join ${workspace.name}${spaceSuffix}`,
+            data: {
+              workspaceId,
+              token,
+              inviteUrl: `${frontendUrl}/join?token=${token}`,
+              workspaceName: workspace.name,
+              inviterName: inviter?.name,
+              spaceId: spaceId || null,
+              spaceName: validatedSpace?.name || null,
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Failed to create invitation notification:", error);
       }
-    } catch (error) {
-      console.error("Failed to create invitation notification:", error);
     }
 
-    // Send invitation email in the background (truly non-blocking)
-    // We do NOT await this — the invitation response returns immediately
-    setImmediate(async () => {
-      try {
-        const inviter = await User.findById(invitedBy);
-        if (inviter) {
-          const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-          const inviteUrl = `${frontendUrl}/join?token=${token}`;
-          
-          await emailService.sendWorkspaceInvitation({
-            recipientEmail: email,
-            recipientName: email.split('@')[0],
-            inviterName: inviter.name,
-            workspaceName: workspace.name,
-            role: role,
-            workspaceLink: inviteUrl
-          });
-          console.log(`Invitation email sent to ${email} for workspace ${workspace.name}`);
+    // Send invitation email in the background — email invites only
+    if (inviteType === "email" && email) {
+      setImmediate(async () => {
+        try {
+          const inviter = await User.findById(invitedBy);
+          if (inviter) {
+            const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+            const inviteUrl = `${frontendUrl}/join?token=${token}`;
+            
+            await emailService.sendWorkspaceInvitation({
+              recipientEmail: email,
+              recipientName: email.split('@')[0],
+              inviterName: inviter.name,
+              workspaceName: workspace.name,
+              role: role,
+              workspaceLink: inviteUrl
+            });
+            console.log(`Invitation email sent to ${email} for workspace ${workspace.name}`);
+          }
+        } catch (emailError) {
+          console.error("Failed to send invitation email:", emailError);
         }
-      } catch (emailError) {
-        console.error("Failed to send invitation email:", emailError);
-      }
-    });
+      });
+    }
 
     return invitation;
   }
@@ -298,6 +322,43 @@ class InvitationService {
     invitation.status = "accepted";
     await invitation.save();
 
+    // --- Fast-Pass: auto-provision user into attached space ---
+    let joinedSpace: any = null;
+    if (invitation.spaceId) {
+      try {
+        const Space = require("../models/Space");
+        const space = await Space.findOne({ _id: invitation.spaceId, isDeleted: false });
+        if (space) {
+          // Check if user is already in the space
+          const alreadyInSpace = space.members.some(
+            (m: any) => m.user.toString() === userId
+          );
+          if (!alreadyInSpace) {
+            const permissionLevel = invitation.spacePermissionLevel || "EDIT";
+            const role = permissionLevel === "FULL" ? "admin" : "member";
+            space.members.push({ user: userId, role, permissionLevel });
+            await space.save();
+
+            // Sync SpaceMember collection
+            const SpaceMember = require("../models/SpaceMember");
+            await SpaceMember.findOneAndUpdate(
+              { space: space._id, user: userId },
+              { workspace: workspace._id, permissionLevel, addedBy: workspace.owner },
+              { upsert: true, new: true }
+            );
+
+            console.log(`[InvitationService] Auto-provisioned user ${userId} into space ${space._id} with ${permissionLevel}`);
+          }
+          joinedSpace = space;
+        } else {
+          console.warn(`[InvitationService] Space ${invitation.spaceId} not found or deleted — skipping space provisioning`);
+        }
+      } catch (spaceError) {
+        // Don't fail the workspace join if space provisioning fails
+        console.error(`[InvitationService] Space provisioning failed, workspace join still succeeded:`, spaceError);
+      }
+    }
+
     // Log activity
     await logger.logActivity({
       userId,
@@ -348,7 +409,10 @@ class InvitationService {
 
     return {
       workspace: updatedWorkspace,
-      role: invitation.role
+      role: invitation.role,
+      spaceId: joinedSpace?._id?.toString() || null,
+      spaceName: joinedSpace?.name || null,
+      spacePermissionLevel: joinedSpace ? (invitation.spacePermissionLevel || "EDIT") : null
     };
   }
 
@@ -454,14 +518,28 @@ class InvitationService {
       throw new AppError("Invitation invalid or expired", 400);
     }
 
-    console.log(`[Verify Invitation] Invitation is valid for ${invitation.email}`);
+    console.log(`[Verify Invitation] Invitation is valid`);
+
+    // Fetch space name if attached
+    let spaceName: string | null = null;
+    if (invitation.spaceId) {
+      try {
+        const Space = require("../models/Space");
+        const space = await Space.findById(invitation.spaceId).select("name").lean();
+        spaceName = space?.name || null;
+      } catch (_) {}
+    }
     
-    // Return invitation details
+    // Return invitation details (including fast-pass fields)
     return {
       workspaceName: (invitation.workspaceId as any).name,
       inviterName: (invitation.invitedBy as any).name,
       email: invitation.email,
-      role: invitation.role
+      role: invitation.role,
+      inviteType: invitation.inviteType || "email",
+      spaceId: invitation.spaceId?.toString() || null,
+      spaceName,
+      spacePermissionLevel: invitation.spacePermissionLevel || null
     };
   }
 }
