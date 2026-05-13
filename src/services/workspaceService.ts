@@ -129,7 +129,7 @@ class WorkspaceService {
           model: "Plan"
         }
       })
-      .populate("members.user", "name email profilePicture")
+      .populate("members.user", "name email avatar profilePicture")
       .sort("-createdAt");
 
     // Transform workspaces to include subscription at workspace level
@@ -182,7 +182,7 @@ class WorkspaceService {
           model: "Plan"
         }
       })
-      .populate("members.user", "name email profilePicture");
+      .populate("members.user", "name email avatar profilePicture");
 
     if (!workspace) {
       throw new AppError("Workspace not found", 404);
@@ -353,8 +353,8 @@ class WorkspaceService {
       _id: workspaceId,
       isDeleted: false
     })
-      .populate("owner", "name email profilePicture")
-      .populate("members.user", "name email profilePicture")
+      .populate("owner", "name email avatar profilePicture")
+      .populate("members.user", "name email avatar profilePicture")
       .lean();
 
     if (!workspace) {
@@ -376,7 +376,7 @@ class WorkspaceService {
     const announcements = await Announcement.find({ 
       workspace: workspaceId 
     })
-      .populate("author", "name email profilePicture")
+      .populate("author", "name email avatar profilePicture")
       .sort("-createdAt")
       .limit(10)
       .lean();
@@ -399,7 +399,7 @@ class WorkspaceService {
       isDeleted: false 
     })
       .select("_id title status priority assignee space list updatedAt")
-      .populate("assignee", "name email profilePicture")
+      .populate("assignee", "name email avatar profilePicture")
       .sort("-updatedAt")
       .lean();
 
@@ -487,7 +487,7 @@ class WorkspaceService {
     await workspace.save();
 
     // Populate the member user data for the response
-    await workspace.populate("members.user", "name email profilePicture");
+    await workspace.populate("members.user", "name email avatar profilePicture");
 
     // Find and return the updated member
     const updatedMember = workspace.members.find((m: any) => m.user._id.toString() === memberId);

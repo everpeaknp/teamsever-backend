@@ -5,6 +5,7 @@ interface IUser extends Document {
   email: string;
   password: string;
   profilePicture?: string;
+  coverPhoto?: string;
   googleId?: string;
   githubUsername?: string;
   isSuperUser?: boolean;
@@ -59,6 +60,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     profilePicture: { type: String },
+    coverPhoto: { type: String },
     googleId: { type: String },
     githubUsername: { type: String },
     isSuperUser: {

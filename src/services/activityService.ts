@@ -72,7 +72,7 @@ class ActivityService {
     const savedActivity = await activity.save();
 
     // Populate user info
-    await savedActivity.populate("user", "name email avatar");
+    await savedActivity.populate("user", "name email avatar profilePicture");
     await savedActivity.populate("mentions", "name email");
 
     // Emit real-time event
@@ -158,7 +158,7 @@ class ActivityService {
 
     // Populate user info
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .lean();
 
     if (!populatedActivity) {
@@ -249,7 +249,7 @@ class ActivityService {
 
     // Get fresh populated document
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("mentions", "name email")
       .lean();
 
@@ -362,7 +362,7 @@ class ActivityService {
 
     // Get fresh populated document
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("reactions.user", "name email")
       .lean();
 
@@ -404,7 +404,7 @@ class ActivityService {
 
     // Get fresh populated document
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("reactions.user", "name email")
       .lean();
 
@@ -499,7 +499,7 @@ class ActivityService {
 
     // Get activities from Activity model
     const primaryActivities = await Activity.find(query)
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("task", "title status")
       .sort("-createdAt")
       .limit(limit)
@@ -528,7 +528,7 @@ class ActivityService {
       }
 
       const logs = await ActivityLog.find(logQuery)
-        .populate("userId", "name email avatar")
+        .populate("userId", "name email avatar profilePicture")
         .sort("-createdAt")
         .limit(limit)
         .skip(skip)
@@ -566,7 +566,7 @@ class ActivityService {
     let synthesizedTaskCreations: any[] = [];
     if (listId) {
       const taskDocs = await Task.find({ list: listId, isDeleted: false })
-        .populate("createdBy", "name email avatar")
+        .populate("createdBy", "name email avatar profilePicture")
         .select("_id title createdAt createdBy workspace")
         .sort("-createdAt")
         .limit(limit)

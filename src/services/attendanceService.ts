@@ -69,7 +69,7 @@ class AttendanceService {
 
     // Fetch entries with populated data
     const entries = await TimeEntry.find(matchQuery)
-      .populate("user", "name email")
+      .populate("user", "name email avatar profilePicture")
       .populate("project", "name")
       .populate("task", "title")
       .sort({ startTime: -1 })
@@ -91,6 +91,7 @@ class AttendanceService {
       
       return {
         id: entry._id,
+        user: entry.user, // Pass full user object for UserAvatar component
         userName: entry.user?.name || "Unknown",
         userEmail: entry.user?.email || "N/A",
         date: startTime.toISOString().split("T")[0],

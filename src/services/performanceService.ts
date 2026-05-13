@@ -123,14 +123,15 @@ class PerformanceService {
         
         // Get user details
         const User = require("../models/User");
-        const user = await User.findById(userId).select("name email avatar").lean();
-
+        const user = await User.findById(userId).select("name email avatar profilePicture").lean();
+        
         return {
           user: {
             _id: userId,
             name: user?.name || "Unknown User",
             email: user?.email,
-            avatar: user?.avatar
+            avatar: user?.avatar,
+            profilePicture: user?.profilePicture
           },
           metrics
         };

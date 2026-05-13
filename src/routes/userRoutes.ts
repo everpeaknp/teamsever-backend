@@ -1,7 +1,7 @@
 const express = require("express");
-const { getMyProfile, updateProfile, updateNotificationPreferences } = require("../controllers/userController");
+const { getMyProfile, updateProfile, updateNotificationPreferences, getUserProfile } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
-const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddleware");
+const { uploadSingle, uploadProfileFields, handleUploadError } = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
@@ -62,7 +62,7 @@ router.get("/profile", protect, getMyProfile);
 router.patch(
   "/profile",
   protect,
-  uploadSingle,
+  uploadProfileFields,
   handleUploadError,
   updateProfile
 );
@@ -94,6 +94,42 @@ router.patch(
  *                 data: { $ref: "#/components/schemas/NotificationPreferences" }
  */
 router.patch("/notification-preferences", protect, updateNotificationPreferences);
+/**
+ * @swagger
+ * /api/users/{userId}:
+ *   get:
+ *     summary: Get user profile by ID
+ *     description: Retrieve the public profile details of another user.
+ *     tags: ["1.2 Auth — Password & Profile"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/UserResponse"
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ */
+router.get("/:userId", protect, getUserProfile);
 
 module.exports = router;
 export {};

@@ -220,8 +220,8 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
         workspace: workspaceId, 
         ...dateFilter 
       })
-        .populate("user", "name email avatar")
-        .populate("targetUser", "name email avatar")
+        .populate("user", "name email avatar profilePicture")
+        .populate("targetUser", "name email avatar profilePicture")
         .populate("space", "name")
         .populate("list", "name")
         .sort({ createdAt: -1 })
@@ -245,7 +245,7 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
           }
         } : {})
       })
-        .populate("user", "name email avatar")
+        .populate("user", "name email avatar profilePicture")
         .sort({ startTime: -1 })
         .limit(limitNum)
         .skip(skipNum)
@@ -277,8 +277,8 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
           { targetUser: userId }
         ]
       })
-        .populate("user", "name email avatar")
-        .populate("targetUser", "name email avatar")
+        .populate("user", "name email avatar profilePicture")
+        .populate("targetUser", "name email avatar profilePicture")
         .populate("space", "name")
         .populate("list", "name")
         .sort({ createdAt: -1 })
@@ -305,7 +305,7 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
           }
         } : {})
       })
-        .populate("user", "name email avatar")
+        .populate("user", "name email avatar profilePicture")
         .sort({ startTime: -1 })
         .limit(limitNum)
         .skip(skipNum)

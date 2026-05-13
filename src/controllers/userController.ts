@@ -21,13 +21,31 @@ export const getMyProfile = asyncHandler(async (req: any, res: any) => {
 });
 
 /**
+ * Get specific user profile
+ * GET /api/users/:userId
+ */
+export const getUserProfile = asyncHandler(async (req: any, res: any) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId).select("-password");
+  
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  res.json({
+    success: true,
+    data: user
+  });
+});
+
+/**
  * Update current user profile
  * PATCH /api/users/profile
  */
 export const updateProfile = asyncHandler(async (req: any, res: any) => {
-  const { name, jobTitle, department, bio, githubUsername, removeAvatar } = req.body;
+  const { name, jobTitle, department, bio, githubUsername, removeAvatar, removeCoverPhoto } = req.body;
   const userId = req.user.id;
-  const file = req.file;
+  const files = req.files;
 
   const user = await User.findById(userId);
   if (!user) {
@@ -42,13 +60,20 @@ export const updateProfile = asyncHandler(async (req: any, res: any) => {
   if (githubUsername !== undefined) (user as any).githubUsername = githubUsername;
 
   // Handle avatar
-  if (file) {
-    // Re-use existing upload logic if possible, or direct Cloudinary upload
-    // For now, let's assume we use a similar pattern as uploadService
-    const result = await uploadService.uploadProfilePicture(file, userId);
+  if (files && files['file'] && files['file'][0]) {
+    const result = await uploadService.uploadProfilePicture(files['file'][0], userId);
     user.profilePicture = result.url;
   } else if (removeAvatar === 'true') {
     user.profilePicture = undefined;
+  }
+
+  // Handle cover photo
+  if (files && files['coverPhoto'] && files['coverPhoto'][0]) {
+    // Assuming uploadProfilePicture can handle cover photos too or similar logic
+    const result = await uploadService.uploadProfilePicture(files['coverPhoto'][0], userId);
+    user.coverPhoto = result.url;
+  } else if (removeCoverPhoto === 'true') {
+    user.coverPhoto = undefined;
   }
 
   await user.save();
@@ -61,6 +86,7 @@ export const updateProfile = asyncHandler(async (req: any, res: any) => {
       name: user.name,
       email: user.email,
       profilePicture: user.profilePicture,
+      coverPhoto: user.coverPhoto,
       jobTitle: (user as any).jobTitle,
       department: (user as any).department,
       bio: (user as any).bio,

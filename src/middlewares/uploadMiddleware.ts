@@ -58,6 +58,12 @@ const uploadSingle = upload.single("file");
 // Multiple files upload
 const uploadMultiple = upload.array("files", 5);
 
+// User profile specific upload fields
+const uploadProfileFields = upload.fields([
+  { name: 'file', maxCount: 1 }, // avatar
+  { name: 'coverPhoto', maxCount: 1 } // cover photo
+]);
+
 // Error handler middleware
 const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -94,6 +100,7 @@ module.exports = {
   upload,
   uploadSingle,
   uploadMultiple,
+  uploadProfileFields,
   handleUploadError
 };
 

@@ -229,7 +229,7 @@ activitySchema.statics.getTaskActivity = function (
   }
 
   return this.find(query)
-    .populate("user", "name email avatar")
+    .populate("user", "name email avatar profilePicture")
     .populate("mentions", "name email")
     .populate({
       path: "reactions.user",
@@ -253,7 +253,7 @@ activitySchema.statics.getUserActivity = function (
     isDeleted: false,
   })
     .populate("task", "title status")
-    .populate("user", "name email avatar")
+    .populate("user", "name email avatar profilePicture")
     .sort({ createdAt: -1 })
     .limit(options.limit || 50)
     .skip(options.skip || 0)
