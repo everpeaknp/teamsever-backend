@@ -33,7 +33,7 @@ const activityLogSchema = new mongoose.Schema(
     resourceType: {
       type: String,
       required: true,
-      enum: ["Workspace", "Space", "List", "Task", "ChatMessage", "Notification", "TaskComment", "DirectMessage", "CustomField", "TaskDependency", "TimeEntry"]
+      enum: ["Workspace", "Space", "List", "Task", "ChatMessage", "Notification", "TaskComment", "DirectMessage", "CustomField", "TaskDependency", "TimeEntry", "WorkspaceFile"]
     },
     resourceId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -10,6 +10,7 @@ export interface IWorkspaceFile extends Document {
   cloudinaryUrl: string;
   cloudinaryPublicId: string;
   resourceType: string;
+  space?: Types.ObjectId;
   format: string;
   isDeleted: boolean;
   deletedAt?: Date;
@@ -61,6 +62,12 @@ const workspaceFileSchema = new Schema<IWorkspaceFile>(
       type: String,
       required: true,
       enum: ["image", "video", "raw", "auto"],
+    },
+    space: {
+      type: Schema.Types.ObjectId,
+      ref: "Space",
+      required: false,
+      index: true,
     },
     format: {
       type: String,

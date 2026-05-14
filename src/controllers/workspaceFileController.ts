@@ -61,6 +61,7 @@ const confirmUpload = asyncHandler(async (req: any, res: any) => {
     bytes,
     fileName,
     fileType,
+    spaceId,
   } = req.body;
 
   // Get workspace owner
@@ -105,6 +106,7 @@ const confirmUpload = asyncHandler(async (req: any, res: any) => {
     bytes,
     fileName,
     fileType,
+    spaceId,
   });
 
   res.status(201).json({
@@ -121,12 +123,13 @@ const confirmUpload = asyncHandler(async (req: any, res: any) => {
 const getFiles = asyncHandler(async (req: any, res: any) => {
   const { workspaceId } = req.params;
   const userId = req.user.id;
-  const { page, limit, search } = req.query;
+  const { page, limit, search, spaceId } = req.query;
 
   const result = await workspaceFileService.getFiles(workspaceId, userId, {
     page: page ? parseInt(page) : undefined,
     limit: limit ? parseInt(limit) : undefined,
     search,
+    spaceId,
   });
 
   res.status(200).json({

@@ -14,12 +14,14 @@ interface UploadFileData {
   bytes: number;
   fileName: string;
   fileType: string;
+  spaceId?: string;
 }
 
 interface GetFilesOptions {
   page?: number;
   limit?: number;
   search?: string;
+  spaceId?: string;
 }
 
 class WorkspaceFileService {
@@ -45,6 +47,33 @@ class WorkspaceFileService {
     }
 
     return workspace;
+  }
+
+  /**
+   * Validate space access
+   */
+  async validateSpaceAccess(spaceId: string, userId: string, workspace: any): Promise<void> {
+    const Space = require("../models/Space");
+    
+    const wsMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isAdmin = wsMember && (wsMember.role === "owner" || wsMember.role === "admin");
+
+    if (isAdmin) return; // Admins can access everything
+
+    const space = await Space.findById(spaceId).lean();
+    if (!space) {
+      throw new AppError("Space not found", 404);
+    }
+
+    const isSpaceMember = space.members?.some(
+      (member: any) => member.user?.toString() === userId
+    );
+
+    if (!isSpaceMember) {
+      throw new AppError("You do not have permission to access this space's files", 403);
+    }
   }
 
   /**
@@ -97,10 +126,16 @@ class WorkspaceFileService {
       bytes,
       fileName,
       fileType,
+      spaceId,
     } = data;
 
     // Validate workspace membership
-    await this.validateWorkspaceMembership(workspaceId, userId);
+    const workspace = await this.validateWorkspaceMembership(workspaceId, userId);
+
+    // Validate space access if provided
+    if (spaceId) {
+      await this.validateSpaceAccess(spaceId, userId, workspace);
+    }
 
     // Create file record
     const file = await WorkspaceFile.create({
@@ -114,6 +149,7 @@ class WorkspaceFileService {
       cloudinaryPublicId: public_id,
       resourceType: resource_type,
       format,
+      space: spaceId || null,
     });
 
     // Populate uploader info
@@ -149,7 +185,7 @@ class WorkspaceFileService {
     options: GetFilesOptions = {}
   ) {
     // Validate workspace membership
-    await this.validateWorkspaceMembership(workspaceId, userId);
+    const workspace = await this.validateWorkspaceMembership(workspaceId, userId);
 
     const page = options.page || 1;
     const limit = options.limit || 20;
@@ -160,6 +196,17 @@ class WorkspaceFileService {
       workspace: workspaceId,
       isDeleted: false,
     };
+
+    // Add space filter
+    if (options.spaceId) {
+      if (options.spaceId === "null") {
+        query.space = null;
+      } else {
+        // Validate space access before filtering
+        await this.validateSpaceAccess(options.spaceId, userId, workspace);
+        query.space = options.spaceId;
+      }
+    }
 
     // Add search filter
     if (options.search) {
