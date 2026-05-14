@@ -104,9 +104,17 @@ const options: swaggerJsdoc.Options = {
               format: "email",
               description: "User's email address"
             },
+            avatar: {
+              type: "string",
+              description: "Legacy URL to profile picture (use profilePicture instead)"
+            },
             profilePicture: {
               type: "string",
               description: "URL to profile picture"
+            },
+            coverPhoto: {
+              type: "string",
+              description: "URL to profile cover photo"
             },
             githubUsername: {
               type: "string",
@@ -1635,10 +1643,21 @@ const options: swaggerJsdoc.Options = {
               default: "false",
               description: "Set to 'true' to delete the current profile picture"
             },
+            removeCoverPhoto: {
+              type: "string",
+              enum: ["true", "false"],
+              default: "false",
+              description: "Set to 'true' to delete the current cover photo"
+            },
             file: {
               type: "string",
               format: "binary",
               description: "New profile picture file"
+            },
+            coverPhoto: {
+              type: "string",
+              format: "binary",
+              description: "New cover photo file"
             }
           }
         },

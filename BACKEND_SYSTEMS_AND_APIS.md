@@ -1535,6 +1535,17 @@ Muting is enforced **client-side** inside `SocketContext.tsx` for immediate resp
 - [ ] Set `messages: false` → all DM notifications silenced regardless of `mutedUsers`.
 - [ ] Verify mute state persists after page refresh (stored in DB via `PATCH` endpoint).
 
-# Last Update: Mon May 11 18:36:46 UTC 2026
+## 20. API Audit and Postman Collection Sync (May 14, 2026)
 
-# Webhook Test: Mon May 11 18:41:11 UTC 2026
+### 20.1 Summary
+The final phase of the comprehensive API security audit for the Teamsever backend has been completed. The primary objective was to ensure absolute synchronization between the actual `requirePermission` middleware implementation and the Swagger/OpenAPI JSDoc documentation, cementing the codebase as the single "Source of Truth" for Role-Based Access Control (RBAC).
+
+### 20.2 Key Accomplishments
+1. **Comprehensive Audit**: Verified core route files (`attachmentRoutes`, `documentRoutes`, `projectRoutes`, `searchRoutes`, `presenceRoutes`, `workspaceFileRoutes`, `attendanceRoutes`, `userRoutes`, `feedbackRoutes`, `superAdminRoutes`, `paymentRoutes`, `planRoutes`, `subscriptionRoutes`, `recurringRoutes`, `workspaceRoutes`, `timeTrackingRoutes`, `currencyRoutes`, `invitationRoutes`, `chatRoutes`, `directMessageRoutes`, `activityRoutes`, `performanceRoutes`) against backend `requirePermission` gating.
+2. **Documentation Integrity**: Ensured all sensitive routes are documented with consistent security headers (`bearerAuth`), appropriate `401`/`403` responses, and clear, hierarchical `tags` (following the `X.Y Category — Subcategory` convention) to facilitate automated Postman collection generation.
+3. **RBAC Alignment**: Confirmed that administrative endpoints are correctly protected by `requirePermission` or `requireWorkspaceOwner` middleware, and that these protections are accurately reflected in the Swagger UI.
+
+### 20.3 Tooling Update
+A new utility script (`generate-swagger.ts`) was added to safely export the latest JSDoc specs to `api_teamsever_openapi.json`. We used `openapi-to-postmanv2` to successfully regenerate `api_teamsever.json`, ensuring the Postman collection is perfectly aligned with the newly audited code base.
+
+# Last Update: Thu May 14 05:58:29 UTC 2026
