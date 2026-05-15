@@ -1558,4 +1558,29 @@ The File Library (workspace-wide storage) has undergone a major aesthetic and fu
 - Utilizes `GET /api/workspaces/:workspaceId/files` with real-time search and space-folder filtering.
 - Implements sequential batch deletion via `DELETE /api/workspace-files/:id` across selected IDs.
 
-# Last Update: Thu May 14 11:58:00 UTC 2026
+## 22. Security Lockdown & Granular Custom Roles (May 15, 2026)
+
+### 22.1 Summary
+Implemented a multi-layered security system focusing on protection against brute-force attacks, XSS injections, and highly granular access control through workspace-specific custom roles.
+
+### 22.2 Security Protection Layers
+1. **Tiered Rate Limiting**:
+   - **Intruder Gate**: IP-based limit (100 req/min) to block script-bursts and bot activity.
+   - **User Gate**: ID-based limit (200-500 req/min) to prevent account spamming.
+   - **Auth Gate**: Sensitive limit (15 attempts/15 min) for login/register endpoints.
+2. **XSS & NoSQL Protection**:
+   - Integrated `xss` library to sanitize all string inputs in `req.body`.
+   - Enhanced NoSQL injection middleware to block MongoDB operators in `query` and `params`.
+
+### 22.3 Granular Custom Roles
+- **Model**: `CustomRole` stores name, color, and a `permissions` array.
+- **Permission Service**: Upgraded to resolve custom role permissions before falling back to standard roles.
+- **Labels**: Roles feature custom labels (badges) that appear in the UI with assigned colors.
+- **New Permission**: `MANAGE_CUSTOM_ROLES` added to allow delegated role management.
+
+### 22.4 API Endpoints
+- `GET /api/workspaces/:workspaceId/custom-roles`: List workspace roles.
+- `POST /api/workspaces/:workspaceId/custom-roles`: Create a custom role.
+- `PATCH /api/workspaces/:workspaceId/members/:userId/custom-role`: Assign role to member.
+
+# Last Update: Fri May 15 09:14:00 UTC 2026

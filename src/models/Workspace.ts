@@ -13,8 +13,9 @@ export enum WorkspaceRole {
 export interface IWorkspaceMember {
   user: Schema.Types.ObjectId;
   role: WorkspaceRole | "owner" | "admin" | "member" | "guest";
+  customRole?: Schema.Types.ObjectId; // Reference to a CustomRole
   status?: "active" | "inactive";
-  customRoleTitle?: string;
+  customRoleTitle?: string; // Legacy display title
   lastChatReadAt?: Date;
 }
 
@@ -58,6 +59,11 @@ const workspaceSchema = new mongoose.Schema(
           type: String,
           enum: ["owner", "admin", "member", "guest"],
           default: "member"
+        },
+        customRole: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "CustomRole",
+          default: null
         },
         status: {
           type: String,

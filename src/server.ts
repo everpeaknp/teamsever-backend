@@ -77,6 +77,7 @@ const startServer = async () => {
     const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
     const attendanceRoutes = require("./routes/attendanceRoutes");
     const memberRoutes = require("./routes/memberRoutes");
+    const customRoleRoutes = require("./routes/customRoleRoutes");
     const documentRoutes = require("./routes/documentRoutes");
     const performanceRoutes = require("./routes/performanceRoutes");
     const planRoutes = require("./routes/planRoutes");
@@ -139,25 +140,20 @@ const startServer = async () => {
     app.use(cors(corsOptions));
     app.options(/.*/, cors(corsOptions));
 
+    const { intruderLimiter, userRateLimiter, authLimiter } = require("./middlewares/rateLimitMiddleware");
+
     // 6. Rate limiting — tiered by endpoint sensitivity
-    // Auth endpoints: 20 requests per 15 min (brute-force protection)
-    const authLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 20,
-      skip: (req) => req.method === "OPTIONS",
-      message: { success: false, message: "Too many authentication attempts. Try again later." }
-    });
-    // General API: 500 requests per 15 min per IP
-    const generalLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 5000,
-      skip: (req) => req.method === "OPTIONS",
-      message: { success: false, message: "Too many requests from this IP. Try again later." }
-    });
+    // ALL requests: IP-based intruder protection (blocks script-bursts)
+    app.use("/api/", intruderLimiter);
+
+    // Auth sensitive endpoints: Aggressive protection
     app.use("/api/auth/login", authLimiter);
     app.use("/api/auth/register", authLimiter);
     app.use("/api/auth/forgot-password", authLimiter);
-    app.use("/api/", generalLimiter);
+
+    // Protected API: User-based activity protection (prevents account spamming)
+    // Applied after auth middleware in individual routes, or globally here for general coverage
+    app.use("/api/", userRateLimiter);
 
     // 6.1. Response compression — reduces bandwidth by 60-80%
     app.use(compression());
@@ -195,6 +191,7 @@ const startServer = async () => {
 
     app.use("/api/auth", authRoutes);
     app.use("/api/workspaces", workspaceRoutes);
+    app.use("/api/workspaces", customRoleRoutes);
     app.use("/api/workspaces/:workspaceId/spaces", workspaceSpaceRouter);
     app.use("/api/spaces", spaceRouter);
     app.use("/api/spaces/:spaceId/space-members", spaceMemberRoutes);

@@ -9,6 +9,15 @@
  * so we validate and block requests with dangerous operators instead of modifying them.
  */
 
+const xss = require("xss");
+
+// Configure XSS to be strict but allow nothing by default (can be customized)
+const xssOptions = {
+  whiteList: {}, // Empty whitelist means all HTML tags are stripped
+  stripIgnoreTag: true,
+  stripIgnoreTagBody: ["script"] // Specifically strip script bodies
+};
+
 const hasDangerousKeys = (obj: any, path: string = ''): string | null => {
   if (obj === null || obj === undefined) {
     return null;
@@ -48,6 +57,11 @@ const sanitizeObject = (obj: any): any => {
     return obj;
   }
 
+  // Handle strings - THIS IS WHERE XSS PROTECTION HAPPENS
+  if (typeof obj === 'string') {
+    return xss(obj, xssOptions);
+  }
+
   // Handle arrays
   if (Array.isArray(obj)) {
     return obj.map(item => sanitizeObject(item));
@@ -60,7 +74,7 @@ const sanitizeObject = (obj: any): any => {
     for (const key in obj) {
       // Use Object.prototype.hasOwnProperty.call for compatibility
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        // Skip keys that start with $ or contain .
+        // Skip keys that start with $ or contain . (NoSQL Injection)
         if (key.startsWith('$') || key.includes('.')) {
           continue;
         }
@@ -79,7 +93,7 @@ const sanitizeObject = (obj: any): any => {
 
 const sanitizeMiddleware = (req: any, res: any, next: any) => {
   try {
-    // Check query parameters for dangerous keys (read-only in Express v5)
+    // 1. Check query parameters for dangerous keys (read-only in Express v5)
     if (req.query && typeof req.query === 'object') {
       const dangerousKey = hasDangerousKeys(req.query, 'query');
       if (dangerousKey) {
@@ -87,12 +101,12 @@ const sanitizeMiddleware = (req: any, res: any, next: any) => {
         return res.status(400).json({
           success: false,
           message: 'Invalid query parameters detected',
-          error: 'Query parameters cannot contain MongoDB operators ($ or .)'
+          error: 'NOSQL_INJECTION_DETECTED'
         });
       }
     }
 
-    // Check URL parameters for dangerous keys (read-only in Express v5)
+    // 2. Check URL parameters for dangerous keys (read-only in Express v5)
     if (req.params && typeof req.params === 'object') {
       const dangerousKey = hasDangerousKeys(req.params, 'params');
       if (dangerousKey) {
@@ -100,18 +114,15 @@ const sanitizeMiddleware = (req: any, res: any, next: any) => {
         return res.status(400).json({
           success: false,
           message: 'Invalid URL parameters detected',
-          error: 'URL parameters cannot contain MongoDB operators ($ or .)'
+          error: 'NOSQL_INJECTION_DETECTED'
         });
       }
     }
 
-    // Sanitize request body (this is writable)
+    // 3. Sanitize request body (this is writable)
+    // This now handles BOTH NoSQL Injection AND XSS
     if (req.body && typeof req.body === 'object') {
-      const dangerousKey = hasDangerousKeys(req.body, 'body');
-      if (dangerousKey) {
-        console.warn(`[Security] Sanitizing NoSQL injection attempt in body: ${dangerousKey}`);
-        req.body = sanitizeObject(req.body);
-      }
+      req.body = sanitizeObject(req.body);
     }
 
     next();
