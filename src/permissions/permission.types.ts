@@ -89,8 +89,7 @@ export type PermissionAction =
   // Settings and analytics
   | "MANAGE_SETTINGS"
   | "VIEW_ANALYTICS"
-  | "VIEW_ACTIVITY_LOG"
-  | "MANAGE_CUSTOM_ROLES";
+  | "VIEW_ACTIVITY_LOG";
 
 /**
  * Context for permission checking

@@ -90,6 +90,14 @@ class PermissionService {
         return false;
       }
 
+      // Step 2.5: Check if user is admin (bypass list/folder/space overrides and task-specific rules)
+      console.log('\n🔎 Step 2.5: Checking if user is ADMIN...');
+      console.log('  ➜ workspaceRole value:', JSON.stringify(workspaceRole));
+      console.log('  ➜ WorkspaceRole.ADMIN value:', JSON.stringify(WorkspaceRole.ADMIN));
+      console.log('  ➜ Strict equality (===):', workspaceRole === WorkspaceRole.ADMIN);
+      console.log('  ➜ Loose equality (==):', workspaceRole == WorkspaceRole.ADMIN);
+      console.log('  ➜ String comparison:', String(workspaceRole) === String(WorkspaceRole.ADMIN));
+      
       if (workspaceRole === WorkspaceRole.ADMIN) {
         console.log('✅ PERMISSION GRANTED - User is ADMIN');
         console.log('========================================\n');
@@ -97,25 +105,7 @@ class PermissionService {
         return true;
       }
       
-      console.log('  ➜ User is NOT admin, checking for CUSTOM ROLE...');
-
-      // Step 2.6: Check for Custom Role permissions
-      const CustomRole = require("../models/CustomRole");
-      const workspace = await Workspace.findById(context.workspaceId).select("members");
-      const member = workspace?.members?.find((m: any) => m.user.toString() === userId);
-      
-      if (member?.customRole) {
-        console.log('  ➜ Found Custom Role:', member.customRole);
-        const customRoleDoc = await CustomRole.findById(member.customRole);
-        if (customRoleDoc && customRoleDoc.permissions.includes(action)) {
-          console.log('✅ PERMISSION GRANTED - Custom Role Permission');
-          console.log('========================================\n');
-          return true;
-        }
-        console.log('  ➜ Action not found in Custom Role, checking fallbacks...');
-      } else {
-        console.log('  ➜ No Custom Role assigned, using standard role fallbacks...');
-      }
+      console.log('  ➜ User is NOT admin, continuing checks...');
 
       // Step 3: Check for list-level override
       // NOTE: We treat overrides as grants, not hard denials.

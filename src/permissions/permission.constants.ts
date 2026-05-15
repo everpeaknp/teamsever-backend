@@ -179,7 +179,6 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "MANAGE_SETTINGS",
     "VIEW_ANALYTICS",
     "VIEW_ACTIVITY_LOG",
-    "MANAGE_CUSTOM_ROLES",
   ],
 
   [WorkspaceRole.ADMIN]: [
@@ -222,7 +221,6 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     // Settings
     "VIEW_ANALYTICS",
     "VIEW_ACTIVITY_LOG",
-    "MANAGE_CUSTOM_ROLES",
   ],
 
   [WorkspaceRole.MEMBER]: [
