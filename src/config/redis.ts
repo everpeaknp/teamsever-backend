@@ -9,18 +9,27 @@ const redis = new Redis({
   port: redisPort,
   password: redisPassword,
   retryStrategy(times) {
-    const delay = Math.min(times * 50, 2000);
+    if (times > 5) {
+      console.warn('🟡 Redis: Max retries reached. Connection suspended.');
+      return null; // Stop retrying
+    }
+    const delay = Math.min(times * 200, 2000);
     return delay;
   },
-  maxRetriesPerRequest: null,
+  maxRetriesPerRequest: 3,
+  enableOfflineQueue: false, // Don't queue commands if Redis is down
 });
 
 redis.on('connect', () => {
   console.log('🟢 Redis connected');
 });
 
-redis.on('error', (err) => {
-  console.error('🔴 Redis error:', err);
+redis.on('error', (err: any) => {
+  if (err.code === 'ECONNREFUSED') {
+    console.warn('🟡 Redis connection refused. Running without cache.');
+  } else {
+    console.error('🔴 Redis error:', err);
+  }
 });
 
 export default redis;

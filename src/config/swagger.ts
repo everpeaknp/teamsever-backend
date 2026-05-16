@@ -698,6 +698,28 @@ const options: swaggerJsdoc.Options = {
             updatedAt: {
               type: "string",
               format: "date-time"
+            },
+            parentTask: {
+              type: "object",
+              nullable: true,
+              properties: {
+                _id: { type: "string" },
+                title: { type: "string" }
+              },
+              description: "Reference to the parent task (for hierarchical nesting)"
+            },
+            subtasks: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  _id: { type: "string" },
+                  title: { type: "string" },
+                  status: { type: "string" },
+                  assignee: { type: "string", nullable: true }
+                }
+              },
+              description: "Direct child tasks"
             }
           }
         },

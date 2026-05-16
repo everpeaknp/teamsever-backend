@@ -247,11 +247,21 @@ const checkTaskLimit = (req: any, res: any, next: any) =>
   validateLimit('tasks', req, res, next, async (r) => {
     const wsId = (r.body?.workspace || r.params?.workspaceId) as string;
     const listId = (r.body?.list || r.params?.listId) as string;
+    const taskId = (r.params?.taskId) as string;
+    
     let finalWsId = wsId;
+    
     if (!finalWsId && listId) {
       const list = await List.findById(listId).select('workspace').lean();
       finalWsId = list?.workspace?.toString();
     }
+    
+    if (!finalWsId && taskId) {
+      const Task = require("../models/Task");
+      const task = await Task.findById(taskId).select('workspace').lean();
+      finalWsId = task?.workspace?.toString();
+    }
+    
     return finalWsId ? (await entitlementService.getWorkspaceOwner(finalWsId)) : null;
   });
 

@@ -122,10 +122,11 @@ class EntitlementService {
         try {
             // Check cache first
             const cacheKey = `usage:${ownerId}`;
-            const cachedData = await redis.get(cacheKey);
-            
-            if (cachedData) {
-                return JSON.parse(cachedData);
+            if (redis.status === 'ready') {
+                const cachedData = await redis.get(cacheKey);
+                if (cachedData) {
+                    return JSON.parse(cachedData);
+                }
             }
 
             // Use aggregation pipeline to calculate all usage in 1-2 queries
@@ -243,7 +244,9 @@ class EntitlementService {
                 };
                 
                 // Cache the result for 5 minutes
-                await redis.setex(cacheKey, 300, JSON.stringify(usage));
+                if (redis.status === 'ready') {
+                    await redis.setex(cacheKey, 300, JSON.stringify(usage));
+                }
                 
                 return usage;
             }
@@ -352,7 +355,9 @@ class EntitlementService {
             };
 
             // Cache the result for 5 minutes (300 seconds)
-            await redis.setex(cacheKey, 300, JSON.stringify(usage));
+            if (redis.status === 'ready') {
+                await redis.setex(cacheKey, 300, JSON.stringify(usage));
+            }
 
             return usage;
         } catch (error) {
@@ -385,7 +390,9 @@ class EntitlementService {
      */
     async invalidateUsageCache(ownerId: string): Promise<void> {
         const cacheKey = `usage:${ownerId}`;
-        await redis.del(cacheKey);
+        if (redis.status === 'ready') {
+            await redis.del(cacheKey);
+        }
     }
 
     /**
@@ -395,9 +402,11 @@ class EntitlementService {
      */
     async invalidateEntitlementCache(userId: string): Promise<void> {
         const pattern = `entitlement:${userId}:*`;
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) {
-            await redis.del(...keys);
+        if (redis.status === 'ready') {
+            const keys = await redis.keys(pattern);
+            if (keys.length > 0) {
+                await redis.del(...keys);
+            }
         }
     }
 

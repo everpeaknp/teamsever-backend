@@ -342,6 +342,7 @@ class TaskService {
           }
         }
       })
+      .populate("parentTask", "title")
       .lean();
 
     if (!task) {
@@ -367,7 +368,7 @@ class TaskService {
     }
 
     // Fetch comments and activity separately for better control
-    const [comments, activity, attachments] = await Promise.all([
+    const [comments, activity, attachments, subtasks] = await Promise.all([
       require("../models/TaskComment").find({ task: taskId, isDeleted: false })
         .populate("user", "name email")
         .sort({ createdAt: -1 })
@@ -379,6 +380,10 @@ class TaskService {
       require("../models/Attachment").find({ task: taskId, isDeleted: false })
         .populate("uploadedBy", "name email")
         .sort({ createdAt: -1 })
+        .lean(),
+      require("../models/Task").find({ parentTask: taskId, isDeleted: false })
+        .populate("assignee", "name email profilePicture")
+        .sort({ createdAt: 1 })
         .lean()
     ]);
 
@@ -386,8 +391,9 @@ class TaskService {
       ...task,
       comments,
       activity,
-      attachments
-    };    return task;
+      attachments,
+      subtasks
+    };
   }
 
   async updateTask(taskId: string, userId: string, updateData: UpdateTaskData) {
@@ -736,8 +742,8 @@ class TaskService {
       parentTask: parentTaskId
     });
 
-    // Add subtask to parent's subTasks array
-    parentTask.subTasks.push(subtask._id);
+    // Add subtask to parent's subtasks array
+    parentTask.subtasks.push(subtask._id);
     await parentTask.save();
 
     // Log activity

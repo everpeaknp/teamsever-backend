@@ -19,7 +19,7 @@ export interface ITask extends Document {
   createdBy: Schema.Types.ObjectId;
   // Subtasks and Dependencies
   parentTask?: Schema.Types.ObjectId; // Reference to parent task if this is a subtask
-  subTasks: Schema.Types.ObjectId[]; // Array of subtask IDs
+  subtasks: Schema.Types.ObjectId[]; // Array of subtask IDs
   dependencies: Schema.Types.ObjectId[]; // Tasks that this task depends on (blockers)
   dependents: Schema.Types.ObjectId[]; // Tasks that depend on this task (blocked tasks)
   // Custom Fields
@@ -121,7 +121,7 @@ const taskSchema = new mongoose.Schema(
       ref: "Task",
       default: null
     },
-    subTasks: [{
+    subtasks: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task"
     }],

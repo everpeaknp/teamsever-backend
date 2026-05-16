@@ -862,6 +862,7 @@
 8. `notices`
    - `INVITATION`, `SPACE_INVITATION`, `INVITE_ACCEPTED`, `ANNOUNCEMENT_NEW`, `SYSTEM`
 
+
 ### 13.6 API contract impact
 1. No endpoint path/method changed in this update.
 2. Behavior changed at service layer:
@@ -1626,3 +1627,30 @@ The File Library (workspace-wide storage) has undergone a major aesthetic and fu
 - Implements sequential batch deletion via `DELETE /api/workspace-files/:id` across selected IDs.
 
 # Last Update: Thu May 14 11:58:00 UTC 2026
+
+## 22. Hierarchical Subtask System (New Capability - May 16, 2026)
+
+### 22.1 Summary
+1. Tasks now support recursive hierarchical nesting (Tasks -> Subtasks -> Sub-subtasks, etc.).
+2. Every subtask is a first-class `Task` entity with its own assignees, deadlines, comments, and attachments.
+3. The system supports infinite nesting depth, though UI breadcrumbs are optimized for readability.
+
+### 22.2 API Changes
+1. **`GET /api/tasks/:id`**:
+   - Now populates `subtasks` (with `_id`, `title`, `status`, `assignee`).
+   - Now populates `parentTask` (with `_id`, `title`).
+2. **`POST /api/tasks/:taskId/subtasks`**:
+   - Creates a new task and automatically links it as a child of `:taskId`.
+   - Automatically inherits `workspace`, `space`, and `list` from the parent task.
+3. **`GET /api/tasks/:taskId/subtasks`**:
+   - Returns all direct children of the specified task.
+
+### 22.3 Entitlement and Permission Resolution
+1. **Workspace Context Resolution**: The `checkTaskLimit` middleware was patched to resolve the `workspaceId` asynchronously from the `taskId` if not provided in the request body. This ensures that hierarchical subtask creation is correctly validated against the workspace's subscription plan.
+2. **Assignee Implicit Access**: Users assigned to a subtask gain implicit `VIEW` and `EDIT` rights to that specific subtask, even if they lack broader list-level permissions.
+
+### 22.4 Frontend UI (TaskDetailSidebar)
+1. **Breadcrumb Navigation**: A clickable breadcrumb trail is displayed at the top of the sidebar. When viewing a subtask, users can click the parent task's title in the breadcrumb to navigate back up the tree.
+2. **Recursive UI**: Clicking a subtask in the list reloads the sidebar for that specific task ID, allowing for seamless deep-nested exploration.
+3. **Quick Toggle**: Subtasks feature a one-click status toggle (circle icon) in the list view for rapid completion without leaving the parent task view.
+

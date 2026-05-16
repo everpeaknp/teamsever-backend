@@ -2398,7 +2398,7 @@
                 "{{id}}"
               ]
             },
-            "description": "Returns full task details including assignee, custom fields, subtask count, and time tracking summary."
+            "description": "Returns full task details including assignee, custom fields, hierarchical subtasks (parentTask and subtasks list), and time tracking summary."
           },
           "response": []
         },
