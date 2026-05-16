@@ -25,6 +25,11 @@ interface IPlanFeatures {
     canCreatePrivateChannels: boolean;
     maxPrivateChannelsCount: number;
     maxMembersPerPrivateChannel: number;
+    canUseWebhooks: boolean;
+    canUseAdvancedAnalytics: boolean;
+    canUseAttendance: boolean;
+    canUseFileSharing: boolean;
+    canUseNotificationPreferences: boolean;
 }
 
 /**
@@ -106,6 +111,11 @@ class PlanInheritanceService {
             canUseCustomRoles: childFeatures.canUseCustomRoles ?? parentFeatures.canUseCustomRoles,
             canCreateTables: childFeatures.canCreateTables ?? parentFeatures.canCreateTables,
             canCreatePrivateChannels: childFeatures.canCreatePrivateChannels ?? parentFeatures.canCreatePrivateChannels,
+            canUseWebhooks: childFeatures.canUseWebhooks ?? parentFeatures.canUseWebhooks,
+            canUseAdvancedAnalytics: childFeatures.canUseAdvancedAnalytics ?? parentFeatures.canUseAdvancedAnalytics,
+            canUseAttendance: childFeatures.canUseAttendance ?? parentFeatures.canUseAttendance,
+            canUseFileSharing: childFeatures.canUseFileSharing ?? parentFeatures.canUseFileSharing,
+            canUseNotificationPreferences: childFeatures.canUseNotificationPreferences ?? parentFeatures.canUseNotificationPreferences,
 
             // Announcement cooldown: child overrides parent
             announcementCooldown: childFeatures.announcementCooldown ?? parentFeatures.announcementCooldown,

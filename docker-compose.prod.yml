@@ -2,9 +2,6 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: ghcr.io/everpeaknp/teamsever-backend:latest
     container_name: teamsever-backend
     restart: always
@@ -14,7 +11,22 @@ services:
       - .env
     networks:
       - teamsever-network
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: teamsever-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - teamsever-network
 
 networks:
   teamsever-network:
     driver: bridge
+
+volumes:
+  redis_data:

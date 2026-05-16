@@ -15,6 +15,7 @@ const DirectMessage = require('../models/DirectMessage');
 const ChatChannel = require('../models/ChatChannel');
 
 const PlanInheritanceService = require('./planInheritanceService').default;
+import redis from '../config/redis';
 
 interface TotalUsage {
     totalWorkspaces: number;
@@ -26,21 +27,6 @@ interface TotalUsage {
     totalRows: number;
     totalPrivateChannels: number;
 }
-
-// Cache for usage calculations (5-minute TTL)
-interface CacheEntry {
-    usage: TotalUsage;
-    expires: number;
-}
-
-// Cache for entitlement checks (5-minute TTL)
-interface EntitlementCacheEntry {
-    result: { allowed: boolean; reason?: string };
-    expires: number;
-}
-
-const usageCache = new Map<string, CacheEntry>();
-const entitlementCache = new Map<string, EntitlementCacheEntry>();
 
 const SUPER_PLAN_FEATURES = {
     maxWorkspaces: -1,
@@ -136,9 +122,10 @@ class EntitlementService {
         try {
             // Check cache first
             const cacheKey = `usage:${ownerId}`;
-            const cached = usageCache.get(cacheKey);
-            if (cached && Date.now() < cached.expires) {
-                return cached.usage;
+            const cachedData = await redis.get(cacheKey);
+            
+            if (cachedData) {
+                return JSON.parse(cachedData);
             }
 
             // Use aggregation pipeline to calculate all usage in 1-2 queries
@@ -255,11 +242,8 @@ class EntitlementService {
                     totalPrivateChannels: 0
                 };
                 
-                // Cache the result
-                usageCache.set(cacheKey, {
-                    usage,
-                    expires: Date.now() + 5 * 60 * 1000 // 5 minutes
-                });
+                // Cache the result for 5 minutes
+                await redis.setex(cacheKey, 300, JSON.stringify(usage));
                 
                 return usage;
             }
@@ -367,11 +351,8 @@ class EntitlementService {
                 totalPrivateChannels
             };
 
-            // Cache the result for 5 minutes
-            usageCache.set(cacheKey, {
-                usage,
-                expires: Date.now() + 5 * 60 * 1000 // 5 minutes
-            });
+            // Cache the result for 5 minutes (300 seconds)
+            await redis.setex(cacheKey, 300, JSON.stringify(usage));
 
             return usage;
         } catch (error) {
@@ -402,9 +383,9 @@ class EntitlementService {
      * Invalidate usage cache for a specific owner
      * @param ownerId - The owner's user ID
      */
-    invalidateUsageCache(ownerId: string): void {
+    async invalidateUsageCache(ownerId: string): Promise<void> {
         const cacheKey = `usage:${ownerId}`;
-        usageCache.delete(cacheKey);
+        await redis.del(cacheKey);
     }
 
     /**
@@ -412,16 +393,12 @@ class EntitlementService {
      * This should be called when a user's plan changes
      * @param userId - The user's ID
      */
-    invalidateEntitlementCache(userId: string): void {
-        // Clear all entitlement cache entries for this user
-        const keysToDelete: string[] = [];
-        entitlementCache.forEach((_, key) => {
-            if (key.startsWith(`${userId}:`)) {
-                keysToDelete.push(key);
-            }
-        });
-        
-        keysToDelete.forEach(key => entitlementCache.delete(key));
+    async invalidateEntitlementCache(userId: string): Promise<void> {
+        const pattern = `entitlement:${userId}:*`;
+        const keys = await redis.keys(pattern);
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
     }
 
     /**
