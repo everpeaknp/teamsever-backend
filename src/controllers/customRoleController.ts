@@ -1,5 +1,6 @@
 const CustomRole = require("../models/CustomRole");
 const Workspace = require("../models/Workspace");
+const EntitlementService = require("../services/entitlementService").default;
 
 /**
  * Get all custom roles in a workspace
@@ -25,6 +26,31 @@ export const createCustomRole = async (req: any, res: any) => {
   try {
     const { workspaceId } = req.params;
     const { name, label, color, permissions, description } = req.body;
+    const workspace = await Workspace.findById(workspaceId).select("owner");
+    if (!workspace) {
+      return res.status(404).json({ success: false, message: "Workspace not found" });
+    }
+
+    const canUseCustomRoles = await EntitlementService.canUseCustomRolesInWorkspace(workspaceId);
+    if (!canUseCustomRoles.allowed) {
+      return res.status(403).json({ success: false, message: canUseCustomRoles.reason });
+    }
+
+    const plan = await EntitlementService.getUserPlan(workspace.owner.toString());
+    const PlanInheritanceService = require("../services/planInheritanceService").default;
+    const features = await PlanInheritanceService.resolveFeatures(plan);
+    const maxCustomRoles = features?.maxCustomRoles ?? -1;
+
+    if (maxCustomRoles !== -1) {
+      const currentCount = await CustomRole.countDocuments({ workspace: workspaceId });
+      if (currentCount >= maxCustomRoles) {
+        return res.status(403).json({
+          success: false,
+          code: "CUSTOM_ROLE_LIMIT_REACHED",
+          message: `Custom role limit reached (${currentCount}/${maxCustomRoles}).`,
+        });
+      }
+    }
 
     const role = await CustomRole.create({
       name,
@@ -107,6 +133,11 @@ export const assignRoleToMember = async (req: any, res: any) => {
     const { workspaceId, memberId, userId } = req.params;
     const targetMemberId = memberId || userId;
     const { customRoleId } = req.body;
+
+    const canUseCustomRoles = await EntitlementService.canUseCustomRolesInWorkspace(workspaceId);
+    if (!canUseCustomRoles.allowed) {
+      return res.status(403).json({ success: false, message: canUseCustomRoles.reason });
+    }
 
     // Verify role belongs to workspace if provided
     if (customRoleId) {

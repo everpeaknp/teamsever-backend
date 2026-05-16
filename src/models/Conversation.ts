@@ -25,6 +25,7 @@ const conversationSchema = new Schema(
     conversationKey: {
       type: String,
       sparse: true,
+      unique: true,
       trim: true,
     },
     lastMessage: {
@@ -46,8 +47,6 @@ const conversationSchema = new Schema(
 // Compound index for efficient participant queries
 conversationSchema.index({ participants: 1 });
 conversationSchema.index({ workspace: 1, participants: 1 });
-conversationSchema.index({ conversationKey: 1 }, { unique: true, sparse: true });
-
 // Index for sorting conversations by last message
 conversationSchema.index({ lastMessageAt: -1 });
 

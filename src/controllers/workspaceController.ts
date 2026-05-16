@@ -119,9 +119,8 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
     }
   }
 
-  // Check custom role limit if adding a new custom role
+  // Check predefined role-title entitlement if adding a new one
   if (customRoleTitle) {
-    const EntitlementService = require('../services/entitlementService').default;
     const Workspace = require('../models/Workspace');
     
     // Get workspace to check current custom roles
@@ -136,7 +135,7 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
       throw new AppError('Member not found', 404);
     }
     
-    // If member doesn't already have a custom role, check the limit
+    // If member doesn't already have a role title, check feature + limit
     if (!member.customRoleTitle) {
       // Count current custom roles in workspace
       const currentCustomRoleCount = workspace.members.filter((m: any) => 
@@ -181,16 +180,28 @@ const updateMemberCustomRole = asyncHandler(async (req: AuthRequest, res: Respon
       }
       
       const resolvedFeatures = await PlanInheritanceService.resolveFeatures(planToUse);
-      const maxCustomRoles = resolvedFeatures.maxCustomRoles ?? 0;
+      const canUsePredefinedRoles = resolvedFeatures.canUsePredefinedRoles !== false;
+      const maxPredefinedRoles =
+        resolvedFeatures.maxPredefinedRoles !== undefined && resolvedFeatures.maxPredefinedRoles !== null
+          ? resolvedFeatures.maxPredefinedRoles
+          : resolvedFeatures.maxCustomRoles ?? -1;
+
+      if (!canUsePredefinedRoles) {
+        return res.status(403).json({
+          success: false,
+          code: 'PREDEFINED_ROLES_NOT_AVAILABLE',
+          message: 'Predefined role titles are not available in your current plan.'
+        });
+      }
       
       // Check if limit is reached
-      if (maxCustomRoles !== -1 && currentCustomRoleCount >= maxCustomRoles) {
+      if (maxPredefinedRoles !== -1 && currentCustomRoleCount >= maxPredefinedRoles) {
         return res.status(400).json({
           success: false,
-          code: 'CUSTOM_ROLE_LIMIT_REACHED',
-          message: `Custom role limit reached (${currentCustomRoleCount}/${maxCustomRoles}). Upgrade your plan to add more custom roles.`,
+          code: 'PREDEFINED_ROLE_LIMIT_REACHED',
+          message: `Predefined role title limit reached (${currentCustomRoleCount}/${maxPredefinedRoles}). Upgrade your plan to add more.`,
           currentCount: currentCustomRoleCount,
-          maxAllowed: maxCustomRoles
+          maxAllowed: maxPredefinedRoles
         });
       }
     }

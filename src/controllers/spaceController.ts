@@ -145,6 +145,11 @@ const inviteExternalUsers = asyncHandler(async (req: AuthRequest, res: Response,
 const getWebhook = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const space = await spaceService.getSpaceById(id, req.user!.id);
+  const EntitlementService = require("../services/entitlementService").default;
+  const entitlement = await EntitlementService.canUseWebhooksInWorkspace(space.workspace.toString());
+  if (!entitlement.allowed) {
+    throw new AppError(entitlement.reason || "Webhooks are not available in your current plan.", 403);
+  }
   
   if (!space.githubWebhookSecret) {
     return res.status(200).json({
@@ -169,6 +174,17 @@ const getWebhook = asyncHandler(async (req: AuthRequest, res: Response) => {
 // @route   POST /api/spaces/:id/webhook
 // @access  Private
 const generateWebhook = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const Space = require("../models/Space");
+  const EntitlementService = require("../services/entitlementService").default;
+  const spaceDoc = await Space.findById(req.params.id).select("workspace");
+  if (!spaceDoc) {
+    throw new AppError("Space not found", 404);
+  }
+  const entitlement = await EntitlementService.canUseWebhooksInWorkspace(spaceDoc.workspace.toString());
+  if (!entitlement.allowed) {
+    throw new AppError(entitlement.reason || "Webhooks are not available in your current plan.", 403);
+  }
+
   const { githubRepoName } = req.body;
   const webhookData = await spaceService.generateWebhook(req.params.id, req.user!.id, githubRepoName);
 

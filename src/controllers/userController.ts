@@ -139,6 +139,24 @@ export const updateNotificationPreferences = asyncHandler(async (req: any, res: 
     mutedUsers
   } = req.body;
   const userId = req.user.id;
+  const workspaceId = req.body?.workspaceId || req.query?.workspaceId;
+
+  const EntitlementService = require("../services/entitlementService").default;
+  if (workspaceId) {
+    const workspaceEntitlement = await EntitlementService.canUseFeatureInWorkspace(
+      workspaceId,
+      "canUseNotificationPreferences",
+      "Notification preferences are not available in this workspace plan."
+    );
+    if (!workspaceEntitlement.allowed) {
+      throw new AppError(workspaceEntitlement.reason || "Notification preferences are not available.", 403);
+    }
+  } else {
+    const personalEntitlement = await EntitlementService.canUseNotificationPreferences(userId);
+    if (!personalEntitlement.allowed) {
+      throw new AppError(personalEntitlement.reason || "Notification preferences are not available.", 403);
+    }
+  }
 
   const user = await User.findById(userId);
   if (!user) {

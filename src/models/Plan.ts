@@ -26,6 +26,9 @@ interface IPlan extends Document {
     // Custom Roles (Pro Feature)
     canUseCustomRoles: boolean;
     maxCustomRoles: number;
+    // Predefined Role Titles (workspace member custom role labels)
+    canUsePredefinedRoles: boolean;
+    maxPredefinedRoles: number;
     // Custom Tables (Pro Feature)
     canCreateTables: boolean;
     maxTablesCount: number;
@@ -40,6 +43,12 @@ interface IPlan extends Document {
     canCreatePrivateChannels: boolean;
     maxPrivateChannelsCount: number;
     maxMembersPerPrivateChannel: number;
+    // Feature toggles
+    canUseWebhooks: boolean;
+    canUseAdvancedAnalytics: boolean;
+    canUseAttendance: boolean;
+    canUseFileSharing: boolean;
+    canUseNotificationPreferences: boolean;
   };
   isActive: boolean;
   createdAt: Date;
@@ -186,6 +195,17 @@ const planSchema = new mongoose.Schema(
         min: -1, // -1 means unlimited
         default: -1
       },
+      canUsePredefinedRoles: {
+        type: Boolean,
+        required: false,
+        default: true
+      },
+      maxPredefinedRoles: {
+        type: Number,
+        required: false,
+        min: -1, // -1 means unlimited
+        default: -1
+      },
       // Custom Tables (Pro Feature)
       canCreateTables: {
         type: Boolean,
@@ -247,6 +267,31 @@ const planSchema = new mongoose.Schema(
         required: false,
         min: -1, // -1 means unlimited
         default: -1
+      },
+      canUseWebhooks: {
+        type: Boolean,
+        required: false,
+        default: false
+      },
+      canUseAdvancedAnalytics: {
+        type: Boolean,
+        required: false,
+        default: false
+      },
+      canUseAttendance: {
+        type: Boolean,
+        required: false,
+        default: true
+      },
+      canUseFileSharing: {
+        type: Boolean,
+        required: false,
+        default: true
+      },
+      canUseNotificationPreferences: {
+        type: Boolean,
+        required: false,
+        default: true
       }
     },
     isActive: {

@@ -3,13 +3,9 @@ const xss = require("xss");
 const sanitizeString = (value: string) => {
   if (typeof value !== "string") return value;
   
-  // 1. Strip HTML tags (XSS Protection)
-  const cleanXss = xss(value);
-  
-  // 2. Remove NoSQL Injection patterns ($ and .)
-  const cleanNoSql = cleanXss.replace(/\$|\./g, "");
-  
-  return cleanNoSql;
+  // Strip HTML tags only. Do NOT strip "." from values because it corrupts
+  // JWTs, emails, URLs, filenames, etc.
+  return xss(value);
 };
 
 const sanitizeObject = (obj: any) => {

@@ -41,6 +41,7 @@ class EmailService {
   private isConfigured: boolean = false;
   private verificationPromise: Promise<void> | null = null;
   private fromEmail: string;
+  private verificationAttempted: boolean = false;
 
   constructor() {
     this.fromEmail = process.env.SMTP_USER || "noreply@teamsever.com";
@@ -74,10 +75,13 @@ class EmailService {
         };
         this.transporter = nodemailer.createTransport(transportOptions);
 
+        this.verificationAttempted = true;
         this.verificationPromise = new Promise((resolve) => {
           this.transporter!.verify((error) => {
             if (error) {
-              console.error('❌ Email service (SMTP) connection failed:', error.message);
+              console.error('⚠️ Email service disabled (SMTP verify failed):', error.message);
+              this.isConfigured = false;
+              this.transporter = null;
             } else {
               console.log('✅ Email service (SMTP) is ready');
               this.isConfigured = true;
@@ -90,8 +94,10 @@ class EmailService {
       }
     }
 
-    if (!this.isConfigured) {
+    if (!process.env.SMTP_USER || !(process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
       console.log('ℹ️ Email service not configured (SMTP credentials missing).');
+    } else if (!this.verificationAttempted) {
+      console.log('ℹ️ Email service configured but not yet verified.');
     }
   }
 

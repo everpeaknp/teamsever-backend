@@ -1,5 +1,15 @@
 const attendanceService = require("../services/attendanceService");
 const asyncHandler = require("../utils/asyncHandler");
+const EntitlementService = require("../services/entitlementService").default;
+
+const ensureAttendanceEntitlement = async (workspaceId: string) => {
+  const entitlement = await EntitlementService.canUseAttendanceInWorkspace(workspaceId);
+  if (!entitlement.allowed) {
+    const err: any = new Error(entitlement.reason || "Attendance is not available in your current plan.");
+    err.statusCode = 403;
+    throw err;
+  }
+};
 
 // @desc    Get attendance report
 // @route   GET /api/attendance/workspace/:workspaceId/report
@@ -7,6 +17,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const getAttendanceReport = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
   const { startDate, endDate, userId, projectId } = req.query;
+  await ensureAttendanceEntitlement(workspaceId);
 
   const data = await attendanceService.getAttendanceReport(
     workspaceId,
@@ -26,6 +37,7 @@ const getAttendanceReport = asyncHandler(async (req, res) => {
 const exportAttendanceCSV = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
   const { startDate, endDate, userId, projectId } = req.query;
+  await ensureAttendanceEntitlement(workspaceId);
 
   const csvData = await attendanceService.exportAttendanceCSV(
     workspaceId,
@@ -46,6 +58,7 @@ const exportAttendanceCSV = asyncHandler(async (req, res) => {
 const exportAttendanceExcel = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
   const { startDate, endDate, userId, projectId } = req.query;
+  await ensureAttendanceEntitlement(workspaceId);
 
   const excelBuffer = await attendanceService.exportAttendanceExcel(
     workspaceId,

@@ -56,6 +56,8 @@ const SUPER_PLAN_FEATURES = {
     accessControlTier: 'advanced',
     canUseCustomRoles: true,
     maxCustomRoles: -1,
+    canUsePredefinedRoles: true,
+    maxPredefinedRoles: -1,
     canCreateTables: true,
     maxTablesCount: -1,
     maxRowsLimit: -1,
@@ -65,7 +67,12 @@ const SUPER_PLAN_FEATURES = {
     maxDirectMessagesPerUser: -1,
     canCreatePrivateChannels: true,
     maxPrivateChannelsCount: -1,
-    maxMembersPerPrivateChannel: -1
+    maxMembersPerPrivateChannel: -1,
+    canUseWebhooks: true,
+    canUseAdvancedAnalytics: true,
+    canUseAttendance: true,
+    canUseFileSharing: true,
+    canUseNotificationPreferences: true
 };
 
 const DEFAULT_FREE_FEATURES = {
@@ -82,6 +89,8 @@ const DEFAULT_FREE_FEATURES = {
     accessControlTier: 'basic',
     canUseCustomRoles: false,
     maxCustomRoles: 0,
+    canUsePredefinedRoles: true,
+    maxPredefinedRoles: -1,
     canCreateTables: false,
     maxTablesCount: 0,
     maxRowsLimit: 0,
@@ -91,7 +100,12 @@ const DEFAULT_FREE_FEATURES = {
     maxDirectMessagesPerUser: 50,
     canCreatePrivateChannels: false,
     maxPrivateChannelsCount: 0,
-    maxMembersPerPrivateChannel: 0
+    maxMembersPerPrivateChannel: 0,
+    canUseWebhooks: false,
+    canUseAdvancedAnalytics: false,
+    canUseAttendance: true,
+    canUseFileSharing: true,
+    canUseNotificationPreferences: true
 };
 
 /**
@@ -99,6 +113,20 @@ const DEFAULT_FREE_FEATURES = {
  * Calculates global usage across all workspaces owned by a user
  */
 class EntitlementService {
+    async getWorkspaceFeatures(workspaceId: string): Promise<any> {
+        const ownerId = await this.getWorkspaceOwner(workspaceId);
+        const plan = await this.getUserPlan(ownerId);
+        return PlanInheritanceService.resolveFeatures(plan);
+    }
+
+    async canUseFeatureInWorkspace(workspaceId: string, featureKey: string, reason: string): Promise<{ allowed: boolean; reason?: string }> {
+        const features = await this.getWorkspaceFeatures(workspaceId);
+        if (!features?.[featureKey]) {
+            return { allowed: false, reason };
+        }
+        return { allowed: true };
+    }
+
     /**
      * Get total usage across all workspaces owned by a user
      * @param ownerId - The owner's user ID
@@ -869,6 +897,39 @@ class EntitlementService {
             console.error(`[EntitlementService] Error checking private channel member limit:`, error);
             throw error;
         }
+    }
+
+    async canUseWebhooksInWorkspace(workspaceId: string): Promise<{ allowed: boolean; reason?: string }> {
+        return this.canUseFeatureInWorkspace(
+            workspaceId,
+            "canUseWebhooks",
+            "Webhooks are not available in your current plan."
+        );
+    }
+
+    async canUseAttendanceInWorkspace(workspaceId: string): Promise<{ allowed: boolean; reason?: string }> {
+        return this.canUseFeatureInWorkspace(
+            workspaceId,
+            "canUseAttendance",
+            "Attendance is not available in your current plan."
+        );
+    }
+
+    async canUseFileSharingInWorkspace(workspaceId: string): Promise<{ allowed: boolean; reason?: string }> {
+        return this.canUseFeatureInWorkspace(
+            workspaceId,
+            "canUseFileSharing",
+            "File sharing is not available in your current plan."
+        );
+    }
+
+    async canUseNotificationPreferences(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+        const plan = await this.getUserPlan(userId);
+        const features = await PlanInheritanceService.resolveFeatures(plan);
+        if (!features?.canUseNotificationPreferences) {
+            return { allowed: false, reason: "Notification preferences are not available in your current plan." };
+        }
+        return { allowed: true };
     }
 }
 

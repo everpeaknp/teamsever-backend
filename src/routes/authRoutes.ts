@@ -66,7 +66,7 @@ router.post("/login", loginUser);
  * /api/auth/google:
  *   post:
  *     summary: Google OAuth authentication
- *     description: Authenticate user with Google OAuth token
+ *     description: Authenticate user with Firebase ID token from Google sign-in
  *     tags: ["1.1 Auth — Login & Registration"]
  *     requestBody:
  *       required: true
@@ -75,11 +75,11 @@ router.post("/login", loginUser);
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - idToken
  *             properties:
- *               token:
+ *               idToken:
  *                 type: string
- *                 description: Google OAuth token
+ *                 description: Firebase ID token (`user.getIdToken()`). `token` is accepted as legacy alias.
  *     responses:
  *       200:
  *         description: Authentication successful

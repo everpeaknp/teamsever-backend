@@ -22,6 +22,15 @@ const initUpload = asyncHandler(async (req: any, res: any) => {
     });
   }
 
+  const featureEntitlement = await EntitlementService.canUseFileSharingInWorkspace(workspaceId);
+  if (!featureEntitlement.allowed) {
+    return res.status(403).json({
+      success: false,
+      message: featureEntitlement.reason || "File sharing is not available in your current plan.",
+      code: "FILE_SHARING_NOT_AVAILABLE"
+    });
+  }
+
   // Validate space access if provided
   if (spaceId) {
     await workspaceFileService.validateSpaceAccess(spaceId, userId, workspace);
@@ -76,6 +85,15 @@ const confirmUpload = asyncHandler(async (req: any, res: any) => {
     return res.status(404).json({
       success: false,
       message: "Workspace not found"
+    });
+  }
+
+  const featureEntitlement = await EntitlementService.canUseFileSharingInWorkspace(workspaceId);
+  if (!featureEntitlement.allowed) {
+    return res.status(403).json({
+      success: false,
+      message: featureEntitlement.reason || "File sharing is not available in your current plan.",
+      code: "FILE_SHARING_NOT_AVAILABLE"
     });
   }
 

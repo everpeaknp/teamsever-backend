@@ -52,6 +52,8 @@ const createPlan = asyncHandler(async (req: any, res: any) => {
     // Pro features
     canUseCustomRoles: features?.canUseCustomRoles || false,
     maxCustomRoles: features?.maxCustomRoles !== undefined ? features.maxCustomRoles : -1,
+    canUsePredefinedRoles: features?.canUsePredefinedRoles !== undefined ? features.canUsePredefinedRoles : true,
+    maxPredefinedRoles: features?.maxPredefinedRoles !== undefined ? features.maxPredefinedRoles : -1,
     canCreateTables: features?.canCreateTables || false,
     maxTablesCount: features?.maxTablesCount !== undefined ? features.maxTablesCount : -1,
     maxRowsLimit: features?.maxRowsLimit !== undefined ? features.maxRowsLimit : -1,
@@ -62,6 +64,11 @@ const createPlan = asyncHandler(async (req: any, res: any) => {
     canCreatePrivateChannels: features?.canCreatePrivateChannels || false,
     maxPrivateChannelsCount: features?.maxPrivateChannelsCount !== undefined ? features.maxPrivateChannelsCount : -1,
     maxMembersPerPrivateChannel: features?.maxMembersPerPrivateChannel !== undefined ? features.maxMembersPerPrivateChannel : -1,
+    canUseWebhooks: features?.canUseWebhooks || false,
+    canUseAdvancedAnalytics: features?.canUseAdvancedAnalytics || false,
+    canUseAttendance: features?.canUseAttendance !== undefined ? features.canUseAttendance : true,
+    canUseFileSharing: features?.canUseFileSharing !== undefined ? features.canUseFileSharing : true,
+    canUseNotificationPreferences: features?.canUseNotificationPreferences !== undefined ? features.canUseNotificationPreferences : true,
   };
 
   // If parentPlanId is provided, inherit features from parent plan
@@ -89,6 +96,8 @@ const createPlan = asyncHandler(async (req: any, res: any) => {
       
       canUseCustomRoles: features?.canUseCustomRoles !== undefined ? features.canUseCustomRoles : parentPlan.features.canUseCustomRoles,
       maxCustomRoles: features?.maxCustomRoles !== undefined ? features.maxCustomRoles : parentPlan.features.maxCustomRoles,
+      canUsePredefinedRoles: features?.canUsePredefinedRoles !== undefined ? features.canUsePredefinedRoles : parentPlan.features.canUsePredefinedRoles,
+      maxPredefinedRoles: features?.maxPredefinedRoles !== undefined ? features.maxPredefinedRoles : parentPlan.features.maxPredefinedRoles,
       canCreateTables: features?.canCreateTables !== undefined ? features.canCreateTables : parentPlan.features.canCreateTables,
       maxTablesCount: features?.maxTablesCount !== undefined ? features.maxTablesCount : parentPlan.features.maxTablesCount,
       maxRowsLimit: features?.maxRowsLimit !== undefined ? features.maxRowsLimit : parentPlan.features.maxRowsLimit,
@@ -99,6 +108,11 @@ const createPlan = asyncHandler(async (req: any, res: any) => {
       canCreatePrivateChannels: features?.canCreatePrivateChannels !== undefined ? features.canCreatePrivateChannels : parentPlan.features.canCreatePrivateChannels,
       maxPrivateChannelsCount: features?.maxPrivateChannelsCount !== undefined ? features.maxPrivateChannelsCount : parentPlan.features.maxPrivateChannelsCount,
       maxMembersPerPrivateChannel: features?.maxMembersPerPrivateChannel !== undefined ? features.maxMembersPerPrivateChannel : parentPlan.features.maxMembersPerPrivateChannel,
+      canUseWebhooks: features?.canUseWebhooks !== undefined ? features.canUseWebhooks : parentPlan.features.canUseWebhooks,
+      canUseAdvancedAnalytics: features?.canUseAdvancedAnalytics !== undefined ? features.canUseAdvancedAnalytics : parentPlan.features.canUseAdvancedAnalytics,
+      canUseAttendance: features?.canUseAttendance !== undefined ? features.canUseAttendance : parentPlan.features.canUseAttendance,
+      canUseFileSharing: features?.canUseFileSharing !== undefined ? features.canUseFileSharing : parentPlan.features.canUseFileSharing,
+      canUseNotificationPreferences: features?.canUseNotificationPreferences !== undefined ? features.canUseNotificationPreferences : parentPlan.features.canUseNotificationPreferences,
     };
   }
 

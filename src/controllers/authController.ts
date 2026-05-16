@@ -11,6 +11,21 @@ const emailService = require("../services/emailService");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
+const normalizeAuthToken = (rawToken: unknown): string => {
+  let candidate: unknown = rawToken;
+
+  // Some clients accidentally send nested token payloads
+  if (candidate && typeof candidate === "object") {
+    candidate = (candidate as any).idToken || (candidate as any).token || (candidate as any).credential || "";
+  }
+
+  if (typeof candidate !== "string") return "";
+  const trimmed = candidate.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("Bearer ")) return trimmed.slice(7).trim();
+  return trimmed;
+};
+
 const registerUser = asyncHandler(async (req: any, res: any) => {
   const { name, email, password } = req.body;
 
@@ -59,13 +74,13 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
   const user = await User.findOne({ email: email.toLowerCase() });
 
   if (!user) {
-    throw new AppError("User does not exist. Please register first.", 404);
+    throw new AppError("Invalid credentials", 401);
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new AppError("Incorrect password. Please try again.", 401);
+    throw new AppError("Invalid credentials", 401);
   }
 
   // STANDARDIZED RESPONSE
@@ -87,10 +102,11 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
 
 const googleAuth = asyncHandler(async (req: any, res: any) => {
   console.log("[Google Auth] Request received");
-  const { idToken } = req.body;
+  const rawToken = req.body?.idToken || req.body?.token;
+  const idToken = normalizeAuthToken(rawToken);
 
   if (!idToken) {
-    throw new AppError("ID token is required", 400);
+    throw new AppError("Google ID token is required", 400);
   }
 
   // Check if Firebase Admin is initialized
@@ -103,6 +119,11 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   try {
     decodedToken = await admin.auth().verifyIdToken(idToken);
   } catch (error: any) {
+    console.error("[Google Auth] Token verification failed", {
+      message: error?.message,
+      code: error?.code,
+      tokenLength: idToken.length,
+    });
     throw new AppError(`Invalid ID token: ${error.message}`, 401);
   }
 
@@ -163,7 +184,8 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
 
 const githubAuth = asyncHandler(async (req: any, res: any) => {
   console.log("[GitHub Auth] Request received");
-  const { idToken } = req.body;
+  const rawToken = req.body?.idToken || req.body?.token;
+  const idToken = normalizeAuthToken(rawToken);
 
   if (!idToken) {
     throw new AppError("ID token is required", 400);

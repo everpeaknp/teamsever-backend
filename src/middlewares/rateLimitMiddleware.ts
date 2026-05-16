@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 /**
  * Intruder Protection Limiter
@@ -28,7 +28,8 @@ export const userRateLimiter = rateLimit({
     if (role === "admin" || role === "owner") return 3000;
     return 1500; 
   },
-  keyGenerator: (req: any) => req.user?._id?.toString() || req.ip,
+  // Use express-rate-limit IPv6-safe helper for unauthenticated fallback keys.
+  keyGenerator: (req: any) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.method === "OPTIONS",

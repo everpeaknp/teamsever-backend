@@ -47,6 +47,15 @@ exports.createDocument = async (req: any, res: any, next: any) => {
       }
 
       ownerId = workspace.owner.toString();
+
+      const featureEntitlement = await EntitlementService.canUseFileSharingInWorkspace(workspaceId);
+      if (!featureEntitlement.allowed) {
+        return res.status(403).json({
+          success: false,
+          message: featureEntitlement.reason || "Documents are not available in your current plan.",
+          code: "DOCUMENTS_NOT_AVAILABLE"
+        });
+      }
     }
 
     // Check entitlement
