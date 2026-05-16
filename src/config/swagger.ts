@@ -56,7 +56,7 @@ const options: swaggerJsdoc.Options = {
         PermissionLevel: {
           type: "string",
           enum: ["FULL", "EDIT", "COMMENT", "VIEW"],
-          description: "Allowed levels: FULL, EDIT, COMMENT, VIEW. FULL: complete control, EDIT: can modify content, COMMENT: can only comment, VIEW: read-only access.",
+          description: "Allowed levels: FULL, EDIT, COMMENT, VIEW. Evaluation follows hierarchical overrides (List > Folder > Space > Workspace). Assignees gain implicit EDIT rights for their specific tasks.",
           example: "EDIT"
         },
         ApiError: {
@@ -249,7 +249,7 @@ const options: swaggerJsdoc.Options = {
                 { $ref: "#/components/schemas/User" }
               ]
             },
-            role: { type: "string", enum: ["owner", "admin", "member"] },
+            role: { type: "string", enum: ["owner", "admin", "operations_manager", "project_manager", "member", "developer", "qa"] },
             status: { 
               type: "string", 
               enum: ["active", "inactive"],
@@ -276,6 +276,7 @@ const options: swaggerJsdoc.Options = {
         },
         HierarchySpace: {
           type: "object",
+          description: "Filtered view of a space in the workspace tree. Visible if user is a member OR has an assigned task within the space.",
           properties: {
             _id: { type: "string" },
             name: { type: "string" },

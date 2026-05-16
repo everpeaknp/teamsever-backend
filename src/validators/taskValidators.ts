@@ -4,11 +4,11 @@ const createTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters"),
     description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
-    status: z.enum(["todo", "inprogress", "in-progress", "review", "done", "cancelled"]).optional(),
+    status: z.enum(["todo", "to do", "inprogress", "in-progress", "in progress", "review", "done", "cancelled", "blocked"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-    startDate: z.string().datetime().optional().nullable(),
-    dueDate: z.string().datetime().optional().nullable(),
-    deadline: z.string().datetime().optional().nullable(),
+    startDate: z.string().optional().nullable(),
+    dueDate: z.string().optional().nullable(),
+    deadline: z.string().optional().nullable(),
     assignee: z.string().optional().nullable(),
     customFieldValues: z.array(z.object({
       field: z.string().min(1, "Custom field ID is required"),
@@ -41,11 +41,11 @@ const updateTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters").optional(),
     description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
-    status: z.enum(["todo", "inprogress", "in-progress", "review", "done", "cancelled"]).optional(),
+    status: z.enum(["todo", "to do", "inprogress", "in-progress", "in progress", "review", "done", "cancelled", "blocked"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-    startDate: z.string().datetime().optional().nullable(),
-    dueDate: z.string().datetime().optional().nullable(),
-    deadline: z.string().datetime().optional().nullable(),
+    startDate: z.string().optional().nullable(),
+    dueDate: z.string().optional().nullable(),
+    deadline: z.string().optional().nullable(),
     assignee: z.string().optional().nullable(),
     assigneeId: z.string().optional().nullable(),
     customFieldValues: z.array(z.object({
@@ -69,7 +69,7 @@ const createSubtaskSchema = z.object({
     title: z.string().min(1, "Subtask title is required").max(200, "Subtask title cannot exceed 200 characters"),
     description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
     priority: z.enum(["low", "medium", "high"]).optional(),
-    dueDate: z.string().datetime().optional(),
+    dueDate: z.string().optional(),
     assignee: z.string().optional()
   }).passthrough(),
   params: z.object({

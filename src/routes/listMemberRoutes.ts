@@ -11,7 +11,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.7 Hierarchy — List Members"
  *   description: "List-level member permission management"
  */
 

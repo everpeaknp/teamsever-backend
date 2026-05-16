@@ -26,15 +26,40 @@ export const getMyProfile = asyncHandler(async (req: any, res: any) => {
  */
 export const getUserProfile = asyncHandler(async (req: any, res: any) => {
   const { userId } = req.params;
-  const user = await User.findById(userId).select("-password");
+  const { workspaceId } = req.query;
+  const user = await User.findById(userId).select("-password").lean();
   
   if (!user) {
     throw new AppError("User not found", 404);
   }
 
+  let workspaceData = null;
+  if (workspaceId) {
+    const Workspace = require("../models/Workspace");
+    const workspace = await Workspace.findById(workspaceId)
+      .populate("members.customRole")
+      .lean();
+    
+    if (workspace) {
+      const member = workspace.members.find((m: any) => 
+        (m.user._id || m.user).toString() === userId
+      );
+      if (member) {
+        workspaceData = {
+          role: member.role,
+          customRole: member.customRole,
+          customRoleTitle: member.customRoleTitle
+        };
+      }
+    }
+  }
+
   res.json({
     success: true,
-    data: user
+    data: {
+      ...user,
+      workspaceData
+    }
   });
 });
 

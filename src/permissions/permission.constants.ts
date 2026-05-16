@@ -10,9 +10,13 @@ import { WorkspaceRole, PermissionAction, SpacePermissionLevel, FolderPermission
  */
 export const ROLE_HIERARCHY: Record<WorkspaceRole, number> = {
   [WorkspaceRole.GUEST]: 0,
-  [WorkspaceRole.MEMBER]: 1,
-  [WorkspaceRole.ADMIN]: 2,
-  [WorkspaceRole.OWNER]: 3,
+  [WorkspaceRole.QA]: 1,
+  [WorkspaceRole.DEVELOPER]: 2,
+  [WorkspaceRole.MEMBER]: 3,
+  [WorkspaceRole.PROJECT_MANAGER]: 4,
+  [WorkspaceRole.OPERATIONS_MANAGER]: 5,
+  [WorkspaceRole.ADMIN]: 6,
+  [WorkspaceRole.OWNER]: 7,
 };
 
 /**
@@ -179,6 +183,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "MANAGE_SETTINGS",
     "VIEW_ANALYTICS",
     "VIEW_ACTIVITY_LOG",
+    "MANAGE_CUSTOM_ROLES",
   ],
 
   [WorkspaceRole.ADMIN]: [
@@ -221,6 +226,139 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     // Settings
     "VIEW_ANALYTICS",
     "VIEW_ACTIVITY_LOG",
+    "MANAGE_CUSTOM_ROLES",
+  ],
+
+  [WorkspaceRole.OPERATIONS_MANAGER]: [
+    // Workspace
+    "VIEW_WORKSPACE",
+    "UPDATE_WORKSPACE",
+    "LEAVE_WORKSPACE",
+    "INVITE_MEMBER",
+    "REMOVE_MEMBER",
+    "CHANGE_MEMBER_ROLE",
+    
+    // Space
+    "CREATE_SPACE",
+    "DELETE_SPACE",
+    "UPDATE_SPACE",
+    "VIEW_SPACE",
+    "ADD_SPACE_MEMBER",
+    "REMOVE_SPACE_MEMBER",
+    "MANAGE_SPACE_PERMISSIONS",
+    
+    // Folder
+    "CREATE_FOLDER",
+    "DELETE_FOLDER",
+    "UPDATE_FOLDER",
+    "VIEW_FOLDER",
+    
+    // List
+    "CREATE_LIST",
+    "DELETE_LIST",
+    "UPDATE_LIST",
+    "VIEW_LIST",
+    
+    // Task
+    "CREATE_TASK",
+    "DELETE_TASK",
+    "EDIT_TASK",
+    "VIEW_TASK",
+    "ASSIGN_TASK",
+    "CHANGE_STATUS",
+    "COMMENT_TASK",
+    
+    // Settings
+    "MANAGE_SETTINGS",
+    "VIEW_ANALYTICS",
+    "VIEW_ACTIVITY_LOG",
+    "MANAGE_CUSTOM_ROLES",
+  ],
+
+  [WorkspaceRole.PROJECT_MANAGER]: [
+    // Workspace
+    "VIEW_WORKSPACE",
+    "LEAVE_WORKSPACE",
+    // Space
+    "CREATE_SPACE",
+    "DELETE_SPACE",
+    "UPDATE_SPACE",
+    "VIEW_SPACE",
+    "ADD_SPACE_MEMBER",
+    "REMOVE_SPACE_MEMBER",
+    "MANAGE_SPACE_PERMISSIONS",
+    
+    // Folder
+    "CREATE_FOLDER",
+    "DELETE_FOLDER",
+    "UPDATE_FOLDER",
+    "VIEW_FOLDER",
+    
+    // List
+    "CREATE_LIST",
+    "DELETE_LIST",
+    "UPDATE_LIST",
+    "VIEW_LIST",
+    
+    // Task
+    "CREATE_TASK",
+    "DELETE_TASK",
+    "EDIT_TASK",
+    "VIEW_TASK",
+    "ASSIGN_TASK",
+    "CHANGE_STATUS",
+    "COMMENT_TASK",
+    
+    // Activity
+    "VIEW_ACTIVITY_LOG",
+  ],
+
+  [WorkspaceRole.DEVELOPER]: [
+    // Workspace
+    "VIEW_WORKSPACE",
+    "LEAVE_WORKSPACE",
+    
+    // Space
+    "VIEW_SPACE",
+    
+    // Folder
+    "VIEW_FOLDER",
+    
+    // List
+    "VIEW_LIST",
+    
+    // Task
+    "VIEW_TASK",
+    "EDIT_TASK",
+    "ASSIGN_TASK",
+    "CHANGE_STATUS",
+    "COMMENT_TASK",
+    
+    // Activity
+    "VIEW_ACTIVITY_LOG",
+  ],
+
+  [WorkspaceRole.QA]: [
+    // Workspace
+    "VIEW_WORKSPACE",
+    "LEAVE_WORKSPACE",
+    
+    // Space
+    "VIEW_SPACE",
+    
+    // Folder
+    "VIEW_FOLDER",
+    
+    // List
+    "VIEW_LIST",
+    
+    // Task
+    "CREATE_TASK",
+    "EDIT_TASK",
+    "VIEW_TASK",
+    "CHANGE_STATUS",
+    "COMMENT_TASK",
+    "VIEW_ACTIVITY_LOG",
   ],
 
   [WorkspaceRole.MEMBER]: [
@@ -228,16 +366,16 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
     
-    // Space - Members can only view spaces (must be added to space for more access)
+    // Space
     "VIEW_SPACE",
     
-    // Folder - No access unless added to space
+    // Folder
     "VIEW_FOLDER",
     
-    // List - No access unless added to space
+    // List
     "VIEW_LIST",
     
-    // Task - No access unless added to space
+    // Task
     "VIEW_TASK",
     "COMMENT_TASK",
     

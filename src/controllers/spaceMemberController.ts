@@ -37,10 +37,9 @@ const getSpaceMembers = asyncHandler(
       .lean();
 
     // Get workspace to map workspace roles for users who are already in this space
-    const workspace = await Workspace.findById(space.workspace).populate(
-      "members.user",
-      "name email avatar"
-    );
+    const workspace = await Workspace.findById(space.workspace)
+      .populate("members.user", "name email avatar")
+      .populate("members.customRole");
 
     if (!workspace) {
       return next(new AppError("Workspace not found", 404));
@@ -75,12 +74,18 @@ const getSpaceMembers = asyncHandler(
         }
       );
 
+      const workspaceMember = workspace.members.find((m: any) => 
+        (m.user?._id?.toString() || m.user?.toString()) === userId?.toString()
+      );
+
       return {
         _id: userId,
         name: userName,
         email: userEmail,
         avatar: userAvatar,
-        workspaceRole: workspaceRoleMap.get(userId?.toString?.() || "") || "member",
+        workspaceRole: workspaceMember?.role || "member",
+        customRole: workspaceMember?.customRole || null,
+        customRoleTitle: workspaceMember?.customRoleTitle || null,
         spaceRole: member.role || "member",
         spacePermissionLevel: override?.permissionLevel || member.permissionLevel || null,
         hasOverride: !!override,

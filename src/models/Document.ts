@@ -26,6 +26,11 @@ const documentSchema = new mongoose.Schema(
       ref: "Workspace",
       default: null // null means private document
     },
+    space: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Space",
+      default: null
+    },
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Document",

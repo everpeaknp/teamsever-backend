@@ -15,7 +15,7 @@ const { createListSchema, updateListSchema } = require("../validators/listValida
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.4 Hierarchy — Folders"
  *   description: "List management within spaces"
  */
 

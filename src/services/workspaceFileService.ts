@@ -187,6 +187,11 @@ class WorkspaceFileService {
     // Validate workspace membership
     const workspace = await this.validateWorkspaceMembership(workspaceId, userId);
 
+    const wsMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isPrivileged = wsMember && (wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "operations_manager");
+
     const page = options.page || 1;
     const limit = options.limit || 20;
     const skip = (page - 1) * limit;
@@ -197,23 +202,57 @@ class WorkspaceFileService {
       isDeleted: false,
     };
 
-    // Add space filter
-    if (options.spaceId) {
-      if (options.spaceId === "null") {
+    // If not privileged, restrict to visible spaces
+    if (!isPrivileged) {
+      const HierarchyService = require("./hierarchyService").default;
+      const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, wsMember.role);
+      const visibleSpaceIds = hierarchy.spaces.map((s: any) => s._id.toString());
+      
+      // If filtering by specific spaceId, check if it's visible
+      if (options.spaceId && options.spaceId !== "null") {
+        if (!visibleSpaceIds.includes(options.spaceId)) {
+          throw new AppError("You do not have permission to access this space's files", 403);
+        }
+        query.space = options.spaceId;
+      } else if (options.spaceId === "null") {
         query.space = null;
       } else {
-        // Validate space access before filtering
-        await this.validateSpaceAccess(options.spaceId, userId, workspace);
-        query.space = options.spaceId;
+        // "All Files" view for non-admin: only show files from visible spaces OR files not attached to any space
+        query.$or = [
+          { space: { $in: visibleSpaceIds } },
+          { space: null }
+        ];
+      }
+    } else {
+      // Admins can see everything
+      if (options.spaceId) {
+        if (options.spaceId === "null") {
+          query.space = null;
+        } else {
+          query.space = options.spaceId;
+        }
       }
     }
 
     // Add search filter
     if (options.search) {
-      query.$or = [
+      query.$or = query.$or || [];
+      const searchFilter = [
         { fileName: { $regex: options.search, $options: "i" } },
         { originalName: { $regex: options.search, $options: "i" } },
       ];
+      
+      if (query.$or.length > 0) {
+        // Handle existing $or from visibility filtering
+        const originalOr = query.$or;
+        delete query.$or;
+        query.$and = [
+          { $or: originalOr },
+          { $or: searchFilter }
+        ];
+      } else {
+        query.$or = searchFilter;
+      }
     }
 
     // Get total count
@@ -255,7 +294,23 @@ class WorkspaceFileService {
     }
 
     // Validate workspace membership
-    await this.validateWorkspaceMembership(file.workspace.toString(), userId);
+    const workspace = await this.validateWorkspaceMembership(file.workspace.toString(), userId);
+
+    // Check space visibility for non-admins
+    const wsMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
+    );
+    const isPrivileged = wsMember && (wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "operations_manager");
+
+    if (!isPrivileged && file.space) {
+      const HierarchyService = require("./hierarchyService").default;
+      const hierarchy = await HierarchyService.getWorkspaceHierarchy(file.workspace.toString(), userId, wsMember.role);
+      const visibleSpaceIds = hierarchy.spaces.map((s: any) => s._id.toString());
+
+      if (!visibleSpaceIds.includes(file.space.toString())) {
+        throw new AppError("You do not have permission to access this file", 403);
+      }
+    }
 
     return file;
   }

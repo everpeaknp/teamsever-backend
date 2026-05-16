@@ -13,7 +13,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.3 Hierarchy — Space Invitations"
  *   description: "Space invitation management"
  */
 

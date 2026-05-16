@@ -16,7 +16,7 @@ const { sendInviteSchema } = require("../validators/invitationValidators");
 /**
  * @swagger
  * tags:
- *   name: "2. Workspaces & Members"
+ *   name: "2.3 Workspaces — Invitations"
  *   description: Workspace invitation system
  */
 

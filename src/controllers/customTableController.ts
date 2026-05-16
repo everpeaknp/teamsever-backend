@@ -5,6 +5,9 @@ const asyncHandler = require("../utils/asyncHandler");
 const customTableService = require("../services/customTableService").default;
 const excelExportService = require("../services/excelExportService").default;
 const permissionService = require("../permissions/permission.service");
+const Space = require("../models/Space");
+const Workspace = require("../models/Workspace");
+const CustomTable = require("../models/CustomTable");
 
 // Helper function to check table permissions
 async function checkTablePermission(
@@ -12,10 +15,6 @@ async function checkTablePermission(
   userId: string,
   requiredLevel: 'VIEW' | 'EDIT' | 'FULL'
 ): Promise<{ hasAccess: boolean; workspaceId: string | null; permissionLevel: string | null; table: any }> {
-  const CustomTable = require("../models/CustomTable");
-  const Space = require("../models/Space");
-  const Workspace = require("../models/Workspace");
-  
   // Handle array case (shouldn't happen but TypeScript requires it)
   const tableIdStr = Array.isArray(tableId) ? tableId[0] : tableId;
   
@@ -40,6 +39,15 @@ async function checkTablePermission(
   const isAdminOrOwner = await permissionService.isAdminOrOwner(userId, workspaceId);
   if (isAdminOrOwner) {
     return { hasAccess: true, workspaceId, permissionLevel: 'FULL', table };
+  }
+
+  // Need-to-Know check: User must be a member of the space
+  const isSpaceMember = space.members?.some(
+    (m: any) => m.user?.toString() === userId
+  );
+  
+  if (!isSpaceMember) {
+    return { hasAccess: false, workspaceId, permissionLevel: null, table: null };
   }
   
   // Check table-specific permission
@@ -75,6 +83,38 @@ const createTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
   const { name, columns, initialRows, folderId } = req.body;
   const { spaceId } = req.params;
 
+  // Verify user has access to the space
+  const space = await Space.findOne({ _id: spaceId, isDeleted: false });
+  if (!space) {
+    return res.status(404).json({
+      success: false,
+      message: "Space not found"
+    });
+  }
+
+  // Check workspace access
+  const workspace = await Workspace.findOne({ _id: space.workspace, isDeleted: false });
+  if (!workspace) {
+    return res.status(404).json({
+      success: false,
+      message: "Workspace not found"
+    });
+  }
+
+  const isAdminOrOwner = await permissionService.isAdminOrOwner(req.user!.id, workspace._id.toString());
+  
+  if (!isAdminOrOwner) {
+    const isSpaceMember = space.members?.some(
+      (member: any) => member.user.toString() === req.user!.id
+    );
+    if (!isSpaceMember) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. User is not a member of the space containing this table."
+      });
+    }
+  }
+
   const table = await customTableService.createTable(
     spaceId,
     name,
@@ -98,8 +138,6 @@ const getSpaceTables = asyncHandler(async (req: AuthRequest, res: Response, next
   const { folderId } = req.query as { folderId?: string };
   
   // Verify user has access to the space
-  const Space = require("../models/Space");
-  const Workspace = require("../models/Workspace");
   
   const space = await Space.findOne({ _id: spaceId, isDeleted: false });
   if (!space) {
@@ -125,14 +163,24 @@ const getSpaceTables = asyncHandler(async (req: AuthRequest, res: Response, next
   if (!isWorkspaceMember) {
     return res.status(403).json({
       success: false,
-      message: "You do not have access to this space"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
-  
-  // Check if user is admin or owner
+
+  // Need-to-Know: Check space membership for non-admins
   const isAdminOrOwner = await permissionService.isAdminOrOwner(req.user!.id, workspace._id.toString());
+  if (!isAdminOrOwner) {
+    const isSpaceMember = space.members?.some(
+      (m: any) => m.user?.toString() === req.user!.id
+    );
+    if (!isSpaceMember) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. User is not a member of the space containing this table."
+      });
+    }
+  }
   
-  const CustomTable = require("../models/CustomTable");
   const query: any = {
     spaceId, 
     isDeleted: false
@@ -193,11 +241,10 @@ const getTable = asyncHandler(async (req: AuthRequest, res: Response, next: Next
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have access to this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
   
-  const CustomTable = require("../models/CustomTable");
   const table = await CustomTable.findOne({ 
     _id: tableId, 
     isDeleted: false 
@@ -232,10 +279,6 @@ const updateTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
       message: "Table name is required"
     });
   }
-
-  const CustomTable = require("../models/CustomTable");
-  const Space = require("../models/Space");
-  const Workspace = require("../models/Workspace");
   
   const table = await CustomTable.findOne({ _id: tableId, isDeleted: false });
   if (!table) {
@@ -263,15 +306,17 @@ const updateTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
     });
   }
   
-  const isWorkspaceMember = workspace.members.some(
-    (member: any) => member.user.toString() === req.user!.id
-  );
-  
-  if (!isWorkspaceMember) {
-    return res.status(403).json({
-      success: false,
-      message: "You do not have access to this table"
-    });
+  const isAdminOrOwner = await permissionService.isAdminOrOwner(req.user!.id, workspace._id.toString());
+  if (!isAdminOrOwner) {
+    const isSpaceMember = space.members?.some(
+      (m: any) => m.user?.toString() === req.user!.id
+    );
+    if (!isSpaceMember) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. User is not a member of the space containing this table."
+      });
+    }
   }
   
   // Update the table
@@ -290,10 +335,6 @@ const updateTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
 const deleteTable = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { tableId } = req.params;
 
-  const CustomTable = require("../models/CustomTable");
-  const Space = require("../models/Space");
-  const Workspace = require("../models/Workspace");
-  
   // Get table and verify it exists
   const table = await CustomTable.findOne({ _id: tableId, isDeleted: false });
   if (!table) {
@@ -354,7 +395,7 @@ const addColumn = asyncHandler(async (req: AuthRequest, res: Response, next: Nex
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have permission to add columns to this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -482,7 +523,7 @@ const updateColumn = asyncHandler(async (req: AuthRequest, res: Response, next: 
   if (!isWorkspaceMember) {
     return res.status(403).json({
       success: false,
-      message: "You do not have access to this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -510,7 +551,7 @@ const deleteColumn = asyncHandler(async (req: AuthRequest, res: Response, next: 
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have permission to delete columns from this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -536,7 +577,7 @@ const addRow = asyncHandler(async (req: AuthRequest, res: Response, next: NextFu
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have permission to add rows to this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -561,7 +602,7 @@ const deleteRow = asyncHandler(async (req: AuthRequest, res: Response, next: Nex
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have permission to delete rows from this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -593,7 +634,7 @@ const updateCell = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
-      message: "You do not have permission to edit cells in this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 
@@ -708,7 +749,7 @@ const exportTable = asyncHandler(async (req: AuthRequest, res: Response, next: N
   if (!hasAccess || !table) {
     return res.status(403).json({
       success: false,
-      message: "You do not have access to this table"
+      message: "Forbidden. User is not a member of the space containing this table."
     });
   }
 

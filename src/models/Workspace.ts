@@ -6,15 +6,20 @@ const mongoose = require("mongoose");
 export enum WorkspaceRole {
   OWNER = "owner",
   ADMIN = "admin",
+  OPERATIONS_MANAGER = "operations_manager",
+  PROJECT_MANAGER = "project_manager",
+  QA = "qa",
+  DEVELOPER = "developer",
   MEMBER = "member",
   GUEST = "guest"
 }
 
 export interface IWorkspaceMember {
   user: Schema.Types.ObjectId;
-  role: WorkspaceRole | "owner" | "admin" | "member" | "guest";
+  role: WorkspaceRole | "owner" | "admin" | "operations_manager" | "project_manager" | "qa" | "developer" | "member" | "guest";
+  customRole?: Schema.Types.ObjectId; 
   status?: "active" | "inactive";
-  customRoleTitle?: string;
+  customRoleTitle?: string; 
   lastChatReadAt?: Date;
 }
 
@@ -56,8 +61,13 @@ const workspaceSchema = new mongoose.Schema(
         },
         role: {
           type: String,
-          enum: ["owner", "admin", "member", "guest"],
+          enum: ["owner", "admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"],
           default: "member"
+        },
+        customRole: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "CustomRole",
+          default: null
         },
         status: {
           type: String,

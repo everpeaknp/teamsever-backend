@@ -9,25 +9,35 @@ const AppError = require("../utils/AppError");
 // @route   POST /api/lists/:listId/tasks
 // @access  Private
 const createTask = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  console.log('🚀 CONTROLLER: createTask called');
   const { title, description, status, priority, dueDate, deadline, assignee } = req.body;
   const { listId } = req.params;
 
-  const task = await taskService.createTask({
-    title,
-    description,
-    status,
-    priority,
-    dueDate,
-    deadline,
-    list: listId,
-    assignee,
-    createdBy: req.user!.id
-  });
+  console.log('  ➜ Body:', JSON.stringify(req.body, null, 2));
 
-  res.status(201).json({
-    success: true,
-    data: task
-  });
+  try {
+    const task = await taskService.createTask({
+      title,
+      description,
+      status,
+      priority,
+      dueDate,
+      deadline,
+      list: listId,
+      assignee,
+      createdBy: req.user!.id
+    });
+
+    console.log('  ✅ Task created successfully:', task._id);
+
+    res.status(201).json({
+      success: true,
+      data: task
+    });
+  } catch (error) {
+    console.error('  ❌ Error in createTask controller:', error);
+    next(error);
+  }
 });
 
 // @desc    Get all tasks in list

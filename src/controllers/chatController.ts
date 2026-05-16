@@ -205,7 +205,7 @@ const getWorkspaceUnreadCount = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
 
   const { membership } = await chatService.validateWorkspaceMembership(workspaceId, userId);
-  const isAdmin = membership?.role === "admin" || membership?.role === "owner";
+  const isAdmin = membership?.role === "admin" || membership?.role === "owner" || membership?.role === "operations_manager" || membership?.role === "project_manager";
 
   const channelQuery: any = {
     workspace: workspaceId,

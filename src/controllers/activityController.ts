@@ -27,7 +27,7 @@ const getActivities = asyncHandler(async (req: any, res: any) => {
     isOwner = workspace.owner.toString() === userId;
     const member = workspace.members.find((m: any) => m.user.toString() === userId);
     if (!member && !isOwner) throw new AppError("Access denied", 403);
-    isAdmin = member?.role === 'admin' || member?.role === 'owner' || isOwner;
+    isAdmin = member?.role === 'admin' || member?.role === 'owner' || member?.role === 'operations_manager' || member?.role === 'project_manager' || isOwner;
   }
 
   // Only enforce personal-only filter when workspaceId is explicitly provided
@@ -206,7 +206,7 @@ const getUserActivity = asyncHandler(async (req: any, res: any) => {
   // Check if user is workspace owner or admin
   const isOwner = workspace.owner.toString() === userId;
   const workspaceMember = workspace.members.find((m: any) => m.user.toString() === userId);
-  const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+  const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
   let workspaceActivities = [];
   let taskActivities = [];

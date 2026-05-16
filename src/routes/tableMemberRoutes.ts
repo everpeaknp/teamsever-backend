@@ -15,7 +15,7 @@ const router = express.Router({ mergeParams: true });
  * /api/tables/{tableId}/table-members:
  *   get:
  *     summary: Get table members
- *     description: Retrieve all table members with their permission overrides
+ *     description: Retrieve all table members with their permission overrides. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.2 Tables — Members"]
  *     security:
  *       - bearerAuth: []
@@ -35,6 +35,12 @@ const router = express.Router({ mergeParams: true });
  *               $ref: "#/components/schemas/ApiResponse"
  *       401:
  *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ *       403:
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -87,7 +93,7 @@ const router = express.Router({ mergeParams: true });
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -141,7 +147,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -185,7 +191,7 @@ router.post("/", protect, requirePermission("MANAGE_SPACE_PERMISSIONS"), addTabl
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:

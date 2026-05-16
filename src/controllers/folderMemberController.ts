@@ -52,10 +52,9 @@ const getFolderMembers = asyncHandler(
     }
 
     // Get workspace to map workspace roles
-    const workspace = await Workspace.findById(workspaceId).populate(
-      "members.user",
-      "name email avatar"
-    );
+    const workspace = await Workspace.findById(workspaceId)
+      .populate("members.user", "name email avatar")
+      .populate("members.customRole");
     if (!workspace) {
       return next(new AppError("Workspace not found", 404));
     }
@@ -98,12 +97,18 @@ const getFolderMembers = asyncHandler(
         return !!overrideUserId && !!memberUserId && overrideUserId === memberUserId;
       });
 
+      const workspaceMember = workspace.members.find((m: any) => 
+        (m.user?._id?.toString() || m.user?.toString()) === currentUserId?.toString()
+      );
+
       membersById.set(currentUserId, {
         _id: currentUserId,
         name: userObj?.name || "Unknown",
         email: userObj?.email || "",
         avatar: userObj?.avatar || null,
-        workspaceRole: workspaceRoleMap.get(currentUserId?.toString?.() || "") || "member",
+        workspaceRole: workspaceMember?.role || "member",
+        customRole: workspaceMember?.customRole || null,
+        customRoleTitle: workspaceMember?.customRoleTitle || null,
         spaceRole: member.role || "member",
         folderPermissionLevel: override?.permissionLevel || null,
         hasOverride: !!override,
@@ -118,12 +123,18 @@ const getFolderMembers = asyncHandler(
       const overrideUserId = override?.user?._id?.toString?.();
       if (!overrideUserId || membersById.has(overrideUserId)) continue;
 
+      const workspaceMember = workspace.members.find((m: any) => 
+        (m.user?._id?.toString() || m.user?.toString()) === overrideUserId
+      );
+
       membersById.set(overrideUserId, {
         _id: overrideUserId,
         name: override?.user?.name || "Unknown",
         email: override?.user?.email || "",
         avatar: override?.user?.avatar || null,
-        workspaceRole: workspaceRoleMap.get(overrideUserId) || "member",
+        workspaceRole: workspaceMember?.role || "member",
+        customRole: workspaceMember?.customRole || null,
+        customRoleTitle: workspaceMember?.customRoleTitle || null,
         spaceRole: "member",
         folderPermissionLevel: override?.permissionLevel || null,
         hasOverride: true,

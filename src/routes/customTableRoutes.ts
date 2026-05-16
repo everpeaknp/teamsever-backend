@@ -73,7 +73,7 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  * /api/spaces/{spaceId}/tables:
  *   post:
  *     summary: Create custom table
- *     description: Create a new custom table in a space
+ *     description: Create a new custom table in a space. **Access Control:** User must be an explicit member of the space (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -116,14 +116,14 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Table limit reached or feature not available
+ *         description: Forbidden. User is not a member of the space or table limit reached.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *   get:
  *     summary: Get space tables
- *     description: Retrieve all tables in a space
+ *     description: Retrieve all tables in a space. **Access Control:** User must be an explicit member of the space (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -159,6 +159,12 @@ const spaceTableRouter = express.Router({ mergeParams: true });
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
+ *       403:
+ *         description: Forbidden. User is not a member of the space.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  */
 spaceTableRouter.post(
   "/",
@@ -185,7 +191,7 @@ const tableRouter = express.Router();
  * /api/tables/{tableId}:
  *   get:
  *     summary: Get table
- *     description: Retrieve a specific table by ID
+ *     description: Retrieve a specific table by ID. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -215,9 +221,15 @@ const tableRouter = express.Router();
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
+ *       403:
+ *         description: Forbidden. User is not a member of the space containing this table.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
  *   patch:
  *     summary: Update table
- *     description: Update table name
+ *     description: Update table name. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -260,7 +272,7 @@ const tableRouter = express.Router();
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -273,7 +285,7 @@ const tableRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete table
- *     description: Soft delete a table
+ *     description: Soft delete a table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -298,7 +310,7 @@ const tableRouter = express.Router();
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -337,7 +349,7 @@ tableRouter.delete(
  * /api/tables/{tableId}/columns:
  *   post:
  *     summary: Add column to table
- *     description: Add a new column to a custom table
+ *     description: Add a new column to a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -374,7 +386,7 @@ tableRouter.delete(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -398,7 +410,7 @@ tableRouter.post(
  * /api/tables/{tableId}/columns/{columnId}:
  *   patch:
  *     summary: Update column
- *     description: Update a column's title or type
+ *     description: Update a column's title or type. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -450,7 +462,7 @@ tableRouter.post(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -463,7 +475,7 @@ tableRouter.post(
  *               $ref: "#/components/schemas/ApiError"
  *   delete:
  *     summary: Delete column
- *     description: Delete a column and its data from all rows
+ *     description: Delete a column and its data from all rows. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -494,7 +506,7 @@ tableRouter.post(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -525,7 +537,7 @@ tableRouter.delete(
  * /api/tables/{tableId}/rows:
  *   post:
  *     summary: Add row to table
- *     description: Add a new row to a custom table
+ *     description: Add a new row to a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -561,7 +573,7 @@ tableRouter.delete(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Row limit reached or insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table or row limit reached.
  *         content:
  *           application/json:
  *             schema:
@@ -586,7 +598,7 @@ tableRouter.post(
  * /api/tables/{tableId}/rows/{rowId}:
  *   delete:
  *     summary: Delete row from table
- *     description: Delete a row from a custom table
+ *     description: Delete a row from a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -617,7 +629,7 @@ tableRouter.post(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -641,7 +653,7 @@ tableRouter.delete(
  * /api/tables/{tableId}/rows/{rowId}/cells/{columnId}:
  *   patch:
  *     summary: Update cell value
- *     description: Update a cell value with type validation
+ *     description: Update a cell value with type validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -690,7 +702,7 @@ tableRouter.delete(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -715,7 +727,7 @@ tableRouter.patch(
  * /api/tables/{tableId}/rows/{rowId}/colors/{columnId}:
  *   patch:
  *     summary: Update cell background color
- *     description: Update a cell's background color with hex format validation
+ *     description: Update a cell's background color with hex format validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -773,7 +785,7 @@ tableRouter.patch(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -798,7 +810,7 @@ tableRouter.patch(
  * /api/tables/{tableId}/rows/{rowId}/text-colors/{columnId}:
  *   patch:
  *     summary: Update cell text color
- *     description: Update a cell's text color with hex format validation
+ *     description: Update a cell's text color with hex format validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -856,7 +868,7 @@ tableRouter.patch(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:
@@ -881,7 +893,7 @@ tableRouter.patch(
  * /api/tables/{tableId}/export:
  *   get:
  *     summary: Export table to Excel
- *     description: Export a custom table to Excel format with color preservation
+ *     description: Export a custom table to Excel format with color preservation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).
  *     tags: ["8.1 Tables — Core CRUD"]
  *     security:
  *       - bearerAuth: []
@@ -907,7 +919,7 @@ tableRouter.patch(
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions
+ *         description: Forbidden. User is not a member of the space containing this table.
  *         content:
  *           application/json:
  *             schema:

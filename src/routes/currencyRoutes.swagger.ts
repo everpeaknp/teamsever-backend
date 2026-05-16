@@ -1,7 +1,7 @@
 /**
  * @swagger
  * tags:
- *   name: "9. System & Administration"
+ *   name: "9.7 Admin — Currency"
  *   description: System and administrative endpoints
  * 
  * /api/currency/rate:

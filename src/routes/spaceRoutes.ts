@@ -22,7 +22,7 @@ const { createSpaceSchema, updateSpaceSchema, addMemberToSpaceSchema } = require
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.1 Hierarchy — Spaces"
  *   description: "Space management within workspaces"
  */
 

@@ -12,7 +12,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.8 Hierarchy — Projects (Overview)"
  *   description: "Project management within workspaces"
  */
 

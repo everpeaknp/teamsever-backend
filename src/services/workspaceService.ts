@@ -130,6 +130,7 @@ class WorkspaceService {
         }
       })
       .populate("members.user", "name email avatar profilePicture")
+      .populate("members.customRole")
       .sort("-createdAt");
 
     // Transform workspaces to include subscription at workspace level
@@ -182,7 +183,8 @@ class WorkspaceService {
           model: "Plan"
         }
       })
-      .populate("members.user", "name email avatar profilePicture");
+      .populate("members.user", "name email avatar profilePicture")
+      .populate("members.customRole");
 
     if (!workspace) {
       throw new AppError("Workspace not found", 404);
@@ -304,8 +306,13 @@ class WorkspaceService {
       throw new AppError("Workspace not found", 404);
     }
 
-    if (workspace.owner.toString() !== userId) {
-      throw new AppError("Only workspace owner can update this workspace", 403);
+    // Check if user is owner or has administrative role
+    const isOwner = workspace.owner.toString() === userId;
+    const member = workspace.members.find((m: any) => m.user.toString() === userId);
+    const isAdmin = isOwner || (member && (member.role === 'admin' || member.role === 'operations_manager'));
+
+    if (!isAdmin) {
+      throw new AppError("Only workspace owner or admins can update this workspace", 403);
     }
 
     const oldValue = workspace.toObject();
@@ -355,6 +362,7 @@ class WorkspaceService {
     })
       .populate("owner", "name email avatar profilePicture")
       .populate("members.user", "name email avatar profilePicture")
+      .populate("members.customRole")
       .lean();
 
     if (!workspace) {
@@ -415,11 +423,16 @@ class WorkspaceService {
     // 8. Fetch Performance Metrics
     const userPerformance = await performanceService.getUserPerformance(userId, workspaceId);
     
-    // 9. Fetch Team Performance (for admins/owners only)
+    // 9. Fetch Team Performance (for admins/owners/managers only)
     let teamPerformance = null;
-    const isAdmin = isOwner || (memberObj && (memberObj.role === 'admin' || memberObj.role === 'owner'));
+    const isPrivileged = isOwner || (memberObj && (
+      memberObj.role === 'admin' || 
+      memberObj.role === 'owner' || 
+      memberObj.role === 'operations_manager' || 
+      memberObj.role === 'project_manager'
+    ));
     
-    if (isAdmin) {
+    if (isPrivileged) {
       teamPerformance = await performanceService.getTeamPerformance(workspaceId);
     }
 

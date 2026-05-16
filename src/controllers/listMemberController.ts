@@ -32,10 +32,9 @@ const getListMembers = asyncHandler(
       .lean();
 
     // Get workspace to show all potential members
-    const workspace = await Workspace.findById(list.workspace).populate(
-      "members.user",
-      "name email avatar profilePicture"
-    );
+    const workspace = await Workspace.findById(list.workspace)
+      .populate("members.user", "name email avatar profilePicture")
+      .populate("members.customRole");
 
     // Format response with override info
     // Filter out admins and owners as they have full access by default
@@ -53,6 +52,7 @@ const getListMembers = asyncHandler(
           profilePicture: member.user.profilePicture,
           workspaceRole: member.role,
           customRoleTitle: member.customRoleTitle || null,
+          customRole: member.customRole || null,
           listPermissionLevel: override?.permissionLevel || null,
           hasOverride: !!override,
           addedBy: override?.addedBy?.name || null,

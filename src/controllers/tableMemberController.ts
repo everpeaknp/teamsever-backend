@@ -25,6 +25,21 @@ const getTableMembers = asyncHandler(async (req: any, res: any, next: any) => {
     return next(new AppError("Space not found", 404));
   }
 
+  // Need-to-Know: User must be a member of the space
+  const isAdminOrOwner = await require("../permissions/permission.service").isAdminOrOwner(req.user.id, space.workspace.toString());
+  
+  if (!isAdminOrOwner) {
+    const isSpaceMember = space.members?.some(
+      (m: any) => m.user?.toString() === req.user.id
+    );
+    if (!isSpaceMember) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. User is not a member of the space containing this table."
+      });
+    }
+  }
+
   // Get all table members with overrides
   const tableMembers = await TableMember.find({ table: tableId })
     .populate("user", "name email avatar")
@@ -104,7 +119,7 @@ const addTableMember = asyncHandler(async (req: any, res: any, next: any) => {
   // Verify user is workspace member
   const isOwner = workspace.owner.toString() === userId;
   const workspaceMember = workspace.members.find((m: any) => m.user.toString() === userId);
-  const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+  const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
   
   if (!isOwner && !workspaceMember) {
     return next(new AppError("User must be a workspace member first", 400));

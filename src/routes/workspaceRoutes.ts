@@ -7,7 +7,6 @@ const {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceAnalytics,
-  updateMemberCustomRole,
   getWorkspaceHierarchy,
   uploadLogo
 } = require("../controllers/workspaceController");
@@ -604,13 +603,7 @@ router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), sti
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.patch(
-  "/:workspaceId/members/:memberId/custom-role",
-  protect,
-  requireWorkspaceOwner,
-  customRoleRateLimiter,
-  updateMemberCustomRole
-);
+// Removed legacy updateMemberCustomRole route in favor of new customRoleRoutes
 
 const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddleware");
 
@@ -663,7 +656,7 @@ const { uploadSingle, handleUploadError } = require("../middlewares/uploadMiddle
 router.patch(
   "/:id/logo",
   protect,
-  requireWorkspaceOwner,
+  requirePermission("UPDATE_WORKSPACE"),
   uploadSingle,
   handleUploadError,
   uploadLogo

@@ -217,11 +217,11 @@ class SpaceService {
     // Check if user is workspace owner or admin
     const workspaceOwnerId = typeof workspace.owner === 'string' ? workspace.owner : workspace.owner?._id?.toString();
     const isOwner = workspaceOwnerId === userId;
-    const workspaceMember = workspace.members.find((m: any) => {
-      const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
-      return memberId === userId;
-    });
+    const workspaceMember = workspace.members.find((m: any) => 
+      m.user.toString() === userId
+    );
     const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isManager = workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     const allSpaces = await Space.find({
       workspace: workspaceId,
@@ -234,8 +234,8 @@ class SpaceService {
 
     let spacesToReturn = [];
 
-    // If user is owner or admin, return all spaces
-    if (isOwner || isAdmin) {
+    // If user is owner, admin, or manager, return all spaces
+    if (isOwner || isAdmin || isManager) {
       spacesToReturn = allSpaces;
     } else {
       // Otherwise, filter to only spaces where user is a member OR has list access
@@ -468,7 +468,7 @@ class SpaceService {
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
-    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
     const isWorkspaceMember = isWorkspaceOwner || workspaceMember;
 
     if (!isWorkspaceMember) {
@@ -557,7 +557,7 @@ class SpaceService {
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
-    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     // 3. Space Owner check (creator)
     const isSpaceOwner = space.owner.toString() === userId;
@@ -623,7 +623,7 @@ class SpaceService {
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
-    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     if (!isWorkspaceOwner && !isWorkspaceAdmin) {
       throw new AppError("Only workspace owner or admin can add members", 403);
@@ -712,7 +712,7 @@ class SpaceService {
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId
     );
-    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     if (!isWorkspaceOwner && !isWorkspaceAdmin) {
       throw new AppError("Only workspace owner or admin can remove members", 403);
@@ -801,7 +801,7 @@ class SpaceService {
     const workspaceMember = workspace.members.find(
       (m: any) => m.user.toString() === userId || m.user._id?.toString() === userId
     );
-    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isWorkspaceAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner' || workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     if (!isWorkspaceOwner && !isWorkspaceAdmin) {
       throw new AppError("Only workspace owner or admin can invite external users", 403);

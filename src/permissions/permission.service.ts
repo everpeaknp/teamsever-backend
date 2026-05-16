@@ -99,13 +99,20 @@ class PermissionService {
       console.log('  ➜ String comparison:', String(workspaceRole) === String(WorkspaceRole.ADMIN));
       
       if (workspaceRole === WorkspaceRole.ADMIN) {
-        console.log('✅ PERMISSION GRANTED - User is ADMIN');
-        console.log('========================================\n');
-        // Admins have full access to everything
         return true;
       }
       
-      console.log('  ➜ User is NOT admin, continuing checks...');
+      // Step 2.6: Check for Custom Role permissions
+      const CustomRole = require("../models/CustomRole");
+      const workspace = await Workspace.findById(context.workspaceId).select("members");
+      const member = workspace?.members?.find((m: any) => m.user.toString() === userId);
+      
+      if (member?.customRole) {
+        const customRoleDoc = await CustomRole.findById(member.customRole);
+        if (customRoleDoc && customRoleDoc.permissions.includes(action)) {
+          return true;
+        }
+      }
 
       // Step 3: Check for list-level override
       // NOTE: We treat overrides as grants, not hard denials.
@@ -164,7 +171,20 @@ class PermissionService {
           workspaceRole === WorkspaceRole.MEMBER
         ) {
           const isSpaceMember = await this.isSpaceMember(userId, context.spaceId);
+          
+          // Check if user is an assignee of any task in this space/resource
+          let isAssigneeSomewhere = false;
           if (!isSpaceMember) {
+             const assignedTasksCount = await Task.countDocuments({
+               workspace: context.workspaceId,
+               space: context.spaceId,
+               assignee: userId,
+               isDeleted: false
+             });
+             isAssigneeSomewhere = assignedTasksCount > 0;
+          }
+
+          if (!isSpaceMember && !isAssigneeSomewhere) {
             const viewActions: PermissionAction[] = [
               "VIEW_SPACE",
               "VIEW_FOLDER",
@@ -480,37 +500,38 @@ class PermissionService {
     role: WorkspaceRole
   ): Promise<boolean> {
     // Admins and owners can do anything
-    if (role === WorkspaceRole.ADMIN || role === WorkspaceRole.OWNER) {
+    if (role === WorkspaceRole.ADMIN || role === WorkspaceRole.OWNER || role === WorkspaceRole.OPERATIONS_MANAGER) {
       return true;
     }
 
-    // For EDIT_TASK and CHANGE_STATUS, check if user has list/folder/space permissions OR is assignee
-    if (action === "EDIT_TASK" || action === "CHANGE_STATUS") {
-      if (!context.resourceId) {
-        return false;
-      }
-
-      const task = await Task.findById(context.resourceId).select("assignee");
-      
-      if (!task) {
-        return false;
-      }
-
-      // Allow if user is the assignee
-      if (task.assignee && task.assignee.toString() === userId) {
-        return true;
-      }
-
-      // If user has list/folder/space override permissions, they already passed the permission check
-      // So if we got here with list/folder/space context, they have permission
-      if (context.listId || context.folderId || context.spaceId) {
-        return true;
-      }
-
-      return false;
+    // Task-specific actions
+    if (!context.resourceId && context.resourceType === "task") {
+      // This is a create action or bulk action without specific ID
+      return roleHasPermission(role, action);
     }
 
-    return true;
+    if (context.resourceType === "task" && context.resourceId) {
+      const task = await Task.findById(context.resourceId).select("assignee");
+      if (!task) return false;
+
+      const isAssignee = task.assignee && task.assignee.toString() === userId;
+
+      // Assignees can VIEW, COMMENT, CHANGE STATUS, and EDIT their own tasks
+      if (isAssignee) {
+        const allowedAssigneeActions: PermissionAction[] = [
+          "VIEW_TASK",
+          "COMMENT_TASK",
+          "CHANGE_STATUS",
+          "EDIT_TASK"
+        ];
+        if (allowedAssigneeActions.includes(action)) {
+          return true;
+        }
+      }
+    }
+
+    // Default to workspace role permissions
+    return roleHasPermission(role, action);
   }
 
   /**
@@ -592,6 +613,18 @@ class PermissionService {
     } else if (roleLower === "admin") {
       result = WorkspaceRole.ADMIN;
       console.log('    ➜ Matched: ADMIN');
+    } else if (roleLower === "operations_manager") {
+      result = WorkspaceRole.OPERATIONS_MANAGER;
+      console.log('    ➜ Matched: OPERATIONS_MANAGER');
+    } else if (roleLower === "project_manager") {
+      result = WorkspaceRole.PROJECT_MANAGER;
+      console.log('    ➜ Matched: PROJECT_MANAGER');
+    } else if (roleLower === "qa") {
+      result = WorkspaceRole.QA;
+      console.log('    ➜ Matched: QA');
+    } else if (roleLower === "developer") {
+      result = WorkspaceRole.DEVELOPER;
+      console.log('    ➜ Matched: DEVELOPER');
     } else if (roleLower === "member") {
       result = WorkspaceRole.MEMBER;
       console.log('    ➜ Matched: MEMBER');

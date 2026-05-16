@@ -15,7 +15,7 @@ const taskDependencyService = require("./taskDependencyService");
 interface CreateTaskData {
   title: string;
   description?: string;
-  status?: "todo" | "inprogress" | "in-progress" | "review" | "done" | "cancelled";
+  status?: "todo" | "to do" | "inprogress" | "in-progress" | "in progress" | "review" | "done" | "cancelled" | "blocked";
   priority?: "low" | "medium" | "high";
   startDate?: Date;
   dueDate?: Date;
@@ -36,7 +36,7 @@ interface CreateTaskData {
 interface UpdateTaskData {
   title?: string;
   description?: string;
-  status?: "todo" | "inprogress" | "in-progress" | "review" | "done" | "cancelled";
+  status?: "todo" | "to do" | "inprogress" | "in-progress" | "in progress" | "review" | "done" | "cancelled" | "blocked";
   priority?: "low" | "medium" | "high" | "urgent";
   startDate?: Date;
   dueDate?: Date;
@@ -53,9 +53,38 @@ interface UpdateTaskData {
   recurrenceEnd?: Date;
 }
 
+const normalizeDate = (val: any) => {
+  if (!val) return val;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string') {
+    // Handle non-standard ISO strings that might be missing the dot before milliseconds
+    // e.g., "2026-05-16T16:59:00000Z" -> "2026-05-16T16:59:00.000Z"
+    let cleanVal = val;
+    const match = val.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3,})Z$/);
+    if (match) {
+      cleanVal = `${match[1]}.${match[2].slice(0, 3)}Z`;
+    } else {
+      // Also check for the case where there IS a dot but too many digits
+      const dotMatch = val.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d+)Z$/);
+      if (dotMatch) {
+        cleanVal = `${dotMatch[1]}.${dotMatch[2].slice(0, 3)}Z`;
+      }
+    }
+    
+    const d = new Date(cleanVal);
+    if (!isNaN(d.getTime())) return d;
+    
+    // Fallback: try parsing the original value
+    const originalD = new Date(val);
+    return isNaN(originalD.getTime()) ? val : originalD;
+  }
+  return val;
+};
+
 class TaskService {
   async createTask(data: CreateTaskData) {
     const { title, description, priority, dueDate, list: listId, assignee, createdBy } = data;
+    console.log('[TaskService] createTask starting', { title, listId, createdBy });
 
     // Verify list exists
     const list = await List.findOne({
@@ -64,8 +93,11 @@ class TaskService {
     });
 
     if (!list) {
+      console.log('[TaskService] List not found:', listId);
       throw new AppError("List not found", 404);
     }
+
+    console.log('[TaskService] List found:', list.name);
 
     // Verify space exists
     const space = await Space.findOne({
@@ -74,8 +106,11 @@ class TaskService {
     });
 
     if (!space) {
+      console.log('[TaskService] Space not found:', list.space);
       throw new AppError("Space not found", 404);
     }
+
+    console.log('[TaskService] Space found:', space.name);
 
     // Verify user is workspace member
     const workspace = await Workspace.findOne({
@@ -84,6 +119,7 @@ class TaskService {
     });
 
     if (!workspace) {
+      console.log('[TaskService] Workspace not found:', list.workspace);
       throw new AppError("Workspace not found", 404);
     }
 
@@ -98,12 +134,14 @@ class TaskService {
     );
 
     if (!isMember) {
+      console.log('[TaskService] User not workspace member:', createdBy);
       throw new AppError("You must be a workspace member to create a task", 403);
     }
 
     // Validate custom field values if provided
     let validatedCustomFieldValues = [];
     if (data.customFieldValues && data.customFieldValues.length > 0) {
+      console.log('[TaskService] Validating custom fields:', data.customFieldValues.length);
       validatedCustomFieldValues = await customFieldService.validateCustomFieldValues(
         data.customFieldValues,
         list.workspace.toString(),
@@ -115,11 +153,15 @@ class TaskService {
     const taskData: any = {
       title,
       description,
-      status: data.status === "in-progress" ? "inprogress" : (data.status || "todo"),
+      status: (data.status === "in-progress" || data.status === "in progress") 
+        ? "inprogress" 
+        : (data.status === "to do") 
+          ? "todo" 
+          : (data.status || "todo"),
       priority,
-      startDate: data.startDate,
-      dueDate,
-      deadline: data.deadline,
+      startDate: normalizeDate(data.startDate),
+      dueDate: normalizeDate(data.dueDate),
+      deadline: normalizeDate(data.deadline),
       isMilestone: data.isMilestone || false,
       list: listId,
       space: list.space,
@@ -135,12 +177,15 @@ class TaskService {
       recurrenceEnd: data.recurrenceEnd
     };
 
+    console.log('[TaskService] Data normalized, creating task...');
+
     // Enforce milestone constraint: startDate === dueDate (duration = 0)
     if (taskData.isMilestone && taskData.dueDate) {
       taskData.startDate = taskData.dueDate;
     }
 
     const task = await Task.create(taskData);
+    console.log('[TaskService] Task created in DB:', task._id);
 
     // Invalidate usage cache for workspace owner
     try {
@@ -384,7 +429,11 @@ class TaskService {
     if (updateData.description !== undefined) task.description = updateData.description;
     if (updateData.status) {
       const oldStatus = task.status;
-      const normalizedStatus = updateData.status === "in-progress" ? "inprogress" : updateData.status;
+      const normalizedStatus = (updateData.status === "in-progress" || updateData.status === "in progress") 
+        ? "inprogress" 
+        : (updateData.status === "to do")
+          ? "todo"
+          : updateData.status;
       task.status = normalizedStatus;
       
       // Handle completedAt and completedBy fields
@@ -399,9 +448,9 @@ class TaskService {
       }
     }
     if (updateData.priority) task.priority = updateData.priority;
-    if (updateData.startDate !== undefined) task.startDate = updateData.startDate;
-    if (updateData.dueDate !== undefined) task.dueDate = updateData.dueDate;
-    if (updateData.deadline !== undefined) task.deadline = updateData.deadline;
+    if (updateData.startDate !== undefined) task.startDate = normalizeDate(updateData.startDate);
+    if (updateData.dueDate !== undefined) task.dueDate = normalizeDate(updateData.dueDate);
+    if (updateData.deadline !== undefined) task.deadline = normalizeDate(updateData.deadline);
     // Handle both assignee and assigneeId (assigneeId is an alias)
     if (updateData.assignee !== undefined) task.assignee = updateData.assignee;
     if (updateData.assigneeId !== undefined) task.assignee = updateData.assigneeId;
@@ -678,7 +727,7 @@ class TaskService {
       title,
       description,
       priority,
-      dueDate,
+      dueDate: normalizeDate(dueDate),
       list: parentTask.list,
       space: parentTask.space,
       workspace: parentTask.workspace,

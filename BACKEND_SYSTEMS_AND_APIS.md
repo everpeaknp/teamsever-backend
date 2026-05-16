@@ -14,6 +14,11 @@
    - Swagger coverage updates
 
 ## 2. High-Level Systems (Current)
+0. Role-Based Access Control (RBAC) - **Finalized May 15, 2026**
+   - **Owner**: Full system bypass. Only role allowed to delete the workspace.
+   - **Operations Manager (COO)**: Top-tier administrative role. Oversight of all projects, activity, and team communications.
+   - **Project Manager**: Scoped to project execution. Restricted from workspace-wide member management (invites/removals).
+   - **Developer/QA**: Restricted visibility model. Only see resources where they are members or assignees.
 1. Auth & Identity
    - Email/password auth
    - Google OAuth via Firebase
@@ -96,9 +101,12 @@
 9. Short-code invitation system added:
    - 8-character human-friendly codes generated for link-type invites.
    - Allows in-app redemption on dashboard without deep-linking.
-10. Fast-Pass invitation system:
-    - Invitations can now bundle a `spaceId` and `spacePermissionLevel`.
-    - Accepting a workspace invite automatically joins the user to the specified space with the correct permissions.
+11. **Custom Roles System**:
+    - Workspaces can define custom roles with specific color/label/permissions.
+    - Custom roles can be assigned to members to provide granular permission overrides.
+12. **Infrastructure Protection (Rate Limiting)**:
+    - Integrated `express-rate-limit` for DDoS and brute-force protection.
+    - Tiered limits for anonymous traffic, authenticated users, and auth attempts.
 
 ### 3.2 Critical Fixes/Behavioral Fixes
 1. Folder permission update 500 errors fixed:
@@ -170,6 +178,7 @@
    - Folder override (grant)
    - Space override (grant)
    - Workspace role fallback
+   - **Assignee Bypass**: If a user is the assignee of a task, they gain `VIEW_TASK`, `EDIT_TASK`, `CHANGE_STATUS`, and `COMMENT_TASK` for that specific task, regardless of list membership.
 2. Override semantics are grant-based, not hard-deny:
    - A weaker lower-level override does not block a stronger parent grant.
 3. Space FULL behavior:
@@ -178,6 +187,16 @@
 4. Folder FULL behavior:
    - User can create/update/delete lists and tasks inside that folder scope.
    - Access does not grant full space-wide power.
+5. **Need-to-Know Visibility (Hierarchy & Files)**:
+   - The hierarchy tree is filtered. Users only see Lists/Folders/Spaces where they are explicit members OR where they have an assigned task.
+   - Assignees automatically gain `VIEW` access to parent resources (Space/Folder/List) to provide context for their work.
+   - **Files Visibility**: The Workspace File Library (`GET /api/workspaces/:workspaceId/files`) now respects space-level visibility. Non-admin users will only see files that are either unassigned to a space OR belong to a space they are authorized to view.
+   - **Documents Visibility**: Document retrieval (`GET /api/docs/workspace/:workspaceId` and `GET /api/docs/workspace/:workspaceId/hierarchy`) now enforces `spaceId` membership checks. Non-privileged users (Developer/QA) are strictly validated against space membership when a `spaceId` is provided, preventing horizontal privilege escalation.
+   - **Tables Visibility**: Custom Tables (`GET /api/spaces/:spaceId/tables`, `/api/tables/:tableId`, and `/api/tables/:tableId/table-members`) are strictly gated by Space membership. Users can only create, view, or modify tables in spaces where they are explicit members (unless Owner/Admin/Operations Manager). This ensures that sensitive table data and member overrides remain isolated to authorized team members.
+6. **Administrative Hierarchy**:
+   - `OPERATIONS_MANAGER` and `ADMIN` roles have global oversight (Activity, Chat moderation, Table management).
+   - `PROJECT_MANAGER` is restricted from `INVITE_MEMBER` and `REMOVE_MEMBER` at the workspace level.
+   - `DELETE_WORKSPACE` is strictly `OWNER`-only.
 
 ## 4.1 Authentication APIs
 
@@ -521,9 +540,51 @@
 4. Prefer a script or background job for this workload rather than a manual UI session.
 
 ## 4.11 Platform/Infra Behavior
-1. General API rate limit increased:
-   - From `500` to `5000` requests / 15 minutes / IP.
+1. **Infrastructure Protection (Rate Limiting)**:
+   - **Intruder Protection (IP-based)**: 1,000 requests per minute per IP. Blocks rapid bursts and brute-force attempts.
+   - **User Activity Protection (Authenticated)**: 
+     - 1,500 requests per minute for standard users.
+     - 3,000 requests per minute for Admins and Owners.
+   - **Auth Protection**: 15 authentication attempts per 15 minutes.
 2. Webhook routes mounted before other routes in `server.ts` route order.
+
+## 4.12 Custom Role APIs (New)
+
+### 4.12.1 Get workspace custom roles
+- Method: `GET`
+- Path: `/api/workspaces/:workspaceId/custom-roles`
+- Permission: `VIEW_WORKSPACE`
+- Response: `data: Array<CustomRole>`
+
+### 4.12.2 Create custom role
+- Method: `POST`
+- Path: `/api/workspaces/:workspaceId/custom-roles`
+- Permission: `MANAGE_CUSTOM_ROLES`
+- Request Body:
+  - `name: string`
+  - `label: string`
+  - `color: string` (HEX)
+  - `permissions: string[]`
+  - `description: string` (optional)
+
+### 4.12.3 Update custom role
+- Method: `PATCH`
+- Path: `/api/workspaces/:workspaceId/custom-roles/:roleId`
+- Permission: `MANAGE_CUSTOM_ROLES`
+- Request Body: Same as Create (partial updates allowed)
+
+### 4.12.4 Delete custom role
+- Method: `DELETE`
+- Path: `/api/workspaces/:workspaceId/custom-roles/:roleId`
+- Permission: `MANAGE_CUSTOM_ROLES`
+- Behavior: Deletes role and clears `customRole` reference from all workspace members.
+
+### 4.12.5 Assign custom role to member
+- Method: `PATCH`
+- Path: `/api/workspaces/:workspaceId/members/:memberId/custom-role`
+- Permission: `MANAGE_CUSTOM_ROLES`
+- Request Body:
+  - `customRoleId: string | null` (Send null to remove custom role)
 
 ## 5. Data Model Changes
 
@@ -1353,17 +1414,23 @@ This section lists the current HTTP endpoints as mounted in the server route map
 - GET /api/tasks/:taskId/attachments
 - DELETE /api/attachments/:attachmentId
 - POST /api/workspaces/:workspaceId/files/init-upload
+  - Supports `spaceId` query parameter for space-scoped upload authorization.
 - POST /api/workspaces/:workspaceId/files/confirm
+  - Supports `spaceId` in request body for space-scoped file association.
 - GET /api/workspaces/:workspaceId/files
+  - Supports `spaceId` query parameter for filtered/secure retrieval.
 - GET /api/workspace-files/:id
 - DELETE /api/workspace-files/:id
 
 ### 18.20 Documents (auth)
 Note: document routes are mounted at /api/docs in the server route map even though swagger annotations mention /api/documents.
 - POST /api/docs
+  - Supports `spaceId` in request body for space-scoped creation.
 - GET /api/docs/me
 - GET /api/docs/workspace/:workspaceId
+  - Supports `spaceId` query parameter for filtered/secure retrieval.
 - GET /api/docs/workspace/:workspaceId/hierarchy
+  - Supports `spaceId` query parameter for filtered/secure retrieval.
 - GET /api/docs/:id
 - PATCH /api/docs/:id
 - DELETE /api/docs/:id

@@ -12,7 +12,7 @@ router.use(protect);
  * /api/documents:
  *   post:
  *     summary: Create document
- *     description: Create a new document
+ *     description: Create a new document. **Access Control:** If spaceId is provided, user must be an explicit member of that space (unless Owner/Admin).
  *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
@@ -74,7 +74,7 @@ router.get("/me", documentController.getMyDocuments);
  * /api/documents/workspace/{workspaceId}:
  *   get:
  *     summary: Get workspace documents
- *     description: Retrieve all documents in a workspace
+ *     description: Retrieve all documents in a workspace. **Access Control:** Non-privileged users only see documents from spaces they are authorized to view (or space-less documents).
  *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
@@ -112,7 +112,7 @@ router.get("/workspace/:workspaceId", documentController.getWorkspaceDocuments);
  * /api/documents/workspace/{workspaceId}/hierarchy:
  *   get:
  *     summary: Get document hierarchy
- *     description: Retrieve document hierarchy for a workspace
+ *     description: Retrieve document hierarchy for a workspace. **Access Control:** Non-privileged users only see documents from spaces they are authorized to view.
  *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +150,7 @@ router.get("/workspace/:workspaceId/hierarchy", documentController.getDocumentHi
  * /api/documents/{id}:
  *   get:
  *     summary: Get document
- *     description: Retrieve a specific document by ID
+ *     description: Retrieve a specific document by ID. **Access Control:** User must have workspace access AND (if in a space) be an authorized member of that space.
  *     tags: ["6.4 Files — Documents"]
  *     security:
  *       - bearerAuth: []

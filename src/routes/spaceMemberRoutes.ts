@@ -11,7 +11,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.2 Hierarchy — Space Members"
  *   description: "Space-level member permission management"
  */
 

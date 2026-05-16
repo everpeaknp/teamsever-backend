@@ -41,7 +41,7 @@
           "COMMENT",
           "VIEW"
         ],
-        "description": "Allowed levels: FULL, EDIT, COMMENT, VIEW. FULL: complete control, EDIT: can modify content, COMMENT: can only comment, VIEW: read-only access.",
+        "description": "Allowed levels: FULL, EDIT, COMMENT, VIEW. Evaluation follows hierarchical overrides (List > Folder > Space > Workspace). Assignees gain implicit EDIT rights for their specific tasks.",
         "example": "EDIT"
       },
       "ApiError": {
@@ -372,7 +372,11 @@
             "enum": [
               "owner",
               "admin",
-              "member"
+              "operations_manager",
+              "project_manager",
+              "member",
+              "developer",
+              "qa"
             ]
           },
           "status": {
@@ -423,6 +427,7 @@
       },
       "HierarchySpace": {
         "type": "object",
+        "description": "Filtered view of a space in the workspace tree. Visible if user is a member OR has an assigned task within the space.",
         "properties": {
           "_id": {
             "type": "string"
@@ -3630,18 +3635,6 @@
     {
       "name": "13. GitHub Integration",
       "description": "Configure GitHub repositories and webhooks for real-time space activity."
-    },
-    {
-      "name": "9. System & Administration",
-      "description": "System and administrative endpoints"
-    },
-    {
-      "name": "3. Project Hierarchy",
-      "description": "Folder-level member permission management"
-    },
-    {
-      "name": "2. Workspaces & Members",
-      "description": "Workspace invitation system"
     }
   ],
   "paths": {
@@ -6376,7 +6369,7 @@
     "/api/spaces/{spaceId}/tables": {
       "post": {
         "summary": "Create custom table",
-        "description": "Create a new custom table in a space",
+        "description": "Create a new custom table in a space. **Access Control:** User must be an explicit member of the space (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6448,7 +6441,7 @@
             }
           },
           "403": {
-            "description": "Table limit reached or feature not available",
+            "description": "Forbidden. User is not a member of the space or table limit reached.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6461,7 +6454,7 @@
       },
       "get": {
         "summary": "Get space tables",
-        "description": "Retrieve all tables in a space",
+        "description": "Retrieve all tables in a space. **Access Control:** User must be an explicit member of the space (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6511,6 +6504,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden. User is not a member of the space.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Space not found",
             "content": {
@@ -6527,7 +6530,7 @@
     "/api/tables/{tableId}": {
       "get": {
         "summary": "Get table",
-        "description": "Retrieve a specific table by ID",
+        "description": "Retrieve a specific table by ID. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6568,6 +6571,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden. User is not a member of the space containing this table.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Table not found",
             "content": {
@@ -6582,7 +6595,7 @@
       },
       "patch": {
         "summary": "Update table",
-        "description": "Update table name",
+        "description": "Update table name. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6653,7 +6666,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6676,7 +6689,7 @@
       },
       "delete": {
         "summary": "Delete table",
-        "description": "Soft delete a table",
+        "description": "Soft delete a table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6718,7 +6731,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6743,7 +6756,7 @@
     "/api/tables/{tableId}/columns": {
       "post": {
         "summary": "Add column to table",
-        "description": "Add a new column to a custom table",
+        "description": "Add a new column to a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6805,7 +6818,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6830,7 +6843,7 @@
     "/api/tables/{tableId}/columns/{columnId}": {
       "patch": {
         "summary": "Update column",
-        "description": "Update a column's title or type",
+        "description": "Update a column's title or type. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6917,7 +6930,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6940,7 +6953,7 @@
       },
       "delete": {
         "summary": "Delete column",
-        "description": "Delete a column and its data from all rows",
+        "description": "Delete a column and its data from all rows. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -6991,7 +7004,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7016,7 +7029,7 @@
     "/api/tables/{tableId}/rows": {
       "post": {
         "summary": "Add row to table",
-        "description": "Add a new row to a custom table",
+        "description": "Add a new row to a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7075,7 +7088,7 @@
             }
           },
           "403": {
-            "description": "Row limit reached or insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table or row limit reached.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7100,7 +7113,7 @@
     "/api/tables/{tableId}/rows/{rowId}": {
       "delete": {
         "summary": "Delete row from table",
-        "description": "Delete a row from a custom table",
+        "description": "Delete a row from a custom table. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7151,7 +7164,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7176,7 +7189,7 @@
     "/api/tables/{tableId}/rows/{rowId}/cells/{columnId}": {
       "patch": {
         "summary": "Update cell value",
-        "description": "Update a cell value with type validation",
+        "description": "Update a cell value with type validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7256,7 +7269,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7281,7 +7294,7 @@
     "/api/tables/{tableId}/rows/{rowId}/colors/{columnId}": {
       "patch": {
         "summary": "Update cell background color",
-        "description": "Update a cell's background color with hex format validation",
+        "description": "Update a cell's background color with hex format validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7373,7 +7386,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7398,7 +7411,7 @@
     "/api/tables/{tableId}/rows/{rowId}/text-colors/{columnId}": {
       "patch": {
         "summary": "Update cell text color",
-        "description": "Update a cell's text color with hex format validation",
+        "description": "Update a cell's text color with hex format validation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7490,7 +7503,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7515,7 +7528,7 @@
     "/api/tables/{tableId}/export": {
       "get": {
         "summary": "Export table to Excel",
-        "description": "Export a custom table to Excel format with color preservation",
+        "description": "Export a custom table to Excel format with color preservation. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.1 Tables — Core CRUD"
         ],
@@ -7558,7 +7571,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8108,7 +8121,7 @@
     "/api/documents": {
       "post": {
         "summary": "Create document",
-        "description": "Create a new document",
+        "description": "Create a new document. **Access Control:** If spaceId is provided, user must be an explicit member of that space (unless Owner/Admin).",
         "tags": [
           "6.4 Files — Documents"
         ],
@@ -8200,7 +8213,7 @@
     "/api/documents/workspace/{workspaceId}": {
       "get": {
         "summary": "Get workspace documents",
-        "description": "Retrieve all documents in a workspace",
+        "description": "Retrieve all documents in a workspace. **Access Control:** Non-privileged users only see documents from spaces they are authorized to view (or space-less documents).",
         "tags": [
           "6.4 Files — Documents"
         ],
@@ -8257,7 +8270,7 @@
     "/api/documents/workspace/{workspaceId}/hierarchy": {
       "get": {
         "summary": "Get document hierarchy",
-        "description": "Retrieve document hierarchy for a workspace",
+        "description": "Retrieve document hierarchy for a workspace. **Access Control:** Non-privileged users only see documents from spaces they are authorized to view.",
         "tags": [
           "6.4 Files — Documents"
         ],
@@ -8314,7 +8327,7 @@
     "/api/documents/{id}": {
       "get": {
         "summary": "Get document",
-        "description": "Retrieve a specific document by ID",
+        "description": "Retrieve a specific document by ID. **Access Control:** User must have workspace access AND (if in a space) be an authorized member of that space.",
         "tags": [
           "6.4 Files — Documents"
         ],
@@ -15493,7 +15506,7 @@
     "/api/tables/{tableId}/table-members": {
       "get": {
         "summary": "Get table members",
-        "description": "Retrieve all table members with their permission overrides",
+        "description": "Retrieve all table members with their permission overrides. **Access Control:** User must be an explicit member of the space containing the table (unless Owner/Admin).",
         "tags": [
           "8.2 Tables — Members"
         ],
@@ -15526,6 +15539,16 @@
           },
           "401": {
             "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15613,7 +15636,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15694,7 +15717,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15768,7 +15791,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Forbidden. User is not a member of the space containing this table.",
             "content": {
               "application/json": {
                 "schema": {
@@ -18638,7 +18661,7 @@
     "/api/workspaces/{workspaceId}/files": {
       "get": {
         "summary": "Get workspace files",
-        "description": "List all files in workspace with pagination and search",
+        "description": "List all files in workspace with pagination and search. Non-privileged users only see files from spaces they are authorized to view.",
         "tags": [
           "6.3 Files — Workspace Files"
         ],
@@ -18725,7 +18748,7 @@
     "/api/workspace-files/{id}": {
       "get": {
         "summary": "Get single file",
-        "description": "Get file details by ID",
+        "description": "Get file details by ID. Access is restricted to files in authorized spaces for non-privileged users.",
         "tags": [
           "6.3 Files — Workspace Files"
         ],

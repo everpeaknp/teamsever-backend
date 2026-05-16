@@ -125,11 +125,11 @@ class FolderService {
     const workspaceOwnerId = typeof workspace.owner === 'string' ? workspace.owner : workspace.owner?._id?.toString();
     const isOwnerComputed = workspaceOwnerId === userId; // Use different name to avoid conflict if needed, but here we can just reuse isOwner from above
     
-    const workspaceMember = workspace.members.find((m: any) => {
-      const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
-      return memberId === userId;
-    });
+    const workspaceMember = workspace.members.find((m: any) => 
+      m.user.toString() === userId
+    );
     const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isManager = workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     // Check if user is a space member
     const isSpaceMember = space.members?.some((m: any) => {
@@ -186,8 +186,8 @@ class FolderService {
     // Determine which lists user can access
     let accessibleListIds: string[];
     
-    // Owners/admins and users with explicit space-level permissions can see all lists
-    if (isOwner || isAdmin || hasSpaceLevelAccess || isSpaceMember) {
+    // Owners/admins/managers and users with explicit space-level permissions can see all lists
+    if (isOwner || isAdmin || isManager || hasSpaceLevelAccess || isSpaceMember) {
       accessibleListIds = allLists.map((list: any) => list._id.toString());
     } else {
       // Get lists where user has membership
@@ -232,8 +232,8 @@ class FolderService {
       })
     );
 
-    // Filter out folders with no accessible lists (for non-admin/owner users)
-    const filteredFolders = (isOwner || isAdmin) 
+    // Filter out folders with no accessible lists (for non-admin/owner/manager users)
+    const filteredFolders = (isOwner || isAdmin || isManager) 
       ? foldersWithLists 
       : foldersWithLists.filter((folder: any) => folder.lists.length > 0);
 
@@ -272,15 +272,15 @@ class FolderService {
       ? workspace.owner
       : workspace.owner?._id?.toString?.();
     const isOwner = workspaceOwnerId === userId;
-    const workspaceMember = workspace.members.find((m: any) => {
-      const memberId = typeof m.user === "string" ? m.user : m.user?._id?.toString?.();
-      return memberId === userId;
-    });
+    const workspaceMember = workspace.members.find((m: any) => 
+      m.user.toString() === userId
+    );
     const isAdmin = workspaceMember?.role === "admin" || workspaceMember?.role === "owner";
+    const isManager = workspaceMember?.role === "operations_manager" || workspaceMember?.role === "project_manager";
 
-    // Folder-specific access: owner/admin always allowed.
+    // Folder-specific access: owner/admin/manager always allowed.
     // Non-admin members must have explicit folder membership.
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdmin && !isManager) {
       const folderMember = await FolderMember.findOne({
         user: userId,
         folder: folderId

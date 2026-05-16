@@ -13,7 +13,7 @@ const { checkFolderLimit } = require("../middlewares/subscriptionMiddleware");
 /**
  * @swagger
  * tags:
- *   name: "3. Project Hierarchy"
+ *   name: "3.4 Hierarchy — Folders"
  *   description: "Folder management within spaces"
  */
 

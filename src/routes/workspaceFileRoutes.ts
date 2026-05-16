@@ -136,7 +136,7 @@ router.post("/confirm", protect, workspaceFileController.confirmUpload);
  * /api/workspaces/{workspaceId}/files:
  *   get:
  *     summary: Get workspace files
- *     description: List all files in workspace with pagination and search
+ *     description: List all files in workspace with pagination and search. Non-privileged users only see files from spaces they are authorized to view.
  *     tags: ["6.3 Files — Workspace Files"]
  *     security:
  *       - bearerAuth: []
@@ -194,7 +194,7 @@ router.get("/", protect, workspaceFileController.getFiles);
  * /api/workspace-files/{id}:
  *   get:
  *     summary: Get single file
- *     description: Get file details by ID
+ *     description: Get file details by ID. Access is restricted to files in authorized spaces for non-privileged users.
  *     tags: ["6.3 Files — Workspace Files"]
  *     security:
  *       - bearerAuth: []

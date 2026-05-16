@@ -346,6 +346,17 @@ async function getWorkspaceId(req: AuthRequest): Promise<string | null> {
     }
   }
 
+  // Get from body or query as fallback
+  const bodyWorkspaceId = (req.body as any)?.workspaceId || (req.body as any)?.workspace;
+  if (bodyWorkspaceId && typeof bodyWorkspaceId === 'string') {
+    return bodyWorkspaceId;
+  }
+  
+  const queryWorkspaceId = req.query?.workspaceId || req.query?.workspace;
+  if (queryWorkspaceId && typeof queryWorkspaceId === 'string') {
+    return queryWorkspaceId;
+  }
+
   return null;
 }
 

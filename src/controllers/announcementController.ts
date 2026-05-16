@@ -63,7 +63,7 @@ exports.createAnnouncement = async (req, res) => {
     const member = workspace.members.find(
       (m) => m.user.toString() === userId
     );
-    const isAdmin = member && (member.role === 'admin' || member.role === 'owner');
+    const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'operations_manager' || member.role === 'project_manager');
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
@@ -187,7 +187,7 @@ exports.deleteAnnouncement = async (req, res) => {
     const member = workspace.members.find(
       (m) => m.user.toString() === userId
     );
-    const isAdmin = member && (member.role === 'admin' || member.role === 'owner');
+    const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'operations_manager' || member.role === 'project_manager');
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({

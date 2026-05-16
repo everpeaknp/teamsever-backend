@@ -94,7 +94,8 @@ class ChatService {
     // 4. Public channels are accessible to all workspace members
     
     const isCreator = channel.createdBy && channel.createdBy.toString() === userId;
-    const isAdmin = membership.role === 'admin' || membership.role === 'owner';
+    const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
+    const isAdmin = isPrivileged;
     const isMember = channel.members && channel.members.some((id: any) => id.toString() === userId);
 
     if (channel.type === "private" && !isCreator && !isAdmin && !isMember) {
@@ -181,9 +182,10 @@ class ChatService {
   async createChannel(workspaceId: string, userId: string, data: CreateChannelData) {
     const { workspace, membership } = await this.validateWorkspaceMembership(workspaceId, userId);
 
-    // Only Admin or Owner can create channels
-    if (membership.role !== "admin" && membership.role !== "owner") {
-      throw new AppError("Only admins can create chat channels", 403);
+    // Only Privileged roles (Admin, Owner, Operations Manager, Project Manager) can create channels
+    const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
+    if (!isPrivileged) {
+      throw new AppError("Only admins and managers can create chat channels", 403);
     }
 
     const { name, description, type, members = [] } = data;
@@ -236,7 +238,8 @@ class ChatService {
    */
   async getChannels(workspaceId: string, userId: string, options: GetChannelsOptions = {}) {
     const { membership } = await this.validateWorkspaceMembership(workspaceId, userId);
-    const isAdmin = membership.role === 'admin' || membership.role === 'owner';
+    const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
+    const isAdmin = isPrivileged;
 
     // Ensure default channels exist
     await this.getOrCreateDefaultChannels(workspaceId, userId);
@@ -469,7 +472,9 @@ class ChatService {
     // Only sender or Admin/Owner can delete message
     const { membership } = await this.validateWorkspaceMembership(message.workspace.toString(), userId);
     
-    if (message.sender.toString() !== userId && membership.role !== "admin" && membership.role !== "owner") {
+    const isPrivileged = membership.role === "admin" || membership.role === "owner" || membership.role === "operations_manager" || membership.role === "project_manager";
+    
+    if (message.sender.toString() !== userId && !isPrivileged) {
       throw new AppError("You do not have permission to delete this message", 403);
     }
 
@@ -502,7 +507,8 @@ class ChatService {
 
     // Only creator or admin can update
     const { membership } = await this.validateWorkspaceMembership(workspaceId.toString(), userId);
-    const isAdmin = membership.role === 'admin' || membership.role === 'owner';
+    const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
+    const isAdmin = isPrivileged;
     const isCreator = channel.createdBy && channel.createdBy.toString() === userId.toString();
 
     if (!isCreator && !isAdmin) {
@@ -589,7 +595,8 @@ class ChatService {
 
     // Only creator or admin/owner can delete
     const { membership } = await this.validateWorkspaceMembership(workspaceId.toString(), userId);
-    const isAdmin = membership.role === "admin" || membership.role === "owner";
+    const isPrivileged = membership.role === "admin" || membership.role === "owner" || membership.role === "operations_manager" || membership.role === "project_manager";
+    const isAdmin = isPrivileged;
     const isCreator = channel.createdBy && channel.createdBy.toString() === userId.toString();
 
     if (!isCreator && !isAdmin) {

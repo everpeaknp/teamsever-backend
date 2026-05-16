@@ -11,6 +11,7 @@ const Workspace = require("../models/Workspace");
 const initUpload = asyncHandler(async (req: any, res: any) => {
   const { workspaceId } = req.params;
   const userId = req.user.id;
+  const { spaceId } = req.query;
 
   // Get workspace owner
   const workspace = await Workspace.findById(workspaceId);
@@ -19,6 +20,11 @@ const initUpload = asyncHandler(async (req: any, res: any) => {
       success: false,
       message: "Workspace not found"
     });
+  }
+
+  // Validate space access if provided
+  if (spaceId) {
+    await workspaceFileService.validateSpaceAccess(spaceId, userId, workspace);
   }
 
   const ownerId = workspace.owner.toString();

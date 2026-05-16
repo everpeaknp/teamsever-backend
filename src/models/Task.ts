@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 export interface ITask extends Document {
   title: string;
   description?: string;
-  status: "todo" | "inprogress" | "review" | "done" | "cancelled";
+  status: "todo" | "inprogress" | "review" | "done" | "cancelled" | "blocked";
   priority?: "low" | "medium" | "high" | "urgent";
   startDate?: Date;
   dueDate?: Date;
@@ -70,7 +70,7 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["todo", "inprogress", "review", "done", "cancelled"],
+      enum: ["todo", "inprogress", "review", "done", "cancelled", "blocked"],
       default: "todo"
     },
     priority: {

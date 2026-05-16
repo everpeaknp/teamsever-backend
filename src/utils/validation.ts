@@ -14,24 +14,14 @@ const validate = (schema: ZodSchema) => {
       });
 
       if (!result.success) {
-        // Safety check: ensure errors array exists
-        const zodError = result.error as any;
-        if (!zodError || !zodError.errors || !Array.isArray(zodError.errors)) {
-          console.error('[Validation] Unknown validation error:', zodError);
-          return next(new AppError("Validation failed", 400));
-        }
-
-        const errors = zodError.errors.map((err: any) => ({
-          field: err.path.join("."),
-          message: err.message,
-          code: err.code
-        }));
-
+        const errors = result.error.issues.map(err => `${err.path.join('.')}: ${err.message}`);
         console.error('[Validation] Validation errors:', errors);
         console.error('[Validation] Request body:', JSON.stringify(req.body, null, 2));
 
+        const errorMessage = errors.join(", ");
+        
         return next(new AppError(
-          `Validation failed: ${errors.map((e: any) => `${e.field}: ${e.message}`).join(", ")}`,
+          `Validation failed: ${errorMessage}`,
           400
         ));
       }

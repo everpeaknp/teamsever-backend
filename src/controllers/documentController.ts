@@ -9,7 +9,7 @@ const EntitlementService = require("../services/entitlementService").default;
  */
 exports.createDocument = async (req: any, res: any, next: any) => {
   try {
-    const { title, workspaceId, parentId, icon } = req.body;
+    const { title, workspaceId, parentId, icon, spaceId } = req.body;
     const userId = req.user.id;
 
     // If workspace is provided, verify user has access
@@ -20,12 +20,30 @@ exports.createDocument = async (req: any, res: any, next: any) => {
         return next(new AppError("Workspace not found", 404));
       }
 
-      const isMember = workspace.members.some(
-        (member: any) => member.user.toString() === userId
+      const member = workspace.members.find(
+        (m: any) => m.user.toString() === userId
       );
 
-      if (!isMember) {
+      if (!member) {
         return next(new AppError("You do not have access to this workspace", 403));
+      }
+
+      // Validate space access if provided
+      if (spaceId) {
+        const isPrivileged = member.role === "owner" || member.role === "admin" || member.role === "operations_manager";
+        if (!isPrivileged) {
+          const Space = require("../models/Space");
+          const space = await Space.findById(spaceId).lean();
+          if (!space) {
+            return next(new AppError("Space not found", 404));
+          }
+          const isSpaceMember = space.members?.some(
+            (sm: any) => sm.user?.toString() === userId
+          );
+          if (!isSpaceMember) {
+            return next(new AppError("You do not have permission to create documents in this space", 403));
+          }
+        }
       }
 
       ownerId = workspace.owner.toString();
@@ -45,6 +63,7 @@ exports.createDocument = async (req: any, res: any, next: any) => {
       title: title || "Untitled",
       owner: userId,
       workspace: workspaceId || null,
+      space: spaceId || null,
       parentId: parentId || null,
       icon: icon || "📄",
       content: {
@@ -69,6 +88,7 @@ exports.createDocument = async (req: any, res: any, next: any) => {
 exports.getWorkspaceDocuments = async (req: any, res: any, next: any) => {
   try {
     const { workspaceId } = req.params;
+    const { spaceId } = req.query;
     const userId = req.user.id;
 
     // Verify user has access to workspace
@@ -77,18 +97,48 @@ exports.getWorkspaceDocuments = async (req: any, res: any, next: any) => {
       return next(new AppError("Workspace not found", 404));
     }
 
-    const isMember = workspace.members.some(
-      (member: any) => member.user.toString() === userId
+    const wsMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!wsMember) {
       return next(new AppError("You do not have access to this workspace", 403));
     }
 
-    const documents = await Document.find({
+    const isPrivileged = wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "operations_manager";
+    
+    const query: any = {
       workspace: workspaceId,
       isArchived: false
-    })
+    };
+
+    if (spaceId) {
+      if (!isPrivileged) {
+        const Space = require("../models/Space");
+        const space = await Space.findById(spaceId).lean();
+        if (!space) {
+          return next(new AppError("Space not found", 404));
+        }
+        const isSpaceMember = space.members?.some(
+          (sm: any) => sm.user?.toString() === userId
+        );
+        if (!isSpaceMember) {
+          return next(new AppError("You do not have permission to access documents in this space", 403));
+        }
+      }
+      query.space = spaceId === "null" ? null : spaceId;
+    } else if (!isPrivileged) {
+      const HierarchyService = require("../services/hierarchyService").default;
+      const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, wsMember.role);
+      const visibleSpaceIds = hierarchy.spaces.map((s: any) => s._id.toString());
+      
+      query.$or = [
+        { space: { $in: visibleSpaceIds } },
+        { space: null }
+      ];
+    }
+
+    const documents = await Document.find(query)
       .populate("owner", "name email avatar profilePicture")
       .sort({ createdAt: -1 });
 
@@ -151,9 +201,26 @@ exports.getDocument = async (req: any, res: any, next: any) => {
     if (document.workspace) {
       const workspace = await Workspace.findById(document.workspace);
       if (workspace) {
-        hasWorkspaceAccess = workspace.members.some(
-          (member: any) => member.user.toString() === userId
+        const wsMember = workspace.members.find(
+          (m: any) => m.user.toString() === userId
         );
+        
+        if (wsMember) {
+          const isPrivileged = wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "operations_manager";
+          
+          if (isPrivileged || !document.space) {
+            hasWorkspaceAccess = true;
+          } else {
+            // Need-to-Know check for space documents
+            const HierarchyService = require("../services/hierarchyService").default;
+            const hierarchy = await HierarchyService.getWorkspaceHierarchy(document.workspace.toString(), userId, wsMember.role);
+            const visibleSpaceIds = hierarchy.spaces.map((s: any) => s._id.toString());
+            
+            if (visibleSpaceIds.includes(document.space.toString())) {
+              hasWorkspaceAccess = true;
+            }
+          }
+        }
       }
     }
 
@@ -256,6 +323,7 @@ exports.deleteDocument = async (req: any, res: any, next: any) => {
 exports.getDocumentHierarchy = async (req: any, res: any, next: any) => {
   try {
     const { workspaceId } = req.params;
+    const { spaceId } = req.query;
     const userId = req.user.id;
 
     // Verify access
@@ -264,19 +332,49 @@ exports.getDocumentHierarchy = async (req: any, res: any, next: any) => {
       return next(new AppError("Workspace not found", 404));
     }
 
-    const isMember = workspace.members.some(
-      (member: any) => member.user.toString() === userId
+    const wsMember = workspace.members.find(
+      (m: any) => m.user.toString() === userId
     );
 
-    if (!isMember) {
+    if (!wsMember) {
       return next(new AppError("You do not have access to this workspace", 403));
     }
 
-    // Get all documents
-    const documents = await Document.find({
+    const isPrivileged = wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "operations_manager";
+    
+    const query: any = {
       workspace: workspaceId,
       isArchived: false
-    })
+    };
+
+    if (spaceId) {
+      if (!isPrivileged) {
+        const Space = require("../models/Space");
+        const space = await Space.findById(spaceId).lean();
+        if (!space) {
+          return next(new AppError("Space not found", 404));
+        }
+        const isSpaceMember = space.members?.some(
+          (sm: any) => sm.user?.toString() === userId
+        );
+        if (!isSpaceMember) {
+          return next(new AppError("You do not have permission to access documents in this space", 403));
+        }
+      }
+      query.space = spaceId === "null" ? null : spaceId;
+    } else if (!isPrivileged) {
+      const HierarchyService = require("../services/hierarchyService").default;
+      const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, wsMember.role);
+      const visibleSpaceIds = hierarchy.spaces.map((s: any) => s._id.toString());
+      
+      query.$or = [
+        { space: { $in: visibleSpaceIds } },
+        { space: null }
+      ];
+    }
+
+    // Get all documents the user has access to
+    const documents = await Document.find(query)
       .populate("owner", "name email avatar profilePicture")
       .sort({ createdAt: -1 });
 

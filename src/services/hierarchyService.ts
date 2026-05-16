@@ -29,19 +29,23 @@ class HierarchyService {
     const workspace = await Workspace.findById(workspaceId).select('name logo owner members').lean();
     if (!workspace) throw new AppError('Workspace not found', 404);
 
-    const isAdmin = userRole === 'admin' || userRole === 'owner';
+    const isPrivileged = userRole === 'admin' || userRole === 'owner' || userRole === 'operations_manager' || userRole === 'project_manager';
+    const isAdmin = isPrivileged; // Keep variable name for minimal diff if needed, or rename throughout
 
     // Fetch all resources in this workspace
     const allSpaces = await Space.find({ workspace: workspaceId, isDeleted: false }).lean();
     const spaceIds = allSpaces.map((s: any) => s._id);
 
-    const [allFolders, allLists, spaceMemberships, folderMemberships, listMemberships] = await Promise.all([
+    const [allFolders, allLists, spaceMemberships, folderMemberships, listMemberships, assignedTasks] = await Promise.all([
       Folder.find({ spaceId: { $in: spaceIds }, isDeleted: false }).lean(),
       List.find({ workspace: workspaceId, isDeleted: false }).lean(),
       SpaceMember.find({ workspace: workspaceId, user: userId }).lean(),
       FolderMember.find({ workspace: workspaceId, user: userId }).lean(),
-      ListMember.find({ workspace: workspaceId, user: userId }).lean()
+      ListMember.find({ workspace: workspaceId, user: userId }).lean(),
+      Task.find({ workspace: workspaceId, assignee: userId, isDeleted: false }).select('list').lean()
     ]);
+
+    const assignedListIds = new Set(assignedTasks.map((t: any) => t.list.toString()));
 
     const spacePermissionById = new Map(
       spaceMemberships.map((m: any) => [m.space.toString(), m.permissionLevel || null])
@@ -72,7 +76,8 @@ class HierarchyService {
       const hasAccess = isAdmin || 
                         (parentSpaceId && directSpaceMemberIds.has(parentSpaceId)) ||
                         (parentFolderId && folderMemberIds.has(parentFolderId)) ||
-                        isDirectListMember;
+                        isDirectListMember ||
+                        assignedListIds.has(list._id.toString());
 
       if (hasAccess) {
         visibleListIds.add(list._id.toString());
@@ -144,15 +149,24 @@ class HierarchyService {
             // Find lists for this folder
             const lists = allLists
               .filter((l: any) => l.folderId?.toString() === folderId && visibleListIds.has(l._id.toString()))
-              .map((list: any) => ({
-                _id: list._id,
-                name: list.name,
-                space: list.space,
-                workspace: list.workspace,
-                folderId: list.folderId,
-                taskCount: taskCountMap.get(list._id.toString())?.total || 0,
-                createdAt: list.createdAt
-              }));
+              .map((list: any) => {
+                const listId = list._id.toString();
+                const isDirectListMember = list.members?.some((m: any) => m.user.toString() === userId) || 
+                                          listMemberIds.has(listId);
+                const counts = taskCountMap.get(listId);
+                
+                return {
+                  _id: list._id,
+                  name: list.name,
+                  space: list.space,
+                  workspace: list.workspace,
+                  folderId: list.folderId,
+                  taskCount: counts?.total || 0,
+                  completedCount: counts?.completed || 0,
+                  isMember: isDirectListMember,
+                  createdAt: list.createdAt
+                };
+              });
 
             return {
               _id: folder._id,
@@ -168,15 +182,24 @@ class HierarchyService {
         // Find standalone lists for this space
         const standaloneLists = allLists
           .filter((l: any) => l.space?.toString() === spaceId && !l.folderId && visibleListIds.has(l._id.toString()))
-          .map((list: any) => ({
-            _id: list._id,
-            name: list.name,
-            space: list.space,
-            workspace: list.workspace,
-            folderId: null,
-            taskCount: taskCountMap.get(list._id.toString())?.total || 0,
-            createdAt: list.createdAt
-          }));
+          .map((list: any) => {
+            const listId = list._id.toString();
+            const isDirectListMember = list.members?.some((m: any) => m.user.toString() === userId) || 
+                                      listMemberIds.has(listId);
+            const counts = taskCountMap.get(listId);
+
+            return {
+              _id: list._id,
+              name: list.name,
+              space: list.space,
+              workspace: list.workspace,
+              folderId: null,
+              taskCount: counts?.total || 0,
+              completedCount: counts?.completed || 0,
+              isMember: isDirectListMember,
+              createdAt: list.createdAt
+            };
+          });
 
         // Calculate total/completed tasks for space
         let totalTasks = 0;

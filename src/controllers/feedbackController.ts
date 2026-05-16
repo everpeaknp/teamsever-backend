@@ -29,7 +29,7 @@ const createFeedback = asyncHandler(async (req: AuthRequest, res: Response, next
   const member = workspace.members.find(
     (m: any) => m.user.toString() === userId
   );
-  const isAdmin = member && (member.role === 'admin' || member.role === 'owner');
+  const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'operations_manager' || member.role === 'project_manager');
 
   if (!isOwner && !isAdmin) {
     return res.status(403).json({

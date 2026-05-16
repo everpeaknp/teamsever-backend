@@ -11,7 +11,7 @@ const notificationService = require("./enhancedNotificationService");
 interface SendInviteData {
   email?: string;
   workspaceId: string;
-  role: "admin" | "member";
+  role: "admin" | "operations_manager" | "project_manager" | "qa" | "developer" | "member";
   invitedBy: string;
   inviteType?: "email" | "link";
   spaceId?: string;

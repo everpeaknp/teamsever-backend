@@ -178,11 +178,11 @@ class ListService {
     // Check if user is workspace owner or admin
     const workspaceOwnerId = typeof workspace.owner === 'string' ? workspace.owner : workspace.owner?._id?.toString();
     const isOwner = workspaceOwnerId === userId;
-    const workspaceMember = workspace.members.find((m: any) => {
-      const memberId = typeof m.user === 'string' ? m.user : m.user?._id?.toString();
-      return memberId === userId;
-    });
+    const workspaceMember = workspace.members.find((m: any) => 
+      m.user.toString() === userId
+    );
     const isAdmin = workspaceMember?.role === 'admin' || workspaceMember?.role === 'owner';
+    const isManager = workspaceMember?.role === 'operations_manager' || workspaceMember?.role === 'project_manager';
 
     console.log(`[ListService] User ${userId} access check:`, { isOwner, isAdmin });
 
@@ -217,8 +217,8 @@ class ListService {
     // Determine which lists to return
     let listsToReturn;
     
-    // Owners/admins and users with any explicit space-level permission can see all lists
-    if (isOwner || isAdmin || hasSpaceLevelAccess) {
+    // Owners/admins/managers and users with any explicit space-level permission can see all lists
+    if (isOwner || isAdmin || isManager || hasSpaceLevelAccess) {
       console.log(`[ListService] User is owner/admin, returning all ${allLists.length} lists`);
       listsToReturn = allLists;
     } else {

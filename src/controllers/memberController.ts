@@ -18,10 +18,9 @@ const getWorkspaceMembers = asyncHandler(
     
     const { workspaceId } = req.params;
 
-    const workspace = await Workspace.findById(workspaceId).populate(
-      "members.user",
-      "name email avatar profilePicture"
-    );
+    const workspace = await Workspace.findById(workspaceId)
+      .populate("members.user", "name email avatar profilePicture")
+      .populate("members.customRole");
 
     if (!workspace) {
       return next(new AppError("Workspace not found", 404));
@@ -46,6 +45,7 @@ const getWorkspaceMembers = asyncHandler(
         status: member.status || 'inactive',
         isOwner: workspace.owner.toString() === member.user._id.toString(),
         customRoleTitle: member.customRoleTitle,
+        customRole: member.customRole,
         avatar: member.user.avatar,
         profilePicture: member.user.profilePicture,
       }));
@@ -88,7 +88,7 @@ const updateMemberRole = asyncHandler(
     const currentUserId = req.user!.id;
 
     // Validate role
-    const validRoles = ["owner", "admin", "member", "guest"];
+    const validRoles = ["owner", "admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"];
     if (!role || !validRoles.includes(role)) {
       return next(
         new AppError(
@@ -139,6 +139,11 @@ const updateMemberRole = asyncHandler(
 
     // Update the role
     workspace.members[memberIndex].role = role;
+    
+    // Clear custom role fields when switching to a native system role
+    workspace.members[memberIndex].customRole = null;
+    workspace.members[memberIndex].customRoleTitle = null;
+
     await workspace.save();
 
     // Get updated member info
@@ -239,7 +244,7 @@ const inviteMember = asyncHandler(
     }
 
     // Validate role
-    const validRoles = ["admin", "member", "guest"];
+    const validRoles = ["admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"];
     if (!validRoles.includes(role)) {
       return next(
         new AppError(
