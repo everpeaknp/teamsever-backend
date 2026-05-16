@@ -1,0 +1,32 @@
+Checking: tables / {tableId} / Get table
+  [OK] tables / {tableId} / Get table
+Checking: tables / {tableId} / Update table
+  [OK] tables / {tableId} / Update table
+Checking: tables / {tableId} / Delete table
+  [OK] tables / {tableId} / Delete table
+Checking: tables / {tableId} / columns / Add column to table
+  [OK] tables / {tableId} / columns / Add column to table
+Checking: tables / {tableId} / columns / {columnId} / Update column
+  [OK] tables / {tableId} / columns / {columnId} / Update column
+Checking: tables / {tableId} / columns / {columnId} / Delete column
+  [OK] tables / {tableId} / columns / {columnId} / Delete column
+Checking: tables / {tableId} / rows / Add row to table
+  [OK] tables / {tableId} / rows / Add row to table
+Checking: tables / {tableId} / rows / {rowId} / Delete row from table
+  [OK] tables / {tableId} / rows / {rowId} / Delete row from table
+Checking: tables / {tableId} / rows / {rowId} / cells / {columnId} / Update cell value
+  [OK] tables / {tableId} / rows / {rowId} / cells / {columnId} / Update cell value
+Checking: tables / {tableId} / rows / {rowId} / colors / {columnId} / Update cell background color
+  [OK] tables / {tableId} / rows / {rowId} / colors / {columnId} / Update cell background color
+Checking: tables / {tableId} / rows / {rowId} / text-colors / {columnId} / Update cell text color
+  [OK] tables / {tableId} / rows / {rowId} / text-colors / {columnId} / Update cell text color
+Checking: tables / {tableId} / export / Export table to Excel
+  [OK] tables / {tableId} / export / Export table to Excel
+Checking: tables / {tableId} / table-members / Get table members
+  [OK] tables / {tableId} / table-members / Get table members
+Checking: tables / {tableId} / table-members / Add table member override
+  [OK] tables / {tableId} / table-members / Add table member override
+Checking: tables / {tableId} / table-members / {userId} / Update table member permissions
+  [OK] tables / {tableId} / table-members / {userId} / Update table member permissions
+Checking: tables / {tableId} / table-members / {userId} / Remove table member override
+  [OK] tables / {tableId} / table-members / {userId} / Remove table member override
