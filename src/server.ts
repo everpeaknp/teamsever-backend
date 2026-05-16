@@ -118,7 +118,8 @@ const startServer = async () => {
 
     const allowedOriginPatterns = [
       /^https:\/\/teamsever(?:-frontend)?(?:-[a-z0-9]+)?\.vercel\.app$/i,
-      /^https:\/\/(?:www\.)?teamsever\.everacy\.com$/i
+      /^https:\/\/(?:www\.)?teamsever\.everacy\.com(?::\d+)?$/i,
+      /^https:\/\/(?:[a-z0-9-]+\.)?everacy\.com(?::\d+)?$/i
     ];
 
     const corsOptions = {
@@ -130,6 +131,7 @@ const startServer = async () => {
         if (isExplicitlyAllowed || matchesPattern) {
           callback(null, true);
         } else {
+          console.warn(`[CORS] Rejected origin: ${origin}`);
           callback(new Error('Not allowed by CORS'));
         }
       },

@@ -20,7 +20,8 @@ const initializeSocketIO = (httpServer: any) => {
 
   const allowedOriginPatterns = [
     /^https:\/\/teamsever(?:-frontend)?(?:-[a-z0-9]+)?\.vercel\.app$/i,
-    /^https:\/\/(?:www\.)?teamsever\.everacy\.com$/i
+    /^https:\/\/(?:www\.)?teamsever\.everacy\.com(?::\d+)?$/i,
+    /^https:\/\/(?:[a-z0-9-]+\.)?everacy\.com(?::\d+)?$/i
   ];
 
   // Socket.io configuration
@@ -33,6 +34,7 @@ const initializeSocketIO = (httpServer: any) => {
         if (isExplicitlyAllowed || matchesPattern) {
           return callback(null, true);
         }
+        console.warn(`[Socket CORS] Rejected origin: ${origin}`);
         return callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
