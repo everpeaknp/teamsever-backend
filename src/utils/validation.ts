@@ -15,7 +15,8 @@ const validate = (schema: ZodSchema) => {
 
       if (!result.success) {
         // zod returns `error.issues`; some tests/mocks may provide `error.errors`.
-        const rawIssues = result.error.issues || result.error.errors || [];
+        const zodError = result.error as any;
+        const rawIssues = zodError.issues || zodError.errors || [];
         const errors = rawIssues.map((err: any) => {
           const path = Array.isArray(err.path) ? err.path.join('.') : (err.path || '');
           return `${path}: ${err.message}`;

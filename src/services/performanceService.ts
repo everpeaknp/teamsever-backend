@@ -5,6 +5,7 @@ const WorkspaceActivity = require("../models/WorkspaceActivity");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
 const mongoose = require("mongoose");
+import type { Types } from "mongoose";
 
 interface PerformanceMetrics {
   totalTasksFinished: number;
@@ -19,6 +20,38 @@ interface PerformanceMetrics {
   completedLateTasks: number;
   totalDelayedTasks: number;
   performanceNote: string;
+}
+
+interface TaskContributionStat {
+  _id: Types.ObjectId | string;
+  totalTasksFinished: number;
+  tasksWithDeadline: number;
+  tasksMetDeadline: number;
+  completedLateTasks: number;
+}
+
+interface AssignedTaskStat {
+  _id: Types.ObjectId | string;
+  assignedTasksTotal: number;
+  assignedTasksDone: number;
+}
+
+interface DelayedOpenTaskStat {
+  _id: Types.ObjectId | string;
+  delayedOpenTasks: number;
+}
+
+interface TimeEntryStat {
+  _id: Types.ObjectId | string;
+  totalDuration: number;
+}
+
+interface LeanUserRecord {
+  _id: Types.ObjectId | string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  profilePicture?: string;
 }
 
 class PerformanceService {
@@ -377,10 +410,23 @@ class PerformanceService {
       }
     ]);
 
-    const contributionByUser = new Map(contributionStats.map((row: any) => [row._id.toString(), row]));
-    const assignedByUser = new Map(assignedStats.map((row: any) => [row._id.toString(), row]));
-    const delayedByUser = new Map(delayedOpenStats.map((row: any) => [row._id.toString(), row]));
-    const timeByUser = new Map(timeEntryStats.map((row: any) => [row._id.toString(), row]));
+    const typedContributionStats = contributionStats as TaskContributionStat[];
+    const typedAssignedStats = assignedStats as AssignedTaskStat[];
+    const typedDelayedOpenStats = delayedOpenStats as DelayedOpenTaskStat[];
+    const typedTimeEntryStats = timeEntryStats as TimeEntryStat[];
+
+    const contributionByUser = new Map<string, TaskContributionStat>(
+      typedContributionStats.map((row) => [row._id.toString(), row])
+    );
+    const assignedByUser = new Map<string, AssignedTaskStat>(
+      typedAssignedStats.map((row) => [row._id.toString(), row])
+    );
+    const delayedByUser = new Map<string, DelayedOpenTaskStat>(
+      typedDelayedOpenStats.map((row) => [row._id.toString(), row])
+    );
+    const timeByUser = new Map<string, TimeEntryStat>(
+      typedTimeEntryStats.map((row) => [row._id.toString(), row])
+    );
 
     const userIds = Array.from(
       new Set([
@@ -398,7 +444,8 @@ class PerformanceService {
     const users = await User.find({ _id: { $in: userIds } })
       .select("name email avatar profilePicture")
       .lean();
-    const usersById = new Map(users.map((user: any) => [user._id.toString(), user]));
+    const typedUsers = users as LeanUserRecord[];
+    const usersById = new Map<string, LeanUserRecord>(typedUsers.map((user) => [user._id.toString(), user]));
 
     const teamPerformance = userIds.map((userId) => {
       const contribution = contributionByUser.get(userId);
