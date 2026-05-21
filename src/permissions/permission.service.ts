@@ -34,6 +34,46 @@ const List = require("../models/List");
 const Task = require("../models/Task");
 
 class PermissionService {
+  private getRolePermissionAdditions(workspace: any, role: WorkspaceRole): PermissionAction[] {
+    const additions = workspace?.rolePermissionAdditions || [];
+    const roleRow = additions.find((r: any) => String(r.role || "").toLowerCase() === String(role).toLowerCase());
+    if (!roleRow || !Array.isArray(roleRow.permissions)) return [];
+    return roleRow.permissions as PermissionAction[];
+  }
+
+  private getMemberAdditionalPermissions(workspace: any, userId: string): PermissionAction[] {
+    const member = workspace?.members?.find((m: any) => m.user?.toString?.() === userId);
+    if (!member || !Array.isArray(member.additionalPermissions)) return [];
+    return member.additionalPermissions as PermissionAction[];
+  }
+
+  private getMemberRestrictedPermissions(workspace: any, userId: string): PermissionAction[] {
+    const member = workspace?.members?.find((m: any) => m.user?.toString?.() === userId);
+    if (!member || !Array.isArray(member.restrictedPermissions)) return [];
+    return member.restrictedPermissions as PermissionAction[];
+  }
+
+  private customRoleIncludesAction(customRolePermissions: string[], action: PermissionAction): boolean {
+    if (customRolePermissions.includes(action)) {
+      return true;
+    }
+
+    // Backward compatibility: old roles stored a single VIEW_ANALYTICS permission.
+    if (
+      (action === "VIEW_ANALYTICS_PERSONAL" || action === "VIEW_ANALYTICS_TEAM") &&
+      customRolePermissions.includes("VIEW_ANALYTICS")
+    ) {
+      return true;
+    }
+
+    // Team analytics permission always implies personal analytics access.
+    if (action === "VIEW_ANALYTICS_PERSONAL" && customRolePermissions.includes("VIEW_ANALYTICS_TEAM")) {
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Check if a user can perform an action
    * 
@@ -90,26 +130,23 @@ class PermissionService {
         return false;
       }
 
-      // Step 2.5: Check if user is admin (bypass list/folder/space overrides and task-specific rules)
-      console.log('\n🔎 Step 2.5: Checking if user is ADMIN...');
-      console.log('  ➜ workspaceRole value:', JSON.stringify(workspaceRole));
-      console.log('  ➜ WorkspaceRole.ADMIN value:', JSON.stringify(WorkspaceRole.ADMIN));
-      console.log('  ➜ Strict equality (===):', workspaceRole === WorkspaceRole.ADMIN);
-      console.log('  ➜ Loose equality (==):', workspaceRole == WorkspaceRole.ADMIN);
-      console.log('  ➜ String comparison:', String(workspaceRole) === String(WorkspaceRole.ADMIN));
-      
-      if (workspaceRole === WorkspaceRole.ADMIN) {
-        return true;
-      }
-      
-      // Step 2.6: Check for Custom Role permissions
+      // Step 2.5: Check for Custom Role permissions
       const CustomRole = require("../models/CustomRole");
-      const workspace = await Workspace.findById(context.workspaceId).select("members");
+      const workspace = await Workspace.findById(context.workspaceId).select("members rolePermissionAdditions");
       const member = workspace?.members?.find((m: any) => m.user.toString() === userId);
+      const rolePermissionAdditions = this.getRolePermissionAdditions(workspace, workspaceRole);
+      const memberAdditionalPermissions = this.getMemberAdditionalPermissions(workspace, userId);
+      const memberRestrictedPermissions = this.getMemberRestrictedPermissions(workspace, userId);
+
+      // Member-level restrictions are the strongest non-owner override.
+      // They explicitly remove inherited role/custom/additive access for this workspace.
+      if (memberRestrictedPermissions.includes(action)) {
+        return false;
+      }
       
       if (member?.customRole) {
         const customRoleDoc = await CustomRole.findById(member.customRole);
-        if (customRoleDoc && customRoleDoc.permissions.includes(action)) {
+        if (customRoleDoc && this.customRoleIncludesAction(customRoleDoc.permissions || [], action)) {
           return true;
         }
       }
@@ -199,7 +236,10 @@ class PermissionService {
 
       // Step 6: No overrides - use workspace role
       console.log('\n🔎 Step 6: Checking workspace role permissions...');
-      const hasWorkspacePermission = roleHasPermission(workspaceRole, action);
+      const hasWorkspacePermission =
+        roleHasPermission(workspaceRole, action) ||
+        rolePermissionAdditions.includes(action) ||
+        memberAdditionalPermissions.includes(action);
       console.log('  ➜ Has workspace permission?', hasWorkspacePermission);
       
       if (!hasWorkspacePermission) {
@@ -210,7 +250,8 @@ class PermissionService {
             userId,
             action,
             context,
-            workspaceRole
+            workspaceRole,
+            [...rolePermissionAdditions, ...memberAdditionalPermissions]
           );
           console.log('  ➜ Task permission result:', result);
           if (result) {
@@ -497,7 +538,8 @@ class PermissionService {
     userId: string,
     action: PermissionAction,
     context: PermissionContext,
-    role: WorkspaceRole
+    role: WorkspaceRole,
+    rolePermissionAdditions: PermissionAction[] = []
   ): Promise<boolean> {
     // Admins and owners can do anything
     if (role === WorkspaceRole.ADMIN || role === WorkspaceRole.OWNER || role === WorkspaceRole.OPERATIONS_MANAGER) {
@@ -507,7 +549,7 @@ class PermissionService {
     // Task-specific actions
     if (!context.resourceId && context.resourceType === "task") {
       // This is a create action or bulk action without specific ID
-      return roleHasPermission(role, action);
+      return roleHasPermission(role, action) || rolePermissionAdditions.includes(action);
     }
 
     if (context.resourceType === "task" && context.resourceId) {
@@ -531,7 +573,7 @@ class PermissionService {
     }
 
     // Default to workspace role permissions
-    return roleHasPermission(role, action);
+    return roleHasPermission(role, action) || rolePermissionAdditions.includes(action);
   }
 
   /**
@@ -545,6 +587,7 @@ class PermissionService {
       "VIEW_TASK",
       "ASSIGN_TASK",
       "CHANGE_STATUS",
+      "MARK_TASK_DONE",
       "COMMENT_TASK",
     ];
     return taskActions.includes(action);
@@ -566,6 +609,7 @@ class PermissionService {
       "EDIT_TASK",
       "ASSIGN_TASK",
       "CHANGE_STATUS",
+      "MARK_TASK_DONE",
     ];
     return spaceActions.includes(action);
   }

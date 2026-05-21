@@ -1,6 +1,7 @@
 const Announcement = require('../models/Announcement');
 const Workspace = require('../models/Workspace');
 const enhancedNotificationService = require('../services/enhancedNotificationService').default || require('../services/enhancedNotificationService');
+const PermissionService = require("../permissions/permission.service");
 
 // @desc    Get all announcements for a workspace
 // @route   GET /api/workspaces/:id/announcements
@@ -10,7 +11,7 @@ exports.getAnnouncements = async (req, res) => {
     const { id: workspaceId } = req.params;
 
     const announcements = await Announcement.find({ workspace: workspaceId })
-      .populate('author', 'name email avatar')
+      .populate('author', 'name email avatar profilePicture')
       .sort({ createdAt: -1 }) // Newest first
       .lean();
 
@@ -44,7 +45,19 @@ exports.createAnnouncement = async (req, res) => {
       });
     }
 
-    // Check if user is workspace owner or admin
+    const canCreateAnnouncement = await PermissionService.can(userId, "CREATE_ANNOUNCEMENT", {
+      userId,
+      workspaceId
+    });
+
+    if (!canCreateAnnouncement) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to create announcements',
+      });
+    }
+
+    // Load workspace for cooldown and owner plan details
     const workspace = await Workspace.findById(workspaceId).populate({
       path: 'owner',
       populate: {
@@ -56,19 +69,6 @@ exports.createAnnouncement = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Workspace not found',
-      });
-    }
-
-    const isOwner = workspace.owner._id.toString() === userId;
-    const member = workspace.members.find(
-      (m) => m.user.toString() === userId
-    );
-    const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'operations_manager' || member.role === 'project_manager');
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only workspace owners and admins can post announcements',
       });
     }
 
@@ -139,7 +139,7 @@ exports.createAnnouncement = async (req, res) => {
     });
 
     const populatedAnnouncement = await Announcement.findById(announcement._id)
-      .populate('author', 'name email avatar')
+      .populate('author', 'name email avatar profilePicture')
       .lean();
 
     // Notify all workspace members (non-blocking)
@@ -174,25 +174,15 @@ exports.deleteAnnouncement = async (req, res) => {
     const { id: workspaceId, announcementId } = req.params;
     const userId = req.user.id;
 
-    // Check if user is workspace owner or admin
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) {
-      return res.status(404).json({
-        success: false,
-        message: 'Workspace not found',
-      });
-    }
+    const canDeleteAnnouncement = await PermissionService.can(userId, "DELETE_ANNOUNCEMENT", {
+      userId,
+      workspaceId
+    });
 
-    const isOwner = workspace.owner.toString() === userId;
-    const member = workspace.members.find(
-      (m) => m.user.toString() === userId
-    );
-    const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'operations_manager' || member.role === 'project_manager');
-
-    if (!isOwner && !isAdmin) {
+    if (!canDeleteAnnouncement) {
       return res.status(403).json({
         success: false,
-        message: 'Only workspace owners and admins can delete announcements',
+        message: 'You do not have permission to delete announcements',
       });
     }
 

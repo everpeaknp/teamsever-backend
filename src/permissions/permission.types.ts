@@ -88,13 +88,20 @@ export type PermissionAction =
   | "VIEW_TASK"
   | "ASSIGN_TASK"
   | "CHANGE_STATUS"
+  | "MARK_TASK_DONE"
   | "COMMENT_TASK"
   
   // Settings and analytics
   | "MANAGE_SETTINGS"
+  | "VIEW_ANALYTICS_PERSONAL"
+  | "VIEW_ANALYTICS_TEAM"
   | "VIEW_ANALYTICS"
   | "VIEW_ACTIVITY_LOG"
-  | "MANAGE_CUSTOM_ROLES";
+  | "MANAGE_CUSTOM_ROLES"
+  // Announcements
+  | "VIEW_ANNOUNCEMENT"
+  | "CREATE_ANNOUNCEMENT"
+  | "DELETE_ANNOUNCEMENT";
 
 /**
  * Context for permission checking

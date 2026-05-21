@@ -19,6 +19,24 @@ exports.getUserPerformance = asyncHandler(async (req: AuthRequest, res: Response
   });
 });
 
+// @desc    Get deep user performance details
+// @route   GET /api/performance/user/:userId/workspace/:workspaceId/details
+// @access  Private
+exports.getUserPerformanceDetails = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { userId, workspaceId } = req.params;
+  const limit = Number(req.query.limit || 100);
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+
+  const details = await performanceService.getUserPerformanceDetails(userId, workspaceId, limit, { from, to });
+
+  res.status(200).json({
+    success: true,
+    message: "User performance details retrieved successfully",
+    data: details
+  });
+});
+
 // @desc    Get current user's performance metrics
 // @route   GET /api/performance/me/workspace/:workspaceId
 // @access  Private
@@ -40,8 +58,10 @@ exports.getMyPerformance = asyncHandler(async (req: AuthRequest, res: Response, 
 // @access  Private
 exports.getTeamPerformance = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { workspaceId } = req.params;
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
 
-  const teamMetrics = await performanceService.getTeamPerformance(workspaceId);
+  const teamMetrics = await performanceService.getTeamPerformance(workspaceId, { from, to });
 
   res.status(200).json({
     success: true,

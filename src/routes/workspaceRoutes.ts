@@ -279,7 +279,7 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *       |---|---|
  *       | `workspace` | Workspace name and details |
  *       | `stats` | Total tasks, completion rate, priority & status breakdown |
- *       | `hierarchy` | Full tree: Spaces → Folders → Lists |
+ *       | `hierarchy` | Dashboard-oriented space summary (not the full navigation tree) |
  *       | `members` | Who is clocked in right now (sorted: active first) |
  *       | `tasks` | Workspace tasks (full set, newest first) |
  *       | `announcements` | Latest workspace announcements |
@@ -288,7 +288,7 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *       | `recentActivity` | Recent actions performed in this workspace |
  *       | `performance` | Performance metrics for the user (and team for admins) |
  *
- *       **Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.
+ *       The `hierarchy` field is optimized for dashboard widgets and currently returns lightweight per-space summary rows.
  *     tags: ["0. ⭐ Primary Dashboard"]
  *     security:
  *       - bearerAuth: []
@@ -299,6 +299,31 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *         schema:
  *           type: string
  *         description: Workspace ID
+ *       - in: query
+ *         name: view
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [workspace, personal]
+ *         description: |
+ *           Optional dashboard scope selector.
+ *           - `workspace`: full workspace analytics (only honored for privileged users)
+ *           - `personal`: current user's analytics only
+ *           If omitted, backend auto-selects based on role/permission.
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive start date (YYYY-MM-DD) for task/performance windows.
+ *       - in: query
+ *         name: to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive end date (YYYY-MM-DD) for task/performance windows.
  *     responses:
  *       200:
  *         description: Consolidated analytics data retrieved successfully
@@ -319,14 +344,14 @@ router.get("/:id/hierarchy", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceAnalytics);
+router.get("/:id/analytics", protect, requirePermission("VIEW_ANALYTICS_PERSONAL"), getWorkspaceAnalytics);
 
 /**
  * @swagger
  * /api/workspaces/{id}/announcements:
  *   get:
  *     summary: Get workspace announcements
- *     description: Retrieve all active announcements for a specific workspace, ordered by creation date (newest first).
+ *     description: Retrieve the latest workspace announcements, ordered by creation date (newest first). This feed is independent of dashboard analytics date filters.
  *     tags: ["2.6 Workspaces — Announcements"]
  *     security:
  *       - bearerAuth: []
@@ -357,7 +382,7 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *               $ref: "#/components/schemas/ApiError"
  *   post:
  *     summary: Create workspace announcement
- *     description: Create a new announcement that will be visible to all workspace members.
+ *     description: Create a new announcement that will be visible to all workspace members. Requires `CREATE_ANNOUNCEMENT`.
  *     tags: ["2.6 Workspaces — Announcements"]
  *     security:
  *       - bearerAuth: []
@@ -375,12 +400,8 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *           schema:
  *             type: object
  *             required:
- *               - title
  *               - content
  *             properties:
- *               title:
- *                 type: string
- *                 example: "System Maintenance"
  *               content:
  *                 type: string
  *                 example: "The system will be down for 2 hours this Sunday at midnight."
@@ -401,21 +422,27 @@ router.get("/:id/analytics", protect, requirePermission("VIEW_WORKSPACE"), getWo
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  *       403:
- *         description: Insufficient permissions (Admins/Owners only)
+ *         description: Missing `CREATE_ANNOUNCEMENT`
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ *       429:
+ *         description: Announcement cooldown active for the workspace owner's current plan
  *         content:
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), getAnnouncements);
-router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), createAnnouncement);
+router.get("/:id/announcements", protect, requirePermission("VIEW_ANNOUNCEMENT"), getAnnouncements);
+router.post("/:id/announcements", protect, requirePermission("CREATE_ANNOUNCEMENT"), createAnnouncement);
 
 /**
  * @swagger
  * /api/workspaces/{id}/announcements/{announcementId}:
  *   delete:
  *     summary: Delete workspace announcement
- *     description: Delete an announcement from a workspace
+ *     description: Delete an announcement from a workspace. Requires `DELETE_ANNOUNCEMENT`.
  *     tags: ["2.6 Workspaces — Announcements"]
  *     security:
  *       - bearerAuth: []
@@ -452,7 +479,7 @@ router.post("/:id/announcements", protect, requirePermission("VIEW_WORKSPACE"), 
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.delete("/:id/announcements/:announcementId", protect, requirePermission("VIEW_WORKSPACE"), deleteAnnouncement);
+router.delete("/:id/announcements/:announcementId", protect, requirePermission("DELETE_ANNOUNCEMENT"), deleteAnnouncement);
 
 /**
  * @swagger

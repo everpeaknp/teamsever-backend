@@ -17,7 +17,7 @@ const router = express.Router({ mergeParams: true });
  * /api/workspaces/{workspaceId}/members:
  *   get:
  *     summary: Get workspace members
- *     description: Returns all members of a workspace with their roles and status.
+ *     description: Returns all members of a workspace with their effective done-approval state, custom role metadata, and current clock-in status.
  *     tags: ["2.2 Workspaces — Members"]
  *     security:
  *       - bearerAuth: []
@@ -80,7 +80,7 @@ router.get("/", protect, requirePermission("VIEW_WORKSPACE"), getWorkspaceMember
  *                 example: "newuser@example.com"
  *               role:
  *                 type: string
- *                 enum: [member, admin]
+ *                 enum: [owner, admin, operations_manager, project_manager, qa, developer, member, guest]
  *                 default: member
  *     responses:
  *       200:
@@ -159,7 +159,7 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  * /api/workspaces/{workspaceId}/members/{userId}:
  *   patch:
  *     summary: Update member role
- *     description: Change a member's role (Admin/Owner only).
+ *     description: Change a member's built-in role and/or toggle workspace-specific done approval. Updating `canMarkTaskDone` also synchronizes the member permission override layer for `MARK_TASK_DONE`.
  *     tags: ["2.2 Workspaces — Members"]
  *     security:
  *       - bearerAuth: []
@@ -181,20 +181,34 @@ router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateM
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - role
  *             properties:
  *               role:
  *                 type: string
- *                 enum: [member, admin]
+ *                 enum: [owner, admin, operations_manager, project_manager, qa, developer, member, guest]
  *                 example: "admin"
+ *               canMarkTaskDone:
+ *                 type: boolean
+ *                 description: Per-user approval toggle for moving tasks to Done
+ *                 example: true
  *     responses:
  *       200:
  *         description: Member role updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/ApiResponse"
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Member role updated successfully" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     email: { type: string }
+ *                     role: { type: string }
+ *                     canMarkTaskDone: { type: boolean }
+ *                     isOwner: { type: boolean }
  *       401:
  *         description: Authentication required
  *         content:

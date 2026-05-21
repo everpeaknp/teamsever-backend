@@ -503,6 +503,35 @@
    - Behavior: matches code to pending invite, provisions workspace access, and handles fast-pass space/permission bundle.
    - Response: includes `workspace` object and optional `spaceId` if fast-pass was used.
 
+### 4.10.1A Workspace invitation response shape (Current)
+1. `POST /api/workspaces/:workspaceId/invites`
+   - response no longer returns deep-link helper fields such as:
+     - `token`
+     - `shortCode`
+     - `inviteLink`
+     - `role`
+   - current response returns a compact payload:
+     - `_id`
+     - optional `inviteType`
+     - optional `spaceId`
+     - optional `spacePermissionLevel`
+     - optional `expiresAt`
+2. `POST /api/invites/accept/:token`
+   - current response returns:
+     - `workspace: { _id, name, description }`
+     - `role`
+     - `alreadyMember`
+     - optional `spaceId`
+     - optional `spaceName`
+     - optional `spacePermissionLevel`
+   - older `invitation` echo payload is no longer part of the response contract.
+3. `POST /api/invites/redeem`
+   - mirrors the accept response shape:
+     - `workspace`
+     - `role`
+     - `alreadyMember`
+     - optional space fast-pass fields
+
 ### 4.10.2 Bulk onboarding rule set
 1. There is no single built-in bulk-invite endpoint today.
 2. Each invitation is still created one scope at a time, but the backend enforces duplicate protection through pending-invite checks and existing-member checks.
@@ -768,31 +797,31 @@
 
 ## 12. Quick Endpoint Checklist (for QA)
 1. Auth
-   - [ ] `POST /api/auth/github`
+   - [x] `POST /api/auth/github`
 2. Users
-   - [ ] `PATCH /api/users/profile` with `githubUsername`
-   - [ ] `PATCH /api/users/notification-preferences`
+   - [x] `PATCH /api/users/profile` with `githubUsername`
+   - [x] `PATCH /api/users/notification-preferences`
 3. Space + Webhook
-   - [ ] `GET /api/spaces/:id/webhook`
-   - [ ] `POST /api/spaces/:id/webhook`
-   - [ ] `POST /api/webhooks/github/:spaceId`
+   - [x] `GET /api/spaces/:id/webhook`
+   - [x] `POST /api/spaces/:id/webhook`
+   - [x] `POST /api/webhooks/github/:spaceId`
 4. Activity
-   - [ ] `GET /api/folders/:folderId/activity`
-   - [ ] `GET /api/spaces/:spaceId/commits`
+   - [x] `GET /api/folders/:folderId/activity`
+   - [x] `GET /api/spaces/:spaceId/commits`
 5. Chat
-   - [ ] `GET /api/workspaces/:workspaceId/chat?userId=...`
-   - [ ] `GET /api/workspaces/:workspaceId/chat/unread`
-   - [ ] `PATCH /api/workspaces/:workspaceId/chat/read`
-   - [ ] `GET /api/chat/channels/:channelId/messages?userId=...`
-   - [ ] `DELETE /api/workspaces/:workspaceId/chat/channels/:channelId`
+   - [x] `GET /api/workspaces/:workspaceId/chat?userId=...`
+   - [x] `GET /api/workspaces/:workspaceId/chat/unread`
+   - [x] `PATCH /api/workspaces/:workspaceId/chat/read`
+   - [x] `GET /api/chat/channels/:channelId/messages?userId=...`
+   - [x] `DELETE /api/workspaces/:workspaceId/chat/channels/:channelId`
 6. DM
-   - [ ] `GET /api/dm?workspaceId=...` (required)
-   - [ ] `POST /api/dm/:userId` with `workspaceId`
-   - [ ] `POST /api/dm/:userId/message` with `workspaceId`
+   - [x] `GET /api/dm?workspaceId=...` (required)
+   - [x] `POST /api/dm/:userId` with `workspaceId`
+   - [x] `POST /api/dm/:userId/message` with `workspaceId`
 7. Tables
-   - [ ] `POST /api/spaces/:spaceId/tables` with/without `folderId`
-   - [ ] `GET /api/spaces/:spaceId/tables?folderId=...`
-   - [ ] `GET /api/spaces/:spaceId/tables?folderId=null`
+   - [x] `POST /api/spaces/:spaceId/tables` with/without `folderId`
+   - [x] `GET /api/spaces/:spaceId/tables?folderId=...`
+   - [x] `GET /api/spaces/:spaceId/tables?folderId=null`
 
 ## 13. Latest Notification Unification Update (May 8, 2026)
 
@@ -1654,3 +1683,175 @@ The File Library (workspace-wide storage) has undergone a major aesthetic and fu
 2. **Recursive UI**: Clicking a subtask in the list reloads the sidebar for that specific task ID, allowing for seamless deep-nested exploration.
 3. **Quick Toggle**: Subtasks feature a one-click status toggle (circle icon) in the list view for rapid completion without leaving the parent task view.
 
+## 23. RBAC + Analytics Scope Hardening (May 18, 2026)
+
+### 23.1 Task Done Approval Gate (New)
+1. Added a dedicated permission action: `MARK_TASK_DONE`.
+2. Added per-user workspace toggle: `members[].canMarkTaskDone` (default `false`).
+3. `TaskService.updateTask()` now blocks transitions into `done` unless **one** of these is true:
+   - workspace owner
+   - member has `canMarkTaskDone = true`
+   - member resolves `MARK_TASK_DONE` through role/override permission engine
+4. Practical result: users can still move tasks up to review, but cannot finalize to done without approval privilege.
+
+### 23.2 Workspace Member APIs (Changed)
+1. `GET /api/workspaces/:workspaceId/members`
+   - now returns `canMarkTaskDone` per member.
+2. `PATCH /api/workspaces/:workspaceId/members/:userId`
+   - now supports partial updates for:
+     - `role`
+     - `canMarkTaskDone`
+   - request must include at least one of these fields.
+   - returns updated member with `canMarkTaskDone`.
+
+### 23.3 Custom Role Permission Catalog (New)
+1. New endpoint:
+   - `GET /api/workspaces/:workspaceId/custom-roles/permission-catalog`
+2. Returns canonical permission metadata for role-builder UIs:
+   - `key` (e.g. `MARK_TASK_DONE`)
+   - `label`
+   - `category`
+3. Purpose: keeps frontend/admin consoles synchronized with backend-recognized permission keys.
+
+### 23.4 Analytics API Scope Enforcement (Security Upgrade)
+1. Endpoint: `GET /api/workspaces/:id/analytics`
+2. Added optional query: `view=workspace|personal`.
+3. Backend now computes and enforces `effective` view:
+   - privileged users (`owner`, `admin`, `operations_manager`, `project_manager`) can access workspace scope.
+   - non-privileged users are force-scoped to personal analytics even if `view=workspace` is requested.
+4. Response now includes:
+   - `view.requested`
+   - `view.effective`
+   - `view.available`
+   - `view.canViewWorkspaceAnalytics`
+5. Personal view impacts:
+   - `tasks` reduced to current user scope (`assignee == me` OR `createdBy == me`)
+   - `stats` computed from scoped tasks
+   - `members` reduced to current user card
+   - `performance.team` returned only for privileged workspace view
+
+### 23.5 Schema/Type Updates
+1. `PermissionAction` union now includes `MARK_TASK_DONE`.
+2. `Workspace.members[]` schema now includes:
+   - `canMarkTaskDone: boolean`
+3. Permission service task/space action classification includes `MARK_TASK_DONE`.
+
+### 23.6 Swagger + Collection Sync
+1. Swagger updated for:
+   - analytics `view` query parameter
+   - member role update payload (`canMarkTaskDone`)
+   - custom role permission catalog endpoint
+   - workspace/member schema fields for `canMarkTaskDone`
+2. Postman collection (`api_teamsever.json`) updated in numbered folders to match current backend behavior.
+
+## 24. Workspace Role Overrides + Dashboard Contract Update (May 21, 2026)
+
+### 24.1 Member- and Role-Level Permission Overrides
+1. Workspaces now support **built-in system role additions** through:
+   - `Workspace.rolePermissionAdditions[]`
+   - shape:
+     - `role: WorkspaceRole`
+     - `permissions: PermissionAction[]`
+2. Workspace members now support **member-specific additive and restrictive overrides** through:
+   - `Workspace.members[].additionalPermissions`
+   - `Workspace.members[].restrictedPermissions`
+3. Effective permission resolution now includes:
+   - base built-in role
+   - workspace role additions
+   - assigned custom role permissions
+   - member additive permissions
+   - member restrictive permissions (remove access for that one member)
+4. `DELETE_WORKSPACE` remains owner-only and is no longer intended for configurable role surfaces.
+
+### 24.2 Custom Role / Override APIs (Expanded)
+1. `GET /api/workspaces/:workspaceId/custom-roles`
+   - returns all custom roles in the workspace.
+2. `POST /api/workspaces/:workspaceId/custom-roles`
+   - creates a custom role with normalized permission keys.
+3. `PATCH /api/workspaces/:workspaceId/custom-roles/:roleId`
+   - partial update of a custom role.
+4. `DELETE /api/workspaces/:workspaceId/custom-roles/:roleId`
+   - deletes a custom role and clears its member assignments.
+5. `PATCH /api/workspaces/:workspaceId/members/:memberId/custom-role`
+   - assigns or clears a workspace custom role for one member.
+6. `GET /api/workspaces/:workspaceId/system-roles/permission-additions`
+   - returns additive permission entries for built-in roles in that workspace.
+7. `PATCH /api/workspaces/:workspaceId/system-roles/permission-additions`
+   - additive-only upsert for a built-in role in one workspace.
+   - inherited/base role permissions are not persisted here.
+8. `GET /api/workspaces/:workspaceId/members/:memberId/permission-additions`
+   - returns:
+     - `additionalPermissions`
+     - `restrictedPermissions`
+9. `PATCH /api/workspaces/:workspaceId/members/:memberId/permission-additions`
+   - sets member-specific additive and restrictive permission overrides.
+   - accepts legacy `permissions` as an alias of `additionalPermissions`.
+
+### 24.3 Workspace Member API Semantics
+1. `GET /api/workspaces/:workspaceId/members`
+   - now returns:
+     - `customRole`
+     - `customRoleTitle`
+     - `canMarkTaskDone`
+   - `canMarkTaskDone` is resolved from:
+     - legacy member boolean
+     - built-in role
+     - workspace role additions
+     - custom role permissions
+     - member additive/restrictive overrides
+2. `PATCH /api/workspaces/:workspaceId/members/:userId`
+   - still supports role changes and `canMarkTaskDone`
+   - when `canMarkTaskDone` is toggled, backend also synchronizes:
+     - `additionalPermissions`
+     - `restrictedPermissions`
+     for `MARK_TASK_DONE`
+
+### 24.4 Dashboard / Analytics Contract Changes
+1. Endpoint: `GET /api/workspaces/:id/analytics`
+2. Optional query parameters now include:
+   - `view=workspace|personal`
+   - `from=YYYY-MM-DD`
+   - `to=YYYY-MM-DD`
+3. `announcements` are now loaded independently of the analytics date window.
+4. Response `permissions` block added:
+   - `canViewAnnouncements`
+   - `canCreateAnnouncements`
+   - `canDeleteAnnouncements`
+5. Response `view` block now includes:
+   - `requested`
+   - `effective`
+   - `available`
+   - `canViewWorkspaceAnalytics`
+   - `canViewPersonalAnalytics`
+6. `hierarchy` in the dashboard response is no longer documented as the full navigation tree.
+   - For privileged dashboard users it is now a **dashboard-oriented per-space summary**:
+     - `_id`
+     - `name`
+     - `status`
+     - `color`
+     - `totalTasks`
+     - `completedTasks`
+   - Full tree navigation remains on `GET /api/workspaces/:id/hierarchy`.
+
+### 24.5 Announcement API Clarifications
+1. `POST /api/workspaces/:id/announcements`
+   - request body requires only:
+     - `content`
+   - no `title` field is used by backend.
+2. Announcement permissions are explicit:
+   - `VIEW_ANNOUNCEMENT`
+   - `CREATE_ANNOUNCEMENT`
+   - `DELETE_ANNOUNCEMENT`
+3. Creation may return cooldown enforcement errors based on the workspace owner's plan.
+
+### 24.6 Performance API Query Contract
+1. `GET /api/performance/team/workspace/:workspaceId`
+   - now supports:
+     - `from`
+     - `to`
+2. `GET /api/performance/user/:userId/workspace/:workspaceId/details`
+   - now supports:
+     - `limit`
+     - `from`
+     - `to`
+3. Team performance internals were optimized to use bulk aggregation instead of per-user N+1 lookups.

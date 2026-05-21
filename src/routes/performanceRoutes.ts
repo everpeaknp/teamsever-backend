@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const performanceController = require("../controllers/performanceController");
 const { protect } = require("../middlewares/authMiddleware");
+const { requirePermission } = require("../permissions/permission.middleware");
 
 // All routes require authentication
 router.use(protect);
@@ -21,6 +22,20 @@ router.use(protect);
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive start date (YYYY-MM-DD).
+ *       - in: query
+ *         name: to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive end date (YYYY-MM-DD).
  *     responses:
  *       200:
  *         description: Performance metrics retrieved successfully
@@ -35,7 +50,7 @@ router.use(protect);
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/me/workspace/:workspaceId", performanceController.getMyPerformance);
+router.get("/me/workspace/:workspaceId", requirePermission("VIEW_ANALYTICS_PERSONAL"), performanceController.getMyPerformance);
 
 /**
  * @swagger
@@ -71,7 +86,64 @@ router.get("/me/workspace/:workspaceId", performanceController.getMyPerformance)
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/user/:userId/workspace/:workspaceId", performanceController.getUserPerformance);
+router.get("/user/:userId/workspace/:workspaceId", requirePermission("VIEW_ANALYTICS_TEAM"), performanceController.getUserPerformance);
+
+/**
+ * @swagger
+ * /api/performance/user/{userId}/workspace/{workspaceId}/details:
+ *   get:
+ *     summary: Get detailed user performance
+ *     description: Retrieve specific user's detailed performance metrics and task history
+ *     tags: ["7.4 Time — Performance Metrics"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Max task-history rows to return.
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive start date (YYYY-MM-DD).
+ *       - in: query
+ *         name: to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive end date (YYYY-MM-DD).
+ *     responses:
+ *       200:
+ *         description: Detailed performance metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiResponse"
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ */
+router.get("/user/:userId/workspace/:workspaceId/details", requirePermission("VIEW_ANALYTICS_TEAM"), performanceController.getUserPerformanceDetails);
 
 /**
  * @swagger
@@ -88,6 +160,20 @@ router.get("/user/:userId/workspace/:workspaceId", performanceController.getUser
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive start date (YYYY-MM-DD).
+ *       - in: query
+ *         name: to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Optional inclusive end date (YYYY-MM-DD).
  *     responses:
  *       200:
  *         description: Team performance retrieved successfully
@@ -102,7 +188,7 @@ router.get("/user/:userId/workspace/:workspaceId", performanceController.getUser
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/team/workspace/:workspaceId", performanceController.getTeamPerformance);
+router.get("/team/workspace/:workspaceId", requirePermission("VIEW_ANALYTICS_TEAM"), performanceController.getTeamPerformance);
 
 /**
  * @swagger
@@ -133,7 +219,7 @@ router.get("/team/workspace/:workspaceId", performanceController.getTeamPerforma
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-router.get("/workspace/:workspaceId/summary", performanceController.getWorkspacePerformanceSummary);
+router.get("/workspace/:workspaceId/summary", requirePermission("VIEW_ANALYTICS_TEAM"), performanceController.getWorkspacePerformanceSummary);
 
 // Contribution & Streak routes
 const contributionController = require("../controllers/contributionController");

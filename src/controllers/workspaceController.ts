@@ -84,7 +84,10 @@ const deleteWorkspace = asyncHandler(async (req: AuthRequest, res: Response, nex
 // @route   GET /api/workspaces/:id/analytics
 // @access  Private
 const getWorkspaceAnalytics = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const analytics = await workspaceService.getWorkspaceAnalytics(req.params.id, req.user!.id);
+  const requestedView = typeof req.query.view === "string" ? req.query.view : undefined;
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+  const analytics = await workspaceService.getWorkspaceAnalytics(req.params.id, req.user!.id, requestedView, { from, to });
 
   res.status(200).json({
     success: true,

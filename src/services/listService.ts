@@ -1,6 +1,8 @@
 const List = require("../models/List");
 const Space = require("../models/Space");
 const Workspace = require("../models/Workspace");
+const Task = require("../models/Task");
+const { ListMember } = require("../models/ListMember");
 const WorkspaceActivity = require("../models/WorkspaceActivity");
 const SpaceMember = require("../models/SpaceMember");
 const AppError = require("../utils/AppError");
@@ -407,6 +409,18 @@ class ListService {
     EntitlementService.invalidateUsageCache(workspace.owner.toString());
 
     await softDelete(List, listId);
+
+    // Cascade soft-delete tasks under this list to prevent orphan task records
+    await Task.updateMany(
+      { list: list._id, isDeleted: false },
+      { $set: { isDeleted: true, deletedAt: new Date() } }
+    );
+
+    // Remove list-level membership rows tied to the deleted list
+    await ListMember.updateMany(
+      { list: list._id, isDeleted: false },
+      { $set: { isDeleted: true, deletedAt: new Date() } }
+    );
 
     // Log activity
     await logger.logActivity({

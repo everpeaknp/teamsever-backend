@@ -3,6 +3,7 @@ const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const Plan = require("../models/Plan");
 const Space = require("../models/Space");
+const List = require("../models/List");
 const Task = require("../models/Task");
 const TimeEntry = require("../models/TimeEntry");
 const Announcement = require("../models/Announcement");
@@ -10,15 +11,29 @@ const Announcement = require("../models/Announcement");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
+const PermissionService = require("../permissions/permission.service");
 
 const PlanInheritanceService = require("./planInheritanceService").default;
 const EntitlementService = require("./entitlementService").default;
+import { resolveAnalyticsViewAccess } from "../permissions/analyticsAccess";
 interface CreateWorkspaceData {
   name: string;
   owner: string;
 }
 
 class WorkspaceService {
+  private buildDateRange(from?: string, to?: string): { $gte?: Date; $lte?: Date } | null {
+    const range: { $gte?: Date; $lte?: Date } = {};
+    if (from) {
+      const d = new Date(from);
+      if (!Number.isNaN(d.getTime())) range.$gte = d;
+    }
+    if (to) {
+      const d = new Date(to);
+      if (!Number.isNaN(d.getTime())) range.$lte = d;
+    }
+    return Object.keys(range).length > 0 ? range : null;
+  }
   async createWorkspace(data: CreateWorkspaceData) {
     // Check workspace limit before creating
     const user = await User.findById(data.owner).populate('subscription.planId');
@@ -347,13 +362,18 @@ class WorkspaceService {
     return workspace;
   }
 
-  async getWorkspaceAnalytics(workspaceId: string, userId: string) {
+  async getWorkspaceAnalytics(
+    workspaceId: string,
+    userId: string,
+    requestedView?: string,
+    period?: { from?: string; to?: string }
+  ) {
     // Import services inside the method to avoid circular dependencies
-    const HierarchyService = require("./hierarchyService").default;
     const analyticsService = require("./analyticsService");
     const activityService = require("./activityService");
     const performanceService = require("./performanceService");
     const stickyNoteService = require("./stickyNoteService");
+    const createdAtRange = this.buildDateRange(period?.from, period?.to);
 
     // 1. Fetch Workspace & Members (populated for UI badges/avatars)
     const workspace = await Workspace.findOne({
@@ -369,21 +389,53 @@ class WorkspaceService {
       throw new AppError("Workspace not found", 404);
     }
 
-    // 2. Fetch stats (also performs security/access check)
-    const stats = await analyticsService.getWorkspaceOverview(workspaceId, userId);
-
-    // Get user's role for permission check
+    // Get user's role for hierarchy/view shaping
     const isOwner = workspace.owner._id.toString() === userId;
     const memberObj = workspace.members.find((m: any) => m.user._id.toString() === userId);
     const userRole = isOwner ? 'owner' : (memberObj?.role || 'member');
+    const canViewPersonalAnalytics = await PermissionService.can(
+      userId,
+      "VIEW_ANALYTICS_PERSONAL",
+      { userId, workspaceId }
+    );
+    const canViewTeamAnalytics = await PermissionService.can(
+      userId,
+      "VIEW_ANALYTICS_TEAM",
+      { userId, workspaceId }
+    );
+    const canViewAnnouncements = await PermissionService.can(
+      userId,
+      "VIEW_ANNOUNCEMENT",
+      { userId, workspaceId }
+    );
+    const canCreateAnnouncements = await PermissionService.can(
+      userId,
+      "CREATE_ANNOUNCEMENT",
+      { userId, workspaceId }
+    );
+    const canDeleteAnnouncements = await PermissionService.can(
+      userId,
+      "DELETE_ANNOUNCEMENT",
+      { userId, workspaceId }
+    );
 
-    // 3. Fetch Hierarchy Tree (Optimized single aggregation with permission check)
-    const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, userRole);
+    let analyticsAccess;
+    try {
+      analyticsAccess = resolveAnalyticsViewAccess({
+        requestedView,
+        canViewPersonalAnalytics,
+        canViewTeamAnalytics
+      });
+    } catch (_error) {
+      throw new AppError("You do not have permission to view analytics", 403);
+    }
+    const normalizedView = requestedView === "personal" || requestedView === "workspace" ? requestedView : undefined;
+    const effectiveView: "workspace" | "personal" = analyticsAccess.effectiveView;
 
     // 3. Fetch Latest Announcements
-    const announcements = await Announcement.find({ 
-      workspace: workspaceId 
-    })
+    // Announcements are workspace feed items and should always show latest posts,
+    // independent of analytics task date filtering (from/to).
+    const announcements = await Announcement.find({ workspace: workspaceId })
       .populate("author", "name email avatar profilePicture")
       .sort("-createdAt")
       .limit(10)
@@ -401,15 +453,75 @@ class WorkspaceService {
       .sort("-startTime")
       .lean();
 
-    // 5. Fetch tasks across workspace (full set; analytics must not be capped)
-    const recentTasks = await Task.find({ 
-      workspace: workspaceId, 
-      isDeleted: false 
-    })
-      .select("_id title status priority assignee space list updatedAt")
+    // 5. Fetch tasks based on effective analytics scope
+    const activeLists = await List.find({
+      workspace: workspaceId,
+      isDeleted: false
+    }).select("_id").lean();
+    const activeListIds = activeLists.map((l: any) => l._id);
+
+    const taskQuery: any = {
+      workspace: workspaceId,
+      list: { $in: activeListIds },
+      isDeleted: false
+    };
+    if (createdAtRange) taskQuery.createdAt = createdAtRange;
+    if (effectiveView === "personal") {
+      taskQuery.$or = [{ assignee: userId }, { createdBy: userId }];
+    }
+
+    const recentTasks = await Task.find(taskQuery)
+      .select("_id title status priority assignee space list updatedAt deadline completedAt createdAt")
       .populate("assignee", "name email avatar profilePicture")
       .sort("-updatedAt")
       .lean();
+
+    const isPrivilegedDashboardUser = ["owner", "admin", "operations_manager", "project_manager"].includes(userRole);
+    let dashboardSpaces: any[] = [];
+
+    if (isPrivilegedDashboardUser) {
+      const spaceDocs = await Space.find({
+        workspace: workspaceId,
+        isDeleted: false
+      })
+        .select("_id name status color")
+        .lean();
+
+      const taskCountsBySpace = new Map<string, { totalTasks: number; completedTasks: number }>();
+      for (const task of recentTasks as any[]) {
+        const spaceId = task.space?.toString?.() || String(task.space || "");
+        if (!spaceId) continue;
+        const current = taskCountsBySpace.get(spaceId) || { totalTasks: 0, completedTasks: 0 };
+        current.totalTasks += 1;
+        if (String(task.status || "").toLowerCase() === "done") {
+          current.completedTasks += 1;
+        }
+        taskCountsBySpace.set(spaceId, current);
+      }
+
+      dashboardSpaces = spaceDocs.map((space: any) => {
+        const counts = taskCountsBySpace.get(space._id.toString()) || { totalTasks: 0, completedTasks: 0 };
+        return {
+          _id: space._id,
+          name: space.name,
+          status: space.status,
+          color: space.color,
+          totalTasks: counts.totalTasks,
+          completedTasks: counts.completedTasks
+        };
+      });
+    } else {
+      const HierarchyService = require("./hierarchyService").default;
+      const hierarchy = await HierarchyService.getWorkspaceHierarchy(workspaceId, userId, userRole);
+      dashboardSpaces = (hierarchy.spaces || []).map((space: any) => ({
+        _id: space._id,
+        name: space.name,
+        status: space.status,
+        color: space.color,
+        totalTasks: space.totalTasks || 0,
+        completedTasks: space.completedTasks || 0
+      }));
+    }
 
     // 6. Fetch Sticky Note for this user
     const stickyNote = await stickyNoteService.getStickyNote(workspaceId, userId);
@@ -421,23 +533,133 @@ class WorkspaceService {
     });
 
     // 8. Fetch Performance Metrics
-    const userPerformance = await performanceService.getUserPerformance(userId, workspaceId);
+    const userPerformance = await performanceService.getUserPerformance(userId, workspaceId, period);
     
-    // 9. Fetch Team Performance (for admins/owners/managers only)
-    let teamPerformance = null;
-    const isPrivileged = isOwner || (memberObj && (
-      memberObj.role === 'admin' || 
-      memberObj.role === 'owner' || 
-      memberObj.role === 'operations_manager' || 
-      memberObj.role === 'project_manager'
-    ));
-    
-    if (isPrivileged) {
-      teamPerformance = await performanceService.getTeamPerformance(workspaceId);
+    // 2. Build stats from effective scope (workspace or personal)
+    const now = new Date();
+    const totalTasks = recentTasks.length;
+    const completedTaskRows = recentTasks.filter((t: any) => t.status === "done");
+    const completedTasks = completedTaskRows.length;
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const openTaskRows = recentTasks.filter((t: any) => {
+      const s = String(t.status || "").toLowerCase();
+      return s !== "done" && s !== "cancelled";
+    });
+    const delayedOpenTasks = openTaskRows.filter((t: any) => t.deadline && new Date(t.deadline) < now).length;
+    const delayedRate = openTaskRows.length > 0 ? Math.round((delayedOpenTasks / openTaskRows.length) * 100) : 0;
+    const completedWithDeadlineRows = completedTaskRows.filter((t: any) => !!t.deadline);
+    const completedOnTimeWithDeadline = completedWithDeadlineRows.filter((t: any) => {
+      if (!t.completedAt || !t.deadline) return false;
+      return new Date(t.completedAt) <= new Date(t.deadline);
+    }).length;
+    const deadlineCompletionRate = completedWithDeadlineRows.length > 0
+      ? Math.round((completedOnTimeWithDeadline / completedWithDeadlineRows.length) * 100)
+      : 100;
+    const priorityBuckets: Record<string, number> = { Low: 0, Medium: 0, High: 0, Urgent: 0 };
+    const buildPriorityPerformance = (taskRows: any[]) => {
+      const rowsByPriority: Record<string, any[]> = {
+        high: [],
+        medium: [],
+        low: []
+      };
+
+      for (const task of taskRows) {
+        const p = String(task.priority || "").toLowerCase();
+        if (p === "high" || p === "urgent") rowsByPriority.high.push(task);
+        else if (p === "medium") rowsByPriority.medium.push(task);
+        else if (p === "low") rowsByPriority.low.push(task);
+      }
+
+      const summarize = (rows: any[]) => {
+        const total = rows.length;
+        const doneRows = rows.filter((t: any) => String(t.status || "").toLowerCase() === "done");
+        const done = doneRows.length;
+        const completionRate = total > 0 ? Math.round((done / total) * 100) : 0;
+        const doneWithDeadline = doneRows.filter((t: any) => !!t.deadline);
+        const onTimeDone = doneWithDeadline.filter((t: any) => {
+          if (!t.completedAt || !t.deadline) return false;
+          return new Date(t.completedAt) <= new Date(t.deadline);
+        }).length;
+        const deadlineSuccess = doneWithDeadline.length > 0
+          ? Math.round((onTimeDone / doneWithDeadline.length) * 100)
+          : 100;
+        const delayedOpen = rows.filter((t: any) => {
+          const s = String(t.status || "").toLowerCase();
+          if (s === "done" || s === "cancelled") return false;
+          if (!t.deadline) return false;
+          return new Date(t.deadline) < now;
+        }).length;
+        return { total, done, completionRate, deadlineSuccess, delayedOpen };
+      };
+
+      return {
+        high: summarize(rowsByPriority.high),
+        medium: summarize(rowsByPriority.medium),
+        low: summarize(rowsByPriority.low)
+      };
+    };
+    const statusBuckets: Record<string, number> = { "To Do": 0, "In Progress": 0, Review: 0, Done: 0, Blocked: 0, Cancelled: 0 };
+    for (const task of recentTasks as any[]) {
+      const p = String(task.priority || "").toLowerCase();
+      if (p === "low") priorityBuckets.Low++;
+      else if (p === "medium") priorityBuckets.Medium++;
+      else if (p === "high") priorityBuckets.High++;
+      else if (p === "urgent") priorityBuckets.Urgent++;
+
+      const s = String(task.status || "").toLowerCase();
+      if (s === "todo") statusBuckets["To Do"]++;
+      else if (s === "inprogress" || s === "in-progress") statusBuckets["In Progress"]++;
+      else if (s === "review") statusBuckets.Review++;
+      else if (s === "done") statusBuckets.Done++;
+      else if (s === "blocked") statusBuckets.Blocked++;
+      else if (s === "cancelled") statusBuckets.Cancelled++;
     }
 
-    // 10. Fetch Velocity (last 30 days)
-    const velocity = await analyticsService.getVelocity(workspaceId, userId, 30);
+    const stats = {
+      totalTasks,
+      completedTasks,
+      completionRate,
+      delayedOpenTasks,
+      delayedRate,
+      deadlineCompletionRate,
+      priorityDistribution: Object.entries(priorityBuckets)
+        .filter(([, value]) => value > 0)
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value),
+      priorityPerformance: buildPriorityPerformance(recentTasks as any[]),
+      personalPriorityPerformance: buildPriorityPerformance(
+        (recentTasks as any[]).filter((t: any) => {
+          const assigneeId = typeof t.assignee === "string" ? t.assignee : t.assignee?._id;
+          return assigneeId?.toString?.() === userId;
+        })
+      ),
+      statusDistribution: Object.entries(statusBuckets)
+        .filter(([, value]) => value > 0)
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value)
+    };
+
+    // 9. Fetch Team Performance (for workspace analytics view only)
+    let teamPerformance = null;
+    if (canViewTeamAnalytics && effectiveView === "workspace") {
+      teamPerformance = await performanceService.getTeamPerformance(workspaceId, period);
+    }
+
+    // 10. Fetch Velocity (workspace for analytics-enabled users, otherwise personal timeline from scoped tasks)
+    let velocity = [];
+    if (effectiveView === "workspace" && canViewTeamAnalytics) {
+      velocity = await analyticsService.getVelocity(workspaceId, userId, 30);
+    } else {
+      const dayMap: Record<string, number> = {};
+      for (const task of recentTasks as any[]) {
+        const date = new Date(task.updatedAt || task.createdAt || Date.now()).toISOString().split("T")[0];
+        dayMap[date] = (dayMap[date] || 0) + 1;
+      }
+      velocity = Object.entries(dayMap)
+        .map(([date, completed]) => ({ date, completed }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-30);
+    }
 
     // 11. Calculate Dynamic Availability for all members
     const activeTimers = await TimeEntry.find({
@@ -455,7 +677,9 @@ class WorkspaceService {
         owner: workspace.owner
       },
       stats,
-      hierarchy: hierarchy.spaces,
+      hierarchy: dashboardSpaces,
+      // Team availability should remain meaningful for all users, so always return
+      // workspace member presence state (active/inactive) regardless of analytics view mode.
       members: workspace.members.map((member: any) => {
         // Check if member has an active timer in this workspace
         const hasActiveTimer = activeUserIds.has(member.user._id.toString());
@@ -473,7 +697,19 @@ class WorkspaceService {
         user: userPerformance,
         team: teamPerformance
       },
-      velocity
+      velocity,
+      view: {
+        requested: normalizedView || null,
+        effective: effectiveView,
+        available: analyticsAccess.availableViews,
+        canViewWorkspaceAnalytics: canViewTeamAnalytics,
+        canViewPersonalAnalytics
+      },
+      permissions: {
+        canViewAnnouncements,
+        canCreateAnnouncements,
+        canDeleteAnnouncements
+      }
     };
   }
 

@@ -299,6 +299,12 @@ class ChatService {
     // Validate channel access
     const channel = await this.validateChannelAccess(targetChannelId, senderId);
 
+    // Commit Log is system-managed only (webhook/automation). Manual chat messages are blocked.
+    const isCommitLogChannel = String(channel?.name || "").trim().toLowerCase() === "commit log";
+    if (isCommitLogChannel) {
+      throw new AppError("Commit Log is read-only. Manual messages are not allowed in this channel.", 403);
+    }
+
     // Enforce workspace/channel consistency to prevent cross-workspace leaks
     if (channel.workspace.toString() !== workspaceId) {
       throw new AppError("Channel does not belong to the provided workspace", 400);

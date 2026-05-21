@@ -11,6 +11,7 @@ const socketService = require("./socketService").default;
 const enhancedNotificationService = require("./enhancedNotificationService");
 const customFieldService = require("./customFieldService");
 const taskDependencyService = require("./taskDependencyService");
+const PermissionService = require("../permissions/permission.service");
 
 interface CreateTaskData {
   title: string;
@@ -411,6 +412,40 @@ class TaskService {
 
     // Check dependency blocking if status is changing
     if (updateData.status && updateData.status !== task.status) {
+      const normalizedIncomingStatus =
+        updateData.status === "in-progress" || updateData.status === "in progress"
+          ? "inprogress"
+          : updateData.status === "to do"
+            ? "todo"
+            : updateData.status;
+
+      // Enforce approval gate for moving task to DONE.
+      // Regular users can work up to REVIEW, but only privileged users can complete.
+      if (normalizedIncomingStatus === "done" && task.status !== "done") {
+        const workspaceDoc = await Workspace.findById(task.workspace).select("owner members.user members.canMarkTaskDone");
+        const isOwner = workspaceDoc?.owner?.toString() === userId;
+        const memberEntry = workspaceDoc?.members?.find((m: any) => m.user?.toString() === userId);
+        const hasPerUserDoneApproval = !!memberEntry?.canMarkTaskDone;
+
+        const listForContext = await List.findById(task.list).select("folder");
+        const canMarkDone = await PermissionService.can(userId, "MARK_TASK_DONE", {
+          workspaceId: task.workspace.toString(),
+          spaceId: task.space?.toString(),
+          folderId: listForContext?.folder?.toString(),
+          listId: task.list?.toString(),
+          resourceType: "task",
+          resourceId: task._id.toString(),
+          userId,
+        });
+
+        if (!isOwner && !hasPerUserDoneApproval && !canMarkDone) {
+          throw new AppError(
+            "You cannot move this task to Done. Move it to In Review and ask an approver.",
+            403
+          );
+        }
+      }
+
       const canTransition = await taskDependencyService.canTransitionToStatus(
         taskId,
         updateData.status

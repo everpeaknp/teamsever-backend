@@ -79,7 +79,14 @@ const router = express.Router({ mergeParams: true });
  *               properties:
  *                 success: { type: "boolean", example: true }
  *                 message: { type: "string", example: "Invitation sent to email@example.com" }
- *                 data: { $ref: "#/components/schemas/Invitation" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: "string" }
+ *                     inviteType: { type: "string", enum: [email, link] }
+ *                     spaceId: { type: "string", nullable: true }
+ *                     spacePermissionLevel: { $ref: "#/components/schemas/PermissionLevel" }
+ *                     expiresAt: { type: "string", format: "date-time" }
  *       400:
  *         description: Validation error
  *         content:
@@ -220,10 +227,17 @@ const inviteRouter = express.Router();
  *                 data:
  *                   type: object
  *                   properties:
- *                     workspace: { $ref: "#/components/schemas/Workspace" }
+ *                     workspace:
+ *                       type: object
+ *                       properties:
+ *                         _id: { type: "string" }
+ *                         name: { type: "string" }
+ *                         description: { type: "string", nullable: true }
  *                     role: { type: "string" }
  *                     alreadyMember: { type: "boolean" }
- *                     invitation: { $ref: "#/components/schemas/Invitation" }
+ *                     spaceId: { type: "string", nullable: true }
+ *                     spaceName: { type: "string", nullable: true }
+ *                     spacePermissionLevel: { $ref: "#/components/schemas/PermissionLevel" }
  *       400:
  *         description: Invitation expired or already accepted
  *         content:
@@ -270,6 +284,27 @@ inviteRouter.post("/accept/:token", protect, acceptInvite);
  *     responses:
  *       200:
  *         description: Successfully joined workspace
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: "boolean", example: true }
+ *                 message: { type: "string", example: "Successfully joined Team Workspace" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     workspace:
+ *                       type: object
+ *                       properties:
+ *                         _id: { type: "string" }
+ *                         name: { type: "string" }
+ *                         description: { type: "string", nullable: true }
+ *                     role: { type: "string" }
+ *                     alreadyMember: { type: "boolean" }
+ *                     spaceId: { type: "string", nullable: true }
+ *                     spaceName: { type: "string", nullable: true }
+ *                     spacePermissionLevel: { $ref: "#/components/schemas/PermissionLevel" }
  *       400:
  *         description: Code is required
  *       404:

@@ -7,6 +7,7 @@ const Workspace = require("../models/Workspace");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
 const notificationService = require("../services/enhancedNotificationService");
+const { roleHasPermission } = require("../permissions/permission.constants");
 
 /**
  * @desc    Get all members of a workspace
@@ -19,6 +20,7 @@ const getWorkspaceMembers = asyncHandler(
     const { workspaceId } = req.params;
 
     const workspace = await Workspace.findById(workspaceId)
+      .select("owner members rolePermissionAdditions")
       .populate("members.user", "name email avatar profilePicture")
       .populate("members.customRole");
 
@@ -30,25 +32,46 @@ const getWorkspaceMembers = asyncHandler(
 
     // Format response - return ALL members regardless of clock-in status
     // The status field is for time tracking (active/inactive = clocked in/out), not for member visibility
-    const members = workspace.members
-      .filter((member: any) => {
-        // Only filter out if user data is missing (deleted users)
-        const hasUserData = member.user && (member.user._id || member.user.name);
+    const visibleMembers = workspace.members.filter((member: any) => {
+      const hasUserData = member.user && (member.user._id || member.user.name);
+      return hasUserData;
+    });
 
-        return hasUserData;
+    const members = await Promise.all(
+      visibleMembers.map(async (member: any) => {
+        const memberUserId = member.user._id.toString();
+        const rolePermissionAdditions =
+          workspace.rolePermissionAdditions?.find(
+            (entry: any) => String(entry.role || "").toLowerCase() === String(member.role || "").toLowerCase()
+          )?.permissions || [];
+        const memberAdditionalPermissions = member.additionalPermissions || [];
+        const memberRestrictedPermissions = member.restrictedPermissions || [];
+        const customRolePermissions =
+          member.customRole && Array.isArray(member.customRole.permissions) ? member.customRole.permissions : [];
+        const permissionBasedDoneApproval =
+          !memberRestrictedPermissions.includes("MARK_TASK_DONE") &&
+          (
+            roleHasPermission(member.role, "MARK_TASK_DONE") ||
+            rolePermissionAdditions.includes("MARK_TASK_DONE") ||
+            memberAdditionalPermissions.includes("MARK_TASK_DONE") ||
+            customRolePermissions.includes("MARK_TASK_DONE")
+          );
+
+        return {
+          _id: member.user._id,
+          name: member.user.name,
+          email: member.user.email,
+          role: member.role,
+          status: member.status || 'inactive',
+          canMarkTaskDone: !!member.canMarkTaskDone || permissionBasedDoneApproval,
+          isOwner: workspace.owner.toString() === memberUserId,
+          customRoleTitle: member.customRoleTitle,
+          customRole: member.customRole,
+          avatar: member.user.avatar,
+          profilePicture: member.user.profilePicture,
+        };
       })
-      .map((member: any) => ({
-        _id: member.user._id,
-        name: member.user.name,
-        email: member.user.email,
-        role: member.role,
-        status: member.status || 'inactive',
-        isOwner: workspace.owner.toString() === member.user._id.toString(),
-        customRoleTitle: member.customRoleTitle,
-        customRole: member.customRole,
-        avatar: member.user.avatar,
-        profilePicture: member.user.profilePicture,
-      }));
+    );
 
 
 
@@ -84,18 +107,28 @@ const getWorkspaceMembers = asyncHandler(
 const updateMemberRole = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { workspaceId, userId } = req.params;
-    const { role } = req.body;
+    const { role, canMarkTaskDone } = req.body;
     const currentUserId = req.user!.id;
 
-    // Validate role
+    // Validate at least one updatable field
+    if (role === undefined && canMarkTaskDone === undefined) {
+      return next(new AppError("Provide role and/or canMarkTaskDone to update", 400));
+    }
+
+    // Validate role when provided
     const validRoles = ["owner", "admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"];
-    if (!role || !validRoles.includes(role)) {
+    if (role !== undefined && !validRoles.includes(role)) {
       return next(
         new AppError(
           `Invalid role. Must be one of: ${validRoles.join(", ")}`,
           400
         )
       );
+    }
+
+    // Validate done approval toggle when provided
+    if (canMarkTaskDone !== undefined && typeof canMarkTaskDone !== "boolean") {
+      return next(new AppError("canMarkTaskDone must be boolean", 400));
     }
 
     const workspace = await Workspace.findById(workspaceId);
@@ -113,7 +146,7 @@ const updateMemberRole = asyncHandler(
     }
 
     // Check if trying to change owner role
-    if (workspace.owner.toString() === userId && role !== "owner") {
+    if (role !== undefined && workspace.owner.toString() === userId && role !== "owner") {
       return next(
         new AppError(
           "Cannot change owner role. Transfer ownership first.",
@@ -123,7 +156,7 @@ const updateMemberRole = asyncHandler(
     }
 
     // Check if trying to make someone else owner
-    if (role === "owner" && workspace.owner.toString() !== userId) {
+    if (role !== undefined && role === "owner" && workspace.owner.toString() !== userId) {
       return next(
         new AppError(
           "Cannot assign owner role. Use transfer ownership endpoint.",
@@ -137,12 +170,32 @@ const updateMemberRole = asyncHandler(
       return next(new AppError("Cannot change your own role", 400));
     }
 
-    // Update the role
-    workspace.members[memberIndex].role = role;
-    
-    // Clear custom role fields when switching to a native system role
-    workspace.members[memberIndex].customRole = null;
-    workspace.members[memberIndex].customRoleTitle = null;
+    // Update the role if present
+    if (role !== undefined) {
+      workspace.members[memberIndex].role = role;
+      
+      // Clear custom role fields when switching to a native system role
+      workspace.members[memberIndex].customRole = null;
+      workspace.members[memberIndex].customRoleTitle = null;
+    }
+
+    // Update done-approval toggle if present
+    if (canMarkTaskDone !== undefined) {
+      workspace.members[memberIndex].canMarkTaskDone = canMarkTaskDone;
+      const additionalPermissions = new Set(workspace.members[memberIndex].additionalPermissions || []);
+      const restrictedPermissions = new Set(workspace.members[memberIndex].restrictedPermissions || []);
+
+      if (canMarkTaskDone) {
+        additionalPermissions.add("MARK_TASK_DONE");
+        restrictedPermissions.delete("MARK_TASK_DONE");
+      } else {
+        additionalPermissions.delete("MARK_TASK_DONE");
+        restrictedPermissions.add("MARK_TASK_DONE");
+      }
+
+      workspace.members[memberIndex].additionalPermissions = Array.from(additionalPermissions);
+      workspace.members[memberIndex].restrictedPermissions = Array.from(restrictedPermissions);
+    }
 
     await workspace.save();
 
@@ -164,6 +217,7 @@ const updateMemberRole = asyncHandler(
         name: updatedMember.user.name,
         email: updatedMember.user.email,
         role: updatedMember.role,
+        canMarkTaskDone: !!updatedMember.canMarkTaskDone,
         isOwner: workspace.owner.toString() === updatedMember.user._id.toString(),
       },
     });

@@ -14,12 +14,17 @@ const validate = (schema: ZodSchema) => {
       });
 
       if (!result.success) {
-        const errors = result.error.issues.map(err => `${err.path.join('.')}: ${err.message}`);
+        // zod returns `error.issues`; some tests/mocks may provide `error.errors`.
+        const rawIssues = result.error.issues || result.error.errors || [];
+        const errors = rawIssues.map((err: any) => {
+          const path = Array.isArray(err.path) ? err.path.join('.') : (err.path || '');
+          return `${path}: ${err.message}`;
+        });
         console.error('[Validation] Validation errors:', errors);
         console.error('[Validation] Request body:', JSON.stringify(req.body, null, 2));
 
         const errorMessage = errors.join(", ");
-        
+
         return next(new AppError(
           `Validation failed: ${errorMessage}`,
           400

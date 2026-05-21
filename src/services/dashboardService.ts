@@ -4,6 +4,7 @@ const Space = require("../models/Space");
 const List = require("../models/List");
 const AppError = require("../utils/AppError");
 const mongoose = require("mongoose");
+const PermissionService = require("../permissions/permission.service");
 
 interface TasksSummaryParams {
   workspaceId?: string;
@@ -43,6 +44,17 @@ class DashboardService {
 
     if (!isOwner && !isMember) {
       throw new AppError("You do not have access to this workspace", 403);
+    }
+
+    // Dashboard endpoints expose analytics-style aggregates; enforce explicit analytics permission.
+    const canViewAnalytics = await PermissionService.can(
+      userId,
+      "VIEW_ANALYTICS_PERSONAL",
+      { userId, workspaceId }
+    );
+
+    if (!canViewAnalytics) {
+      throw new AppError("You do not have permission to view analytics", 403);
     }
 
     return workspace;

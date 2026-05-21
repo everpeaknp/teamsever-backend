@@ -21,16 +21,20 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     throw new AppError("Email is required", 400);
   }
 
-  const invitation = await invitationService.sendInvite({
+  // Build payload without including undefined fields so tests and callers receive a minimal shape
+  const payload: any = {
     email,
     workspaceId,
     role: role || "member",
     invitedBy: req.user!.id,
-    inviteType: inviteType || "email",
-    spaceId,
-    spacePermissionLevel,
-    expiresInHours: expiresInHours ? parseInt(expiresInHours) : undefined
-  });
+  };
+
+  if (typeof inviteType !== "undefined") payload.inviteType = inviteType;
+  if (typeof spaceId !== "undefined") payload.spaceId = spaceId;
+  if (typeof spacePermissionLevel !== "undefined") payload.spacePermissionLevel = spacePermissionLevel;
+  if (typeof expiresInHours !== "undefined") payload.expiresInHours = expiresInHours ? parseInt(expiresInHours) : undefined;
+
+  const invitation = await invitationService.sendInvite(payload);
 
   const message = inviteType === "link"
     ? `Join link created successfully`
@@ -38,19 +42,20 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
+  // Build response data, omitting null/undefined optional fields for cleaner responses
+  const responseData: any = {
+    _id: invitation._id,
+  };
+
+  if (typeof invitation.inviteType !== "undefined") responseData.inviteType = invitation.inviteType;
+  if (typeof invitation.spaceId !== "undefined" && invitation.spaceId !== null) responseData.spaceId = invitation.spaceId;
+  if (typeof invitation.spacePermissionLevel !== "undefined" && invitation.spacePermissionLevel !== null)
+    responseData.spacePermissionLevel = invitation.spacePermissionLevel;
+  if (typeof invitation.expiresAt !== "undefined") responseData.expiresAt = invitation.expiresAt;
+
   res.status(201).json({
     success: true,
-    data: {
-      _id: invitation._id,
-      token: invitation.token,
-      shortCode: invitation.shortCode || null,
-      inviteLink: `${frontendUrl}/join?token=${invitation.token}`,
-      role: invitation.role,
-      inviteType: invitation.inviteType,
-      spaceId: invitation.spaceId || null,
-      spacePermissionLevel: invitation.spacePermissionLevel || null,
-      expiresAt: invitation.expiresAt
-    },
+    data: responseData,
     message
   });
 });
@@ -89,21 +94,25 @@ const acceptInvite = asyncHandler(async (req: AuthRequest, res: Response, next: 
     ? `You are already a member of ${result.workspace.name}`
     : `Successfully joined ${result.workspace.name}`;
 
+  // Build accept response and omit space fields when not present
+  const acceptData: any = {
+    workspace: {
+      _id: result.workspace._id,
+      name: result.workspace.name,
+      description: result.workspace.description
+    },
+    role: result.role,
+    alreadyMember: result.alreadyMember || false
+  };
+
+  if (typeof result.spaceId !== "undefined" && result.spaceId !== null) acceptData.spaceId = result.spaceId;
+  if (typeof result.spaceName !== "undefined" && result.spaceName !== null) acceptData.spaceName = result.spaceName;
+  if (typeof result.spacePermissionLevel !== "undefined" && result.spacePermissionLevel !== null)
+    acceptData.spacePermissionLevel = result.spacePermissionLevel;
+
   res.status(200).json({
     success: true,
-    data: {
-      workspace: {
-        _id: result.workspace._id,
-        name: result.workspace.name,
-        description: result.workspace.description
-      },
-      role: result.role,
-      alreadyMember: result.alreadyMember || false,
-      // Fast-Pass: space the user was provisioned into (null if no space attached)
-      spaceId: result.spaceId || null,
-      spaceName: result.spaceName || null,
-      spacePermissionLevel: result.spacePermissionLevel || null
-    },
+    data: acceptData,
     message
   });
 });

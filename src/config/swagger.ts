@@ -217,8 +217,10 @@ const options: swaggerJsdoc.Options = {
                   email: { type: "string" },
                   role: { type: "string" },
                   status: { type: "string" },
+                  canMarkTaskDone: { type: "boolean", description: "Per-user approval toggle for moving tasks to Done" },
                   isOwner: { type: "boolean" },
                   customRoleTitle: { type: "string", nullable: true },
+                  customRole: { $ref: "#/components/schemas/CustomRole", nullable: true },
                   avatar: { type: "string", nullable: true },
                   profilePicture: { type: "string", nullable: true }
                 }
@@ -249,14 +251,106 @@ const options: swaggerJsdoc.Options = {
                 { $ref: "#/components/schemas/User" }
               ]
             },
-            role: { type: "string", enum: ["owner", "admin", "operations_manager", "project_manager", "member", "developer", "qa"] },
+            role: { type: "string", enum: ["owner", "admin", "operations_manager", "project_manager", "member", "developer", "qa", "guest"] },
             status: { 
               type: "string", 
               enum: ["active", "inactive"],
               description: "Real-time clock-in status. 'active' means currently clocked into a task, 'inactive' means clocked out."
             },
+            customRole: {
+              oneOf: [
+                { type: "string" },
+                { $ref: "#/components/schemas/CustomRole" }
+              ],
+              nullable: true
+            },
             customRoleTitle: { type: "string", nullable: true },
+            canMarkTaskDone: { type: "boolean", description: "Per-user approval toggle for moving tasks to Done", default: false },
+            additionalPermissions: {
+              type: "array",
+              items: { type: "string" },
+              description: "Member-specific additive permission overrides for this workspace."
+            },
+            restrictedPermissions: {
+              type: "array",
+              items: { type: "string" },
+              description: "Member-specific restrictive permission overrides for this workspace."
+            },
             joinedAt: { type: "string", format: "date-time" }
+          }
+        },
+        CustomRole: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            workspace: { type: "string" },
+            name: { type: "string" },
+            label: { type: "string" },
+            color: { type: "string", example: "#0F766E" },
+            description: { type: "string", nullable: true },
+            permissions: {
+              type: "array",
+              items: { type: "string" }
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" }
+          }
+        },
+        CustomRoleUpsertInput: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            label: { type: "string" },
+            color: { type: "string", example: "#0F766E" },
+            description: { type: "string", nullable: true },
+            permissions: {
+              type: "array",
+              items: { type: "string" }
+            }
+          }
+        },
+        SystemRolePermissionAddition: {
+          type: "object",
+          properties: {
+            role: {
+              type: "string",
+              enum: ["owner", "admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"]
+            },
+            permissions: {
+              type: "array",
+              items: { type: "string" }
+            }
+          }
+        },
+        SystemRolePermissionAdditionsResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", nullable: true },
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/SystemRolePermissionAddition" }
+            }
+          }
+        },
+        MemberPermissionOverridesResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", nullable: true },
+            data: {
+              type: "object",
+              properties: {
+                additionalPermissions: {
+                  type: "array",
+                  items: { type: "string" }
+                },
+                restrictedPermissions: {
+                  type: "array",
+                  items: { type: "string" }
+                }
+              }
+            }
           }
         },
         Announcement: {
@@ -2014,17 +2108,89 @@ const options: swaggerJsdoc.Options = {
           type: "object",
           properties: {
             success: { type: "boolean", example: true },
+            message: { type: "string", example: "Consolidated analytics data retrieved successfully" },
             data: {
               type: "object",
               properties: {
-                workspace: { type: "object" },
-                stats: { type: "object" },
-                hierarchy: { type: "array" },
-                members: { type: "array" },
-                tasks: { type: "array" },
-                announcements: { type: "array" },
+                workspace: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    logo: { type: "string", nullable: true },
+                    owner: {
+                      oneOf: [
+                        { type: "string" },
+                        { $ref: "#/components/schemas/User" }
+                      ]
+                    }
+                  }
+                },
+                stats: { type: "object", description: "Dashboard statistics and distribution summaries derived from the effective analytics scope." },
+                hierarchy: {
+                  type: "array",
+                  description: "Dashboard-oriented space summary rows used by project-health widgets. This is lighter than the full /hierarchy tree.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      _id: { type: "string" },
+                      name: { type: "string" },
+                      status: { type: "string", nullable: true },
+                      color: { type: "string", nullable: true },
+                      totalTasks: { type: "number" },
+                      completedTasks: { type: "number" }
+                    }
+                  }
+                },
+                members: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/WorkspaceMember" }
+                },
+                tasks: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Task" }
+                },
+                announcements: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Announcement" }
+                },
                 currentRunningTimer: { type: "object", nullable: true },
                 stickyNote: { type: "object", nullable: true }
+                ,
+                recentActivity: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/WorkspaceActivity" }
+                },
+                performance: {
+                  type: "object",
+                  properties: {
+                    user: { type: "object" },
+                    team: {
+                      type: "array",
+                      nullable: true,
+                      items: { type: "object" }
+                    }
+                  }
+                },
+                velocity: { type: "array", items: { type: "object" } },
+                view: {
+                  type: "object",
+                  properties: {
+                    requested: { type: "string", nullable: true },
+                    effective: { type: "string" },
+                    available: { type: "array", items: { type: "string" } },
+                    canViewWorkspaceAnalytics: { type: "boolean" },
+                    canViewPersonalAnalytics: { type: "boolean" }
+                  }
+                },
+                permissions: {
+                  type: "object",
+                  properties: {
+                    canViewAnnouncements: { type: "boolean" },
+                    canCreateAnnouncements: { type: "boolean" },
+                    canDeleteAnnouncements: { type: "boolean" }
+                  }
+                }
               }
             }
           }

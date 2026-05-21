@@ -21,6 +21,14 @@ export interface IWorkspaceMember {
   status?: "active" | "inactive";
   customRoleTitle?: string; 
   lastChatReadAt?: Date;
+  canMarkTaskDone?: boolean;
+  additionalPermissions?: string[];
+  restrictedPermissions?: string[];
+}
+
+export interface IRolePermissionAddition {
+  role: WorkspaceRole | "owner" | "admin" | "operations_manager" | "project_manager" | "qa" | "developer" | "member" | "guest";
+  permissions: string[];
 }
 
 export interface IWorkspace extends Document {
@@ -28,6 +36,7 @@ export interface IWorkspace extends Document {
   logo?: string;
   owner: Schema.Types.ObjectId;
   members: IWorkspaceMember[];
+  rolePermissionAdditions?: IRolePermissionAddition[];
   lastAnnouncementTime?: Date;
   isDeleted: boolean;
   deletedAt?: Date;
@@ -83,7 +92,36 @@ const workspaceSchema = new mongoose.Schema(
         lastChatReadAt: {
           type: Date,
           default: null
-        }
+        },
+        canMarkTaskDone: {
+          type: Boolean,
+          default: false
+        },
+        additionalPermissions: [
+          {
+            type: String
+          }
+        ],
+        restrictedPermissions: [
+          {
+            type: String
+          }
+        ]
+      }
+    ],
+    rolePermissionAdditions: [
+      {
+        role: {
+          type: String,
+          enum: ["owner", "admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"],
+          required: true
+        },
+        permissions: [
+          {
+            type: String,
+            required: true
+          }
+        ]
       }
     ],
     isDeleted: {

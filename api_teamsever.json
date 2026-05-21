@@ -42,9 +42,29 @@
                 "workspaces",
                 "{{id}}",
                 "analytics"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "workspace",
+                  "description": "Optional: workspace|personal. Backend enforces personal for non-privileged users.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-04-21",
+                  "description": "Optional inclusive start date (YYYY-MM-DD) for task/performance windows.",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-05-21",
+                  "description": "Optional inclusive end date (YYYY-MM-DD) for task/performance windows.",
+                  "disabled": true
+                }
               ]
             },
-            "description": "### ⭐ Consolidated Workspace Data\n**What you get in one call:**\n\n| Field | Description |\n|---|---|\n| `workspace` | Workspace name and details |\n| `stats` | Total tasks, completion rate, priority & status breakdown |\n| `hierarchy` | Full tree: Spaces → Folders → Lists |\n| `members` | Who is clocked in right now (sorted: active first) |\n| `tasks` | Workspace tasks (full set, newest first) |\n| `announcements` | Latest workspace announcements |\n| `currentRunningTimer` | The logged-in user's active timer (if any) |\n| `stickyNote` | The logged-in user's personal sticky note for this workspace |\n| `recentActivity` | Recent actions performed in this workspace |\n| `performance` | Performance metrics for the user (and team for admins) |\n\n**Performance:** MongoDB `$facet` + `Promise.all` → sub-second response on mobile.\n"
+            "description": "Primary dashboard endpoint. Returns workspace info, scoped stats, lightweight dashboard space summaries, availability, announcements, recent activity, sticky note, timers, and performance data. The `hierarchy` field is a dashboard-oriented per-space summary, not the full navigation tree."
           },
           "response": []
         }
@@ -499,7 +519,7 @@
                 "members"
               ]
             },
-            "description": "Returns all members of a workspace with their roles and status."
+            "description": "Returns all workspace members with role, clock-in status, custom role metadata, and effective done-approval state."
           },
           "response": []
         },
@@ -571,6 +591,11 @@
                 "value": "Bearer {{token}}",
                 "type": "text",
                 "disabled": false
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "url": {
@@ -586,7 +611,16 @@
                 "{{userId}}"
               ]
             },
-            "description": "Change a member's role (Admin/Owner only)."
+            "description": "Change a member role and/or done-approval toggle. Send either `role`, `canMarkTaskDone`, or both.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"developer\",\n  \"canMarkTaskDone\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -650,7 +684,7 @@
                 "{{token}}"
               ]
             },
-            "description": "Accepts an invitation and adds the user to the workspace"
+            "description": "Accepts a workspace invitation. Response returns `workspace`, `role`, `alreadyMember`, and optional fast-pass space fields."
           },
           "response": []
         },
@@ -761,7 +795,7 @@
                 "redeem"
               ]
             },
-            "description": "Join a workspace using a short human-friendly code (e.g. \"A3BX9K2T\"). Works identically to the link-based flow including fast-pass space provisioning."
+            "description": "Join a workspace using an 8-character invite code. Response mirrors the accept-invite contract with optional fast-pass space fields."
           },
           "response": []
         },
@@ -789,7 +823,16 @@
                 "invites"
               ]
             },
-            "description": "Create an invitation link for a workspace"
+            "description": "Create a workspace invitation. Response now returns a compact payload with `_id` and optional invitation metadata, not deep-link helper fields.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"role\": \"member\",\n  \"inviteType\": \"email\",\n  \"expiresInHours\": 168,\n  \"spaceId\": \"{{spaceId}}\",\n  \"spacePermissionLevel\": \"EDIT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -825,8 +868,169 @@
     },
     {
       "name": "2.4 Workspaces — Custom Roles",
-      "description": "Assign and update custom role titles for workspace members.",
+      "description": "Workspace-scoped custom roles, built-in role additions, and member-level permission overrides.",
       "item": [
+        {
+          "name": "Get workspace custom roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/custom-roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "custom-roles"
+              ]
+            },
+            "description": "Returns all custom roles defined in the workspace."
+          },
+          "response": []
+        },
+        {
+          "name": "Create custom role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/custom-roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "custom-roles"
+              ]
+            },
+            "description": "Creates a custom workspace role with normalized permission keys.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ops_announcer\",\n  \"label\": \"Ops Announcer\",\n  \"color\": \"#0F766E\",\n  \"permissions\": [\n    \"VIEW_ANNOUNCEMENT\",\n    \"CREATE_ANNOUNCEMENT\"\n  ],\n  \"description\": \"Can publish workspace announcements.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get custom role permission catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/custom-roles/permission-catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "custom-roles",
+                "permission-catalog"
+              ]
+            },
+            "description": "Returns canonical permission keys, labels, and categories for role-builder UIs."
+          },
+          "response": []
+        },
+        {
+          "name": "Update custom role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/custom-roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "custom-roles",
+                "{{roleId}}"
+              ]
+            },
+            "description": "Partially updates a workspace custom role.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Ops Broadcaster\",\n  \"permissions\": [\n    \"VIEW_ANNOUNCEMENT\",\n    \"CREATE_ANNOUNCEMENT\",\n    \"DELETE_ANNOUNCEMENT\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete custom role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/custom-roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "custom-roles",
+                "{{roleId}}"
+              ]
+            },
+            "description": "Deletes a workspace custom role and clears its member assignments."
+          },
+          "response": []
+        },
         {
           "name": "Update member custom role",
           "request": {
@@ -853,7 +1057,152 @@
                 "custom-role"
               ]
             },
-            "description": "Update custom role for a workspace member (Owner only)"
+            "description": "Assigns or clears a workspace custom role for a member.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customRoleId\": \"{{roleId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get system role permission additions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/system-roles/permission-additions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "system-roles",
+                "permission-additions"
+              ]
+            },
+            "description": "Returns additive permission entries for built-in system roles in this workspace only."
+          },
+          "response": []
+        },
+        {
+          "name": "Update system role permission additions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/system-roles/permission-additions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "system-roles",
+                "permission-additions"
+              ]
+            },
+            "description": "Upserts additive-only permission boosts for a built-in system role in this workspace.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"operations_manager\",\n  \"permissions\": [\n    \"CHANGE_MEMBER_ROLE\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get member permission overrides",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/{{memberId}}/permission-additions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "members",
+                "{{memberId}}",
+                "permission-additions"
+              ]
+            },
+            "description": "Returns additive and restrictive permission overrides for one member in this workspace."
+          },
+          "response": []
+        },
+        {
+          "name": "Update member permission overrides",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces/{{workspaceId}}/members/{{memberId}}/permission-additions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                "{{workspaceId}}",
+                "members",
+                "{{memberId}}",
+                "permission-additions"
+              ]
+            },
+            "description": "Sets member-specific additive and restrictive permission overrides for this workspace.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"additionalPermissions\": [\n    \"MARK_TASK_DONE\"\n  ],\n  \"restrictedPermissions\": [\n    \"CREATE_ANNOUNCEMENT\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }
@@ -921,7 +1270,16 @@
                 "announcements"
               ]
             },
-            "description": "Create a new announcement that will be visible to all workspace members."
+            "description": "Creates a workspace announcement. Body only requires `content`. Backend may reject the request if announcement cooldown is active for the workspace owner's current plan.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"System maintenance starts at 00:00 UTC.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -5328,9 +5686,23 @@
                 "team",
                 "workspace",
                 "{{workspaceId}}"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-04-21",
+                  "description": "Optional inclusive start date (YYYY-MM-DD).",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-05-21",
+                  "description": "Optional inclusive end date (YYYY-MM-DD).",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Retrieve team performance metrics"
+            "description": "Retrieve aggregated team performance metrics for the workspace. Supports optional date filters."
           },
           "response": []
         },
@@ -5418,6 +5790,57 @@
               ]
             },
             "description": "Retrieve workspace performance summary"
+          },
+          "response": []
+        },
+        {
+          "name": "Get detailed user performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/performance/user/{{userId}}/workspace/{{workspaceId}}/details",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "performance",
+                "user",
+                "{{userId}}",
+                "workspace",
+                "{{workspaceId}}",
+                "details"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200",
+                  "description": "Optional max task-history rows to return.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-04-21",
+                  "description": "Optional inclusive start date (YYYY-MM-DD).",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-05-21",
+                  "description": "Optional inclusive end date (YYYY-MM-DD).",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieve detailed user performance metrics and task history with optional limit and date filters."
           },
           "response": []
         }
