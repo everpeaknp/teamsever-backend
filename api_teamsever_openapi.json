@@ -10209,7 +10209,7 @@
     "/api/spaces/{spaceId}/folders": {
       "post": {
         "summary": "Create folder",
-        "description": "Create a new folder in a space",
+        "description": "Create a new folder in a space. The creator is added to the folder with EDIT access, not FULL, so folder creation does not implicitly grant list creation rights.",
         "tags": [
           "3.4 Hierarchy — Folders"
         ],
@@ -11486,7 +11486,7 @@
     "/api/spaces/{spaceId}/lists": {
       "post": {
         "summary": "Create list",
-        "description": "Create a new list in a space",
+        "description": "Create a new list in a space. Permission is resolved server-side from workspace role plus space, folder, or list overrides; folder FULL and space FULL grant list creation.",
         "tags": [
           "3.6 Hierarchy — Lists"
         ],

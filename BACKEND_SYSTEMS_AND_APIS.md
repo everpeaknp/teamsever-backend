@@ -187,6 +187,8 @@
 4. Folder FULL behavior:
    - User can create/update/delete lists and tasks inside that folder scope.
    - Access does not grant full space-wide power.
+   - Folder creation now adds the creator with `EDIT` access only, so `CREATE_FOLDER` does not implicitly grant `CREATE_LIST`.
+   - Users still need an explicit `CREATE_LIST` grant, folder `FULL`, or space `FULL` to create lists.
 5. **Need-to-Know Visibility (Hierarchy & Files)**:
    - The hierarchy tree is filtered. Users only see Lists/Folders/Spaces where they are explicit members OR where they have an assigned task.
    - Assignees automatically gain `VIEW` access to parent resources (Space/Folder/List) to provide context for their work.

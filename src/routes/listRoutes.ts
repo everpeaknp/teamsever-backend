@@ -27,7 +27,7 @@ const spaceListRouter = express.Router({ mergeParams: true });
  * /api/spaces/{spaceId}/lists:
  *   post:
  *     summary: Create list
- *     description: Create a new list in a space
+ *     description: Create a new list in a space. Permission is resolved server-side from workspace role plus space, folder, or list overrides; folder FULL and space FULL grant list creation.
  *     tags: ["3.6 Hierarchy — Lists"]
  *     security:
  *       - bearerAuth: []

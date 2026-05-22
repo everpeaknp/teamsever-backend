@@ -70,7 +70,7 @@ class FolderService {
       folder: folder._id,
       space: spaceId,
       workspace: space.workspace,
-      permissionLevel: "FULL",
+      permissionLevel: "EDIT",
       addedBy: userId
     });
 

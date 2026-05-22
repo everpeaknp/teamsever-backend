@@ -25,7 +25,7 @@ const spaceFolderRouter = express.Router({ mergeParams: true });
  * /api/spaces/{spaceId}/folders:
  *   post:
  *     summary: Create folder
- *     description: Create a new folder in a space
+ *     description: Create a new folder in a space. The creator is added to the folder with EDIT access, not FULL, so folder creation does not implicitly grant list creation rights.
  *     tags: ["3.4 Hierarchy — Folders"]
  *     security:
  *       - bearerAuth: []
