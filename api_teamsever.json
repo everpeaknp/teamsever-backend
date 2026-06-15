@@ -1250,6 +1250,33 @@
       "description": "Forgot password, reset password, get & update own user profile.",
       "item": [
         {
+          "name": "Soft delete current user account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Marks the authenticated user's account as deleted and removes sensitive information."
+          },
+          "response": []
+        },
+        {
           "name": "Get current user profile",
           "request": {
             "method": "GET",

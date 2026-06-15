@@ -94,7 +94,36 @@ router.patch(
  *                 data: { $ref: "#/components/schemas/NotificationPreferences" }
  */
 router.patch("/notification-preferences", protect, updateNotificationPreferences);
+
+/**
+ * @swagger
+ * /api/users/me:
+ *   delete:
+ *     summary: Soft delete current user account
+ *     description: Marks the authenticated user's account as deleted and removes sensitive information.
+ *     tags: ["1.2 Auth — Password & Profile"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for account deletion
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: User not found
+ */
 router.delete("/me", protect, deleteMyAccount);
+
 /**
  * @swagger
  * /api/users/{userId}:
