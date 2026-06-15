@@ -4,6 +4,7 @@ const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const { emitTaskEvent, emitWorkspaceEvent } = require("../socket/events");
+const analyticsV2CacheService = require("./analyticsV2CacheService");
 
 interface StartTimerData {
   taskId: string;
@@ -126,6 +127,7 @@ class TimeEntryService {
       // Silent fail - real-time events are non-critical
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(task.workspace.toString());
     return timeEntry;
   }
 
@@ -205,6 +207,7 @@ class TimeEntryService {
       // Silent fail - real-time events are non-critical
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(timeEntry.workspace.toString());
     return timeEntry;
   }
 
@@ -320,6 +323,7 @@ class TimeEntryService {
       // Silent fail - real-time events are non-critical
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(task.workspace.toString());
     return timeEntry;
   }
 
@@ -559,6 +563,7 @@ class TimeEntryService {
       // Silent fail - activity logging is non-critical
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(timeEntry.workspace.toString());
     return { message: "Time entry deleted successfully" };
   }
 

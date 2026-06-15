@@ -15,6 +15,7 @@ const PermissionService = require("../permissions/permission.service");
 
 const PlanInheritanceService = require("./planInheritanceService").default;
 const EntitlementService = require("./entitlementService").default;
+const analyticsV2CacheService = require("./analyticsV2CacheService");
 import { resolveAnalyticsViewAccess } from "../permissions/analyticsAccess";
 interface CreateWorkspaceData {
   name: string;
@@ -22,16 +23,37 @@ interface CreateWorkspaceData {
 }
 
 class WorkspaceService {
-  private buildDateRange(from?: string, to?: string): { $gte?: Date; $lte?: Date } | null {
+  private buildDateRange(
+    from?: string,
+    to?: string,
+    options?: { defaultToday?: boolean }
+  ): { $gte?: Date; $lte?: Date } | null {
     const range: { $gte?: Date; $lte?: Date } = {};
+
     if (from) {
       const d = new Date(from);
-      if (!Number.isNaN(d.getTime())) range.$gte = d;
+      if (!Number.isNaN(d.getTime())) {
+        d.setUTCHours(0, 0, 0, 0);
+        range.$gte = d;
+      }
     }
+
     if (to) {
       const d = new Date(to);
-      if (!Number.isNaN(d.getTime())) range.$lte = d;
+      if (!Number.isNaN(d.getTime())) {
+        d.setUTCHours(23, 59, 59, 999);
+        range.$lte = d;
+      }
     }
+
+    if (!from && !to && options?.defaultToday) {
+      const start = new Date();
+      start.setUTCHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setUTCHours(23, 59, 59, 999);
+      return { $gte: start, $lte: end };
+    }
+
     return Object.keys(range).length > 0 ? range : null;
   }
   async createWorkspace(data: CreateWorkspaceData) {
@@ -341,6 +363,7 @@ class WorkspaceService {
     }
 
     await workspace.save();
+    await analyticsV2CacheService.invalidateWorkspace(workspaceId);
 
     await logger.logAudit({
       userId,
@@ -366,14 +389,22 @@ class WorkspaceService {
     workspaceId: string,
     userId: string,
     requestedView?: string,
-    period?: { from?: string; to?: string }
+    period?: {
+      from?: string;
+      to?: string;
+      activityLimit?: number;
+      activitySkip?: number;
+      includeTeamPerformance?: boolean;
+    }
   ) {
     // Import services inside the method to avoid circular dependencies
     const analyticsService = require("./analyticsService");
     const activityService = require("./activityService");
     const performanceService = require("./performanceService");
     const stickyNoteService = require("./stickyNoteService");
-    const createdAtRange = this.buildDateRange(period?.from, period?.to);
+    const createdAtRange = this.buildDateRange(period?.from, period?.to, { defaultToday: false });
+    const activityLimit = Math.min(50, Math.max(1, Number(period?.activityLimit || 10)));
+    const activitySkip = Math.max(0, Number(period?.activitySkip || 0));
 
     // 1. Fetch Workspace & Members (populated for UI badges/avatars)
     const workspace = await Workspace.findOne({
@@ -453,6 +484,74 @@ class WorkspaceService {
       .sort("-startTime")
       .lean();
 
+    // Build personal time-tracking summary once here so dashboard widgets
+    // do not fan out into separate attendance/report API calls.
+    const nowUtc = new Date();
+    const todayStart = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 0, 0, 0, 0));
+    const todayEnd = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 23, 59, 59, 999));
+    const day = nowUtc.getUTCDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    const weekStart = new Date(todayStart);
+    weekStart.setUTCDate(todayStart.getUTCDate() - diffToMonday);
+    const weekEnd = todayEnd;
+
+    const [todayEntries, weekEntries, latestEntries] = await Promise.all([
+      TimeEntry.find({
+        workspace: workspaceId,
+        user: userId,
+        isDeleted: false,
+        startTime: { $gte: todayStart, $lte: todayEnd }
+      }).select("startTime endTime duration isRunning").lean(),
+      TimeEntry.find({
+        workspace: workspaceId,
+        user: userId,
+        isDeleted: false,
+        startTime: { $gte: weekStart, $lte: weekEnd }
+      }).select("startTime endTime duration isRunning").lean(),
+      TimeEntry.find({
+        workspace: workspaceId,
+        user: userId,
+        isDeleted: false
+      }).select("startTime endTime").sort("-startTime").limit(20).lean()
+    ]);
+
+    const secondsForEntries = (entries: any[]) => {
+      let total = 0;
+      const nowMs = Date.now();
+      for (const entry of entries || []) {
+        if (typeof entry?.duration === "number" && entry.duration > 0) {
+          total += entry.duration;
+          continue;
+        }
+        const startMs = entry?.startTime ? new Date(entry.startTime).getTime() : NaN;
+        if (Number.isNaN(startMs)) continue;
+        if (entry?.isRunning || !entry?.endTime) {
+          total += Math.max(0, Math.floor((nowMs - startMs) / 1000));
+        } else {
+          const endMs = new Date(entry.endTime).getTime();
+          if (!Number.isNaN(endMs)) total += Math.max(0, Math.floor((endMs - startMs) / 1000));
+        }
+      }
+      return total;
+    };
+
+    const todayTrackedSeconds = secondsForEntries(todayEntries as any[]);
+    const weekTrackedSeconds = secondsForEntries(weekEntries as any[]);
+    const formatHm = (seconds: number) => {
+      const mins = Math.floor(Math.max(0, seconds) / 60);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h}h ${m}m`;
+    };
+
+    let lastCheckIn: string | null = null;
+    let lastCheckOut: string | null = null;
+    for (const entry of latestEntries as any[]) {
+      if (!lastCheckIn && entry?.startTime) lastCheckIn = new Date(entry.startTime).toISOString();
+      if (!lastCheckOut && entry?.endTime) lastCheckOut = new Date(entry.endTime).toISOString();
+      if (lastCheckIn && lastCheckOut) break;
+    }
+
     // 5. Fetch tasks based on effective analytics scope
     const activeLists = await List.find({
       workspace: workspaceId,
@@ -529,7 +628,10 @@ class WorkspaceService {
     // 7. Fetch Recent Activity (last 20 items)
     const recentActivity = await activityService.getActivities({
       workspaceId,
-      limit: 20
+      limit: activityLimit,
+      skip: activitySkip,
+      startDate: period?.from,
+      endDate: period?.to
     });
 
     // 8. Fetch Performance Metrics
@@ -641,7 +743,8 @@ class WorkspaceService {
 
     // 9. Fetch Team Performance (for workspace analytics view only)
     let teamPerformance = null;
-    if (canViewTeamAnalytics && effectiveView === "workspace") {
+    const includeTeamPerformance = period?.includeTeamPerformance === true;
+    if (includeTeamPerformance && canViewTeamAnalytics && effectiveView === "workspace") {
       teamPerformance = await performanceService.getTeamPerformance(workspaceId, period);
     }
 
@@ -684,18 +787,45 @@ class WorkspaceService {
         // Check if member has an active timer in this workspace
         const hasActiveTimer = activeUserIds.has(member.user._id.toString());
         return {
-          ...member,
+          user: member.user,
+          role: member.role,
+          customRoleTitle: member.customRoleTitle || null,
+          customRole: member.customRole
+            ? {
+                _id: member.customRole._id,
+                name: member.customRole.name
+              }
+            : null,
           status: hasActiveTimer ? "active" : "inactive"
         };
       }).sort((a: any, b: any) => (a.status === "active" ? -1 : 1)),
       tasks: recentTasks,
       announcements,
       currentRunningTimer,
+      timeTrackingSummary: {
+        todayTrackedSeconds,
+        todayTracked: formatHm(todayTrackedSeconds),
+        weekTrackedSeconds,
+        weekTracked: formatHm(weekTrackedSeconds),
+        weeklyTargetHours: 40,
+        weekProgressPercent: Math.max(0, Math.min(100, Math.round((weekTrackedSeconds / (40 * 3600)) * 100))),
+        lastCheckIn,
+        lastCheckOut
+      },
       stickyNote,
       recentActivity,
+      recentActivityMeta: {
+        limit: activityLimit,
+        skip: activitySkip,
+        returned: recentActivity.length,
+        hasMore: recentActivity.length === activityLimit
+      },
       performance: {
         user: userPerformance,
         team: teamPerformance
+      },
+      performanceMeta: {
+        teamIncluded: includeTeamPerformance && canViewTeamAnalytics && effectiveView === "workspace"
       },
       velocity,
       view: {
@@ -734,6 +864,7 @@ class WorkspaceService {
     member.customRoleTitle = customRoleTitle;
 
     await workspace.save();
+    await analyticsV2CacheService.invalidateWorkspace(workspaceId);
 
     // Populate the member user data for the response
     await workspace.populate("members.user", "name email avatar profilePicture");

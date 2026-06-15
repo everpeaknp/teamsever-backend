@@ -12,6 +12,7 @@ const enhancedNotificationService = require("./enhancedNotificationService");
 const customFieldService = require("./customFieldService");
 const taskDependencyService = require("./taskDependencyService");
 const PermissionService = require("../permissions/permission.service");
+const analyticsV2CacheService = require("./analyticsV2CacheService");
 
 interface CreateTaskData {
   title: string;
@@ -259,6 +260,7 @@ class TaskService {
       });
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(task.workspace.toString());
     return task;
   }
 
@@ -574,6 +576,7 @@ class TaskService {
       updateData
     );
 
+    await analyticsV2CacheService.invalidateWorkspace(task.workspace.toString());
     return task;
   }
 
@@ -726,6 +729,7 @@ class TaskService {
       console.error("Failed to emit task_deleted event:", error);
     }
 
+    await analyticsV2CacheService.invalidateWorkspace(task.workspace.toString());
     return { message: "Task deleted successfully" };
   }
 

@@ -33,6 +33,11 @@ const { ListMember } = require("../models/ListMember");
 const List = require("../models/List");
 const Task = require("../models/Task");
 
+const PERMISSION_DEBUG = process.env.PERMISSION_DEBUG === "true";
+const dlog = (...args: any[]) => {
+  if (PERMISSION_DEBUG) console.log(...args);
+};
+
 class PermissionService {
   private getRolePermissionAdditions(workspace: any, role: WorkspaceRole): PermissionAction[] {
     const additions = workspace?.rolePermissionAdditions || [];
@@ -96,37 +101,37 @@ class PermissionService {
     context: PermissionContext
   ): Promise<boolean> {
     try {
-      console.log('\n========================================');
-      console.log('🔍 PERMISSION CHECK STARTED');
-      console.log('========================================');
-      console.log('📋 Details:');
-      console.log('  - User ID:', userId);
-      console.log('  - Action:', action);
-      console.log('  - Workspace ID:', context.workspaceId);
-      console.log('  - List ID:', context.listId);
-      console.log('  - Resource Type:', context.resourceType);
-      console.log('  - Resource ID:', context.resourceId);
+      dlog('\n========================================');
+      dlog('🔍 PERMISSION CHECK STARTED');
+      dlog('========================================');
+      dlog('📋 Details:');
+      dlog('  - User ID:', userId);
+      dlog('  - Action:', action);
+      dlog('  - Workspace ID:', context.workspaceId);
+      dlog('  - List ID:', context.listId);
+      dlog('  - Resource Type:', context.resourceType);
+      dlog('  - Resource ID:', context.resourceId);
       
       // Step 1: Check if user is workspace owner (bypass all checks)
-      console.log('\n🔎 Step 1: Checking if user is OWNER...');
+      dlog('\n🔎 Step 1: Checking if user is OWNER...');
       const isOwner = await this.isOwner(userId, context.workspaceId);
-      console.log('  ➜ Is Owner?', isOwner);
+      dlog('  ➜ Is Owner?', isOwner);
       
       if (isOwner) {
-        console.log('✅ PERMISSION GRANTED - User is OWNER');
-        console.log('========================================\n');
+        dlog('✅ PERMISSION GRANTED - User is OWNER');
+        dlog('========================================\n');
         return true;
       }
 
       // Step 2: Get user's workspace role
-      console.log('\n🔎 Step 2: Getting user workspace role...');
+      dlog('\n🔎 Step 2: Getting user workspace role...');
       const workspaceRole = await this.getUserRole(userId, context.workspaceId);
-      console.log('  ➜ Workspace Role:', workspaceRole);
-      console.log('  ➜ Role Type:', typeof workspaceRole);
+      dlog('  ➜ Workspace Role:', workspaceRole);
+      dlog('  ➜ Role Type:', typeof workspaceRole);
       
       if (!workspaceRole) {
-        console.log('❌ PERMISSION DENIED - No workspace role found');
-        console.log('========================================\n');
+        dlog('❌ PERMISSION DENIED - No workspace role found');
+        dlog('========================================\n');
         return false;
       }
 
@@ -235,17 +240,17 @@ class PermissionService {
       }
 
       // Step 6: No overrides - use workspace role
-      console.log('\n🔎 Step 6: Checking workspace role permissions...');
+      dlog('\n🔎 Step 6: Checking workspace role permissions...');
       const hasWorkspacePermission =
         roleHasPermission(workspaceRole, action) ||
         rolePermissionAdditions.includes(action) ||
         memberAdditionalPermissions.includes(action);
-      console.log('  ➜ Has workspace permission?', hasWorkspacePermission);
+      dlog('  ➜ Has workspace permission?', hasWorkspacePermission);
       
       if (!hasWorkspacePermission) {
         // Step 7: Apply task-specific rules (assignee check as fallback)
         if (this.isTaskAction(action) && context.resourceType === "task") {
-          console.log('\n🔎 Step 7: Checking task-specific permissions...');
+          dlog('\n🔎 Step 7: Checking task-specific permissions...');
           const result = await this.checkTaskPermission(
             userId,
             action,
@@ -253,26 +258,26 @@ class PermissionService {
             workspaceRole,
             [...rolePermissionAdditions, ...memberAdditionalPermissions]
           );
-          console.log('  ➜ Task permission result:', result);
+          dlog('  ➜ Task permission result:', result);
           if (result) {
-            console.log('✅ PERMISSION GRANTED - Task-specific rule');
+            dlog('✅ PERMISSION GRANTED - Task-specific rule');
           } else {
-            console.log('❌ PERMISSION DENIED - No task-specific permission');
+            dlog('❌ PERMISSION DENIED - No task-specific permission');
           }
-          console.log('========================================\n');
+          dlog('========================================\n');
           return result;
         }
-        console.log('❌ PERMISSION DENIED - No workspace permission');
-        console.log('========================================\n');
+        dlog('❌ PERMISSION DENIED - No workspace permission');
+        dlog('========================================\n');
         return false;
       }
 
-      console.log('✅ PERMISSION GRANTED - Workspace role permission');
-      console.log('========================================\n');
+      dlog('✅ PERMISSION GRANTED - Workspace role permission');
+      dlog('========================================\n');
       return true;
     } catch (error) {
       console.error("[PermissionService] ❌ Error checking permission:", error);
-      console.log('========================================\n');
+      dlog('========================================\n');
       return false;
     }
   }
@@ -288,46 +293,46 @@ class PermissionService {
     workspaceId: string
   ): Promise<WorkspaceRole | null> {
     try {
-      console.log('  📂 Fetching workspace data...');
+      dlog('  📂 Fetching workspace data...');
       const workspace = await Workspace.findById(workspaceId).select(
         "owner members"
       );
 
       if (!workspace) {
-        console.log('  ❌ Workspace not found!');
+        dlog('  ❌ Workspace not found!');
         return null;
       }
       
-      console.log('  ✓ Workspace found');
-      console.log('  ➜ Owner ID:', workspace.owner.toString());
+      dlog('  ✓ Workspace found');
+      dlog('  ➜ Owner ID:', workspace.owner.toString());
 
       // Check if user is owner
       if (workspace.owner.toString() === userId) {
-        console.log('  ✓ User matches owner ID');
+        dlog('  ✓ User matches owner ID');
         return WorkspaceRole.OWNER;
       }
 
       // Find user in members
-      console.log('  📋 Searching in members array...');
-      console.log('  ➜ Total members:', workspace.members.length);
+      dlog('  📋 Searching in members array...');
+      dlog('  ➜ Total members:', workspace.members.length);
       
       const member = workspace.members.find(
         (m: any) => m.user.toString() === userId
       );
 
       if (!member) {
-        console.log('  ❌ User not found in members array');
+        dlog('  ❌ User not found in members array');
         return null;
       }
 
-      console.log('  ✓ User found in members!');
-      console.log('  ➜ Raw role from DB:', member.role);
-      console.log('  ➜ Role type:', typeof member.role);
+      dlog('  ✓ User found in members!');
+      dlog('  ➜ Raw role from DB:', member.role);
+      dlog('  ➜ Role type:', typeof member.role);
       
       // Convert to normalized enum value
       const normalizedRole = this.normalizeRole(member.role);
-      console.log('  ➜ Normalized role:', normalizedRole);
-      console.log('  ➜ Normalized type:', typeof normalizedRole);
+      dlog('  ➜ Normalized role:', normalizedRole);
+      dlog('  ➜ Normalized type:', typeof normalizedRole);
       
       return normalizedRole;
     } catch (error) {
@@ -643,46 +648,46 @@ class PermissionService {
    * Normalize role string to WorkspaceRole enum
    */
   normalizeRole(role: string): WorkspaceRole {
-    console.log('  🔄 Normalizing role...');
-    console.log('    ➜ Input:', role, '(type:', typeof role, ')');
+    dlog('  🔄 Normalizing role...');
+    dlog('    ➜ Input:', role, '(type:', typeof role, ')');
     
     const roleLower = role.toLowerCase();
-    console.log('    ➜ Lowercased:', roleLower);
+    dlog('    ➜ Lowercased:', roleLower);
     
     let result: WorkspaceRole;
     
     if (roleLower === "owner") {
       result = WorkspaceRole.OWNER;
-      console.log('    ➜ Matched: OWNER');
+      dlog('    ➜ Matched: OWNER');
     } else if (roleLower === "admin") {
       result = WorkspaceRole.ADMIN;
-      console.log('    ➜ Matched: ADMIN');
+      dlog('    ➜ Matched: ADMIN');
     } else if (roleLower === "operations_manager") {
       result = WorkspaceRole.OPERATIONS_MANAGER;
-      console.log('    ➜ Matched: OPERATIONS_MANAGER');
+      dlog('    ➜ Matched: OPERATIONS_MANAGER');
     } else if (roleLower === "project_manager") {
       result = WorkspaceRole.PROJECT_MANAGER;
-      console.log('    ➜ Matched: PROJECT_MANAGER');
+      dlog('    ➜ Matched: PROJECT_MANAGER');
     } else if (roleLower === "qa") {
       result = WorkspaceRole.QA;
-      console.log('    ➜ Matched: QA');
+      dlog('    ➜ Matched: QA');
     } else if (roleLower === "developer") {
       result = WorkspaceRole.DEVELOPER;
-      console.log('    ➜ Matched: DEVELOPER');
+      dlog('    ➜ Matched: DEVELOPER');
     } else if (roleLower === "member") {
       result = WorkspaceRole.MEMBER;
-      console.log('    ➜ Matched: MEMBER');
+      dlog('    ➜ Matched: MEMBER');
     } else if (roleLower === "guest") {
       result = WorkspaceRole.GUEST;
-      console.log('    ➜ Matched: GUEST');
+      dlog('    ➜ Matched: GUEST');
     } else {
       result = WorkspaceRole.GUEST;
-      console.log('    ➜ No match, defaulting to GUEST');
+      dlog('    ➜ No match, defaulting to GUEST');
     }
     
-    console.log('    ➜ Output:', result, '(type:', typeof result, ')');
-    console.log('    ➜ WorkspaceRole.ADMIN constant:', WorkspaceRole.ADMIN);
-    console.log('    ➜ Are they equal?:', result === WorkspaceRole.ADMIN);
+    dlog('    ➜ Output:', result, '(type:', typeof result, ')');
+    dlog('    ➜ WorkspaceRole.ADMIN constant:', WorkspaceRole.ADMIN);
+    dlog('    ➜ Are they equal?:', result === WorkspaceRole.ADMIN);
     
     return result;
   }

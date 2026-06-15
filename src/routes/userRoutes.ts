@@ -1,5 +1,5 @@
 const express = require("express");
-const { getMyProfile, updateProfile, updateNotificationPreferences, getUserProfile } = require("../controllers/userController");
+const { getMyProfile, updateProfile, updateNotificationPreferences, getUserProfile, deleteMyAccount } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { uploadSingle, uploadProfileFields, handleUploadError } = require("../middlewares/uploadMiddleware");
 
@@ -94,6 +94,7 @@ router.patch(
  *                 data: { $ref: "#/components/schemas/NotificationPreferences" }
  */
 router.patch("/notification-preferences", protect, updateNotificationPreferences);
+router.delete("/me", protect, deleteMyAccount);
 /**
  * @swagger
  * /api/users/{userId}:

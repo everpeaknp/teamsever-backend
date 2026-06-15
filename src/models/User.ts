@@ -8,6 +8,9 @@ interface IUser extends Document {
   coverPhoto?: string;
   googleId?: string;
   githubUsername?: string;
+  appleId?: string;
+  deletedAt?: Date | null;
+  deletedReason?: string;
   isSuperUser?: boolean;
   passwordResetToken?: string;
   passwordResetTokenExpires?: Date;
@@ -63,6 +66,9 @@ const userSchema = new mongoose.Schema(
     coverPhoto: { type: String },
     googleId: { type: String },
     githubUsername: { type: String },
+    appleId: { type: String },
+    deletedAt: { type: Date, default: null },
+    deletedReason: { type: String },
     isSuperUser: {
       type: Boolean,
       default: false

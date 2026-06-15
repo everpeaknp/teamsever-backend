@@ -14,6 +14,11 @@ const List = require("../models/List");
 const Task = require("../models/Task");
 const Folder = require("../models/Folder");
 
+const PERMISSION_DEBUG = process.env.PERMISSION_DEBUG === "true";
+const dlog = (...args: any[]) => {
+  if (PERMISSION_DEBUG) console.log(...args);
+};
+
 /**
  * Middleware to check if user has permission to perform an action
  * @param action - The permission action to check
@@ -22,14 +27,14 @@ const Folder = require("../models/Folder");
 const requirePermission = (action: PermissionAction) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      console.log('\n🚀 MIDDLEWARE: requirePermission called');
-      console.log('  ➜ Action:', action);
-      console.log('  ➜ Method:', req.method);
-      console.log('  ➜ Path:', req.path);
-      console.log('  ➜ BaseURL:', req.baseUrl);
+      dlog('\n🚀 MIDDLEWARE: requirePermission called');
+      dlog('  ➜ Action:', action);
+      dlog('  ➜ Method:', req.method);
+      dlog('  ➜ Path:', req.path);
+      dlog('  ➜ BaseURL:', req.baseUrl);
       
       const userId = req.user?.id;
-      console.log('  ➜ User ID:', userId);
+      dlog('  ➜ User ID:', userId);
 
       if (!userId) {
         return next(new AppError("Authentication required", 401));
@@ -37,7 +42,7 @@ const requirePermission = (action: PermissionAction) => {
 
       // Get workspace ID from request
       const workspaceId = await getWorkspaceId(req);
-      console.log('  ➜ Workspace ID:', workspaceId);
+      dlog('  ➜ Workspace ID:', workspaceId);
 
       if (!workspaceId) {
         return next(new AppError("Workspace context not found", 400));
@@ -54,15 +59,15 @@ const requirePermission = (action: PermissionAction) => {
         resourceType: getResourceType(req),
       };
       
-      console.log('  ➜ Context built:', JSON.stringify(context, null, 2));
+      dlog('  ➜ Context built:', JSON.stringify(context, null, 2));
 
       // Check permission
       const hasPermission = await PermissionService.can(userId, action, context);
       
-      console.log('  ➜ Permission result:', hasPermission);
+      dlog('  ➜ Permission result:', hasPermission);
 
       if (!hasPermission) {
-        console.log('  ❌ Permission denied, returning 403');
+        dlog('  ❌ Permission denied, returning 403');
         return next(
           new AppError(
             `You do not have permission to perform this action: ${action}`,
@@ -71,7 +76,7 @@ const requirePermission = (action: PermissionAction) => {
         );
       }
       
-      console.log('  ✅ Permission granted, continuing...\n');
+      dlog('  ✅ Permission granted, continuing...\n');
 
       // Attach context to request for use in controllers
       (req as any).permissionContext = context;
@@ -333,13 +338,13 @@ async function getWorkspaceId(req: AuthRequest): Promise<string | null> {
     (req.baseUrl === "/api/tables" && req.params.id);
 
   if (tableId) {
-    console.log('[getWorkspaceId] Resolving workspace from tableId:', tableId);
+    dlog('[getWorkspaceId] Resolving workspace from tableId:', tableId);
     const CustomTable = require("../models/CustomTable");
     const table = await CustomTable.findById(tableId).select("spaceId");
-    console.log('[getWorkspaceId] Table found:', !!table, 'spaceId:', table?.spaceId);
+    dlog('[getWorkspaceId] Table found:', !!table, 'spaceId:', table?.spaceId);
     if (table && table.spaceId) {
       const space = await Space.findById(table.spaceId).select("workspace");
-      console.log('[getWorkspaceId] Space found:', !!space, 'workspace:', space?.workspace);
+      dlog('[getWorkspaceId] Space found:', !!space, 'workspace:', space?.workspace);
       if (space) {
         return space.workspace.toString();
       }

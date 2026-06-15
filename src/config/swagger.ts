@@ -2195,6 +2195,101 @@ const options: swaggerJsdoc.Options = {
             }
           }
         },
+        AnalyticsV2SummaryResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Workspace analytics v2 retrieved successfully" },
+            data: {
+              type: "object",
+              properties: {
+                version: { type: "string", example: "v2" },
+                scope: {
+                  type: "object",
+                  properties: {
+                    workspaceId: { type: "string" },
+                    timezone: { type: "string", example: "UTC" },
+                    from: { type: "string", nullable: true },
+                    to: { type: "string", nullable: true },
+                    view: {
+                      type: "object",
+                      properties: {
+                        requested: { type: "string", nullable: true },
+                        effective: { type: "string" },
+                        available: { type: "array", items: { type: "string" } },
+                        canViewWorkspaceAnalytics: { type: "boolean" },
+                        canViewPersonalAnalytics: { type: "boolean" }
+                      }
+                    }
+                  }
+                },
+                summary: {
+                  type: "object",
+                  properties: {
+                    totalTeam: { type: "number" },
+                    clockedIn: { type: "number" },
+                    totalTasks: { type: "number" },
+                    completedTasks: { type: "number" },
+                    onTimeCompletionRate: { type: "number" },
+                    activeProjects: { type: "number" }
+                  }
+                },
+                timeTracking: { type: "object" },
+                taskStatus: { type: "object" },
+                priorityDistribution: { type: "object" },
+                projectHealth: { type: "object" },
+                teamAvailability: { type: "object" },
+                teamPerformancePreview: { type: "array", items: { type: "object" } },
+                permissions: { type: "object" }
+              }
+            }
+          }
+        },
+        AnalyticsV2DetailsResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Workspace analytics v2 details retrieved successfully" },
+            data: {
+              type: "object",
+              properties: {
+                workspace: { type: "object" },
+                stats: { type: "object" },
+                hierarchy: { type: "array", items: { type: "object" } },
+                members: { type: "array", items: { type: "object" } },
+                tasks: { type: "array", items: { type: "object" } },
+                announcements: { type: "array", items: { type: "object" } },
+                currentRunningTimer: { type: "object", nullable: true },
+                timeTrackingSummary: { type: "object", nullable: true },
+                stickyNote: { type: "object", nullable: true },
+                recentActivity: { type: "array", items: { type: "object" } },
+                performance: { type: "object" },
+                view: { type: "object" },
+                permissions: { type: "object" }
+              }
+            }
+          }
+        },
+        AnalyticsV2TrendResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Workspace analytics completion trend retrieved successfully" },
+            data: {
+              type: "object",
+              properties: {
+                chartData: { type: "array", items: { type: "object" } },
+                summary: {
+                  type: "object",
+                  properties: {
+                    totalCreated: { type: "number" },
+                    totalCompleted: { type: "number" }
+                  }
+                }
+              }
+            }
+          }
+        },
         StickyNoteResponse: {
           type: "object",
           properties: {
@@ -2329,6 +2424,21 @@ const options: swaggerJsdoc.Options = {
               }
             }
           }
+        },
+        LegalPageResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "object",
+              properties: {
+                slug: { type: "string", example: "privacy-policy" },
+                title: { type: "string", example: "Privacy Policy" },
+                lastUpdated: { type: "string", example: "2026-06-12" },
+                content: { type: "string", example: "Privacy policy content..." }
+              }
+            }
+          }
         }
       }
     },
@@ -2344,6 +2454,14 @@ const options: swaggerJsdoc.Options = {
       {
         name: "0. ⭐ Primary Dashboard",
         description: "🚀 ALL-IN-ONE consolidated data endpoint. Use GET /api/workspaces/{id}/analytics for the main Flutter screen — returns workspace stats, hierarchy, members, tasks, announcements, timer, sticky note, and performance in a single call."
+      },
+      {
+        name: "0.1 ⭐ Primary Dashboard V2",
+        description: "⚡ Split analytics endpoints for faster first paint. Use GET /api/workspaces/{id}/analytics for the summary shell, /analytics/completion-trend for chart data, and /analytics/details for heavy panels."
+      },
+      {
+        name: "0.2 Legal Pages",
+        description: "Privacy Policy and Terms and Conditions endpoints used by the mobile apps, web footer links, and app store compliance pages."
       },
 
       // ─────────────────────────────────────────────────────────────────

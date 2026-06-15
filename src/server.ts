@@ -51,6 +51,7 @@ const startServer = async () => {
     const authRoutes = require("./routes/authRoutes");
     const sanitizeMiddleware = require("./middlewares/sanitizeMiddleware");
     const workspaceRoutes = require("./routes/workspaceRoutes");
+    const workspaceV2Routes = require("./routes/workspaceV2Routes");
     const { workspaceSpaceRouter, spaceRouter } = require("./routes/spaceRoutes");
     const spaceMemberRoutes = require("./routes/spaceMemberRoutes");
     const { spaceInvitationRouter, invitationRouter: spaceInvitationStandaloneRouter } = require("./routes/spaceInvitationRoutes");
@@ -82,6 +83,7 @@ const startServer = async () => {
     const planRoutes = require("./routes/planRoutes");
     const superAdminRoutes = require("./routes/superAdminRoutes");
     const userRoutes = require("./routes/userRoutes");
+    const legalRoutes = require("./routes/legalRoutes");
     const subscriptionRoutes = require("./routes/subscriptionRoutes");
     const feedbackRoutes = require("./routes/feedbackRoutes");
     const { workspaceFileRouter, fileRouter } = require("./routes/workspaceFileRoutes");
@@ -192,6 +194,7 @@ const startServer = async () => {
     app.use("/api/auth", authRoutes);
     const customRoleRoutes = require("./routes/customRoleRoutes");
     app.use("/api/workspaces", workspaceRoutes);
+    app.use("/api/v2/workspaces", workspaceV2Routes);
     app.use("/api/workspaces", customRoleRoutes);
     app.use("/api/workspaces/:workspaceId/spaces", workspaceSpaceRouter);
     app.use("/api/spaces", spaceRouter);
@@ -235,6 +238,7 @@ const startServer = async () => {
     app.use("/api/plans", planRoutes);
     app.use("/api/super-admin", superAdminRoutes);
     app.use("/api/users", userRoutes);
+    app.use("/api/legal", legalRoutes);
     app.use("/api/subscription", subscriptionRoutes);
     app.use("/api/feedback", feedbackRoutes);
     app.use("/api/workspaces/:workspaceId/files", workspaceFileRouter);

@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser, loginUser, googleAuth, githubAuth, requestPasswordReset, resetPassword } = require("../controllers/authController");
+const { registerUser, loginUser, googleAuth, githubAuth, appleAuth, requestPasswordReset, resetPassword } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -130,6 +130,44 @@ router.post("/google", googleAuth);
  *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/github", githubAuth);
+
+/**
+ * @swagger
+ * /api/auth/apple:
+ *   post:
+ *     summary: Apple OAuth authentication
+ *     description: Authenticate user with Firebase ID token from Apple Sign in. Accepts `idToken` or legacy `token`.
+ *     tags: ["1.1 Auth — Login & Registration"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Firebase ID token from Apple sign-in. `token` is accepted as a legacy alias.
+ *               token:
+ *                 type: string
+ *                 description: Legacy alias for `idToken`.
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/AuthResponse"
+ *       401:
+ *         description: Invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ApiError"
+ */
+router.post("/apple", appleAuth);
 
 /**
  * @swagger

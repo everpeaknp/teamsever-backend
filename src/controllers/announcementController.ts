@@ -2,6 +2,7 @@ const Announcement = require('../models/Announcement');
 const Workspace = require('../models/Workspace');
 const enhancedNotificationService = require('../services/enhancedNotificationService').default || require('../services/enhancedNotificationService');
 const PermissionService = require("../permissions/permission.service");
+const analyticsV2CacheService = require("../services/analyticsV2CacheService");
 
 // @desc    Get all announcements for a workspace
 // @route   GET /api/workspaces/:id/announcements
@@ -156,6 +157,7 @@ exports.createAnnouncement = async (req, res) => {
       success: true,
       data: populatedAnnouncement,
     });
+    await analyticsV2CacheService.invalidateWorkspace(workspaceId);
   } catch (error) {
     console.error('Error creating announcement:', error);
     res.status(500).json({
@@ -202,6 +204,7 @@ exports.deleteAnnouncement = async (req, res) => {
       success: true,
       message: 'Announcement deleted successfully',
     });
+    await analyticsV2CacheService.invalidateWorkspace(workspaceId);
   } catch (error) {
     console.error('Error deleting announcement:', error);
     res.status(500).json({

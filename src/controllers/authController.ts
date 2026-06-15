@@ -34,7 +34,7 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
   }
 
   // Check for existing user
-  const userExists = await User.findOne({ email: email.toLowerCase() });
+  const userExists = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
 
   if (userExists) {
     throw new AppError("An account with this email already exists. Please login instead.", 400);
@@ -71,7 +71,7 @@ const loginUser = asyncHandler(async (req: any, res: any) => {
     throw new AppError("Please provide email and password", 400);
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
 
   if (!user) {
     throw new AppError("Invalid credentials", 401);
@@ -134,7 +134,7 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   }
 
   // Check if user exists (case-insensitive)
-  let user = await User.findOne({ email: email.toLowerCase() });
+  let user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
 
   if (!user) {
     // Create new user with Google auth
@@ -214,11 +214,12 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
   // Resolve existing user by email first, then by GitHub username (for private-email GitHub accounts)
   let user = null;
   if (normalizedEmail) {
-    user = await User.findOne({ email: normalizedEmail });
+    user = await User.findOne({ email: normalizedEmail, deletedAt: null });
   }
   if (!user && githubUsername) {
     user = await User.findOne({
-      githubUsername: { $regex: new RegExp(`^${githubUsername}$`, "i") }
+      githubUsername: { $regex: new RegExp(`^${githubUsername}$`, "i") },
+      deletedAt: null
     });
   }
 
@@ -254,6 +255,76 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
     message: "Logged in with GitHub successfully",
     data: {
       token: token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        isSuperUser: user.isSuperUser || false,
+        notificationPreferences: user.notificationPreferences
+      }
+    }
+  });
+});
+
+const appleAuth = asyncHandler(async (req: any, res: any) => {
+  console.log("[Apple Auth] Request received");
+  const rawToken = req.body?.idToken || req.body?.token;
+  const idToken = normalizeAuthToken(rawToken);
+
+  if (!idToken) {
+    throw new AppError("Apple ID token is required", 400);
+  }
+
+  if (!admin.apps || admin.apps.length === 0) {
+    throw new AppError("Firebase Admin SDK not configured.", 500);
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(idToken);
+  } catch (error: any) {
+    throw new AppError(`Invalid ID token: ${error.message}`, 401);
+  }
+
+  const { email, name, picture, uid } = decodedToken;
+  const normalizedEmail = email ? String(email).toLowerCase() : "";
+
+  let user = null;
+  if (normalizedEmail) {
+    user = await User.findOne({ email: normalizedEmail, deletedAt: null });
+  }
+  if (!user) {
+    user = await User.findOne({ appleId: uid, deletedAt: null });
+  }
+
+  if (!user) {
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+    user = await User.create({
+      name: name || normalizedEmail.split("@")[0] || "Apple User",
+      email: normalizedEmail || `${uid}@apple.local`,
+      password: await bcrypt.hash(randomPassword, 10),
+      profilePicture: picture || undefined,
+      appleId: uid,
+    });
+  } else {
+    user.appleId = uid;
+    if (picture && !user.profilePicture) {
+      user.profilePicture = picture;
+    }
+    if (name && (!user.name || user.name === user.email.split("@")[0])) {
+      user.name = name;
+    }
+    await user.save();
+  }
+
+  const token = generateToken(user._id.toString(), user.email, user.name);
+
+  res.json({
+    success: true,
+    message: "Logged in with Apple successfully",
+    data: {
+      token,
       user: {
         _id: user._id,
         name: user.name,
@@ -351,5 +422,5 @@ const resetPassword = asyncHandler(async (req: any, res: any) => {
   res.json({ success: true, message: "Password reset successfully" });
 });
 
-module.exports = { registerUser, loginUser, googleAuth, githubAuth, requestPasswordReset, resetPassword };
+module.exports = { registerUser, loginUser, googleAuth, githubAuth, appleAuth, requestPasswordReset, resetPassword };
 export {};

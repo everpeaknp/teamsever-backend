@@ -20,6 +20,29 @@ export const getMyProfile = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+export const deleteMyAccount = asyncHandler(async (req: any, res: any) => {
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  user.deletedAt = new Date();
+  user.deletedReason = req.body?.reason || "User requested account deletion";
+  user.password = "";
+  user.googleId = undefined;
+  user.githubUsername = undefined;
+  user.appleId = undefined;
+  user.profilePicture = undefined;
+  user.coverPhoto = undefined;
+  user.notificationPreferences = undefined;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "Account deleted successfully"
+  });
+});
+
 /**
  * Get specific user profile
  * GET /api/users/:userId
