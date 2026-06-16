@@ -359,6 +359,11 @@ const getWorkspaceAnalyticsV2 = asyncHandler(async (req: AuthRequest, res: Respo
       }
     }));
 
+  const PermissionService = require("../permissions/permission.service");
+  const canViewAnnouncements = await PermissionService.can(req.user!.id, "VIEW_ANNOUNCEMENT", { userId: req.user!.id, workspaceId });
+  const canCreateAnnouncements = await PermissionService.can(req.user!.id, "CREATE_ANNOUNCEMENT", { userId: req.user!.id, workspaceId });
+  const canDeleteAnnouncements = await PermissionService.can(req.user!.id, "DELETE_ANNOUNCEMENT", { userId: req.user!.id, workspaceId });
+
   const payload = {
     version: "v2",
     scope: {
@@ -418,9 +423,9 @@ const getWorkspaceAnalyticsV2 = asyncHandler(async (req: AuthRequest, res: Respo
     },
     teamPerformancePreview: topFive,
     permissions: {
-      canViewAnnouncements: true,
-      canCreateAnnouncements: false,
-      canDeleteAnnouncements: false
+      canViewAnnouncements,
+      canCreateAnnouncements,
+      canDeleteAnnouncements
     }
   };
 

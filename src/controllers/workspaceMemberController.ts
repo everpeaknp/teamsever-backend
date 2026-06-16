@@ -5,6 +5,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const Workspace = require("../models/Workspace");
 const TimeEntry = require("../models/TimeEntry");
 const AppError = require("../utils/AppError");
+const analyticsV2CacheService = require("../services/analyticsV2CacheService");
 
 const toggleWorkspaceClock = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -33,6 +34,9 @@ const toggleWorkspaceClock = asyncHandler(
     workspace.members[memberIndex].status = status;
     workspace.markModified('members');
     await workspace.save();
+    
+    // Invalidate the analytics v2 cache so the dashboard immediately reflects the new clock status
+    await analyticsV2CacheService.invalidateWorkspace(workspaceId);
 
     let timeEntry = null;
 
