@@ -445,6 +445,63 @@ class FolderService {
 
     return { message: "Folder deleted successfully" };
   }
+
+  async generateWebhook(folderId: string, userId: string, githubRepoName?: string) {
+    const folder = await Folder.findOne({
+      _id: folderId,
+    }).select('+githubWebhookSecret +githubRepoName');
+
+    if (!folder) {
+      throw new AppError('Folder not found', 404);
+    }
+
+    // Generate a cryptographically secure secret
+    const crypto = require('crypto');
+    const secret = crypto.randomBytes(32).toString('hex');
+
+    // Build the webhook URL using the public backend URL
+    let baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    // Remove trailing slash if present
+    baseUrl = baseUrl.replace(/\/$/, "");
+    const webhookUrl = `${baseUrl}/api/webhooks/github/folder/${folderId}`;
+
+    // Save to the folder document
+    (folder as any).githubWebhookSecret = secret;
+    if (githubRepoName) {
+      (folder as any).githubRepoName = githubRepoName;
+    }
+    await folder.save();
+
+    return {
+      webhookUrl,
+      secret,
+      githubRepoName: githubRepoName || (folder as any).githubRepoName || '',
+    };
+  }
+
+  async getWebhook(folderId: string, userId: string) {
+    const folder = await Folder.findOne({
+      _id: folderId,
+    }).select('+githubWebhookSecret +githubRepoName');
+
+    if (!folder) {
+      throw new AppError("Folder not found", 404);
+    }
+
+    if (!(folder as any).githubWebhookSecret) {
+      return null;
+    }
+
+    let baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    baseUrl = baseUrl.replace(/\/$/, "");
+    const webhookUrl = `${baseUrl}/api/webhooks/github/folder/${folderId}`;
+
+    return {
+      webhookUrl,
+      secret: (folder as any).githubWebhookSecret,
+      githubRepoName: (folder as any).githubRepoName
+    };
+  }
 }
 
 module.exports = new FolderService();

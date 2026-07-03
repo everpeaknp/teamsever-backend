@@ -376,12 +376,70 @@ const updateSystemSettings = asyncHandler(async (req: any, res: any) => {
   }
 });
 
+/**
+ * @desc    Migrate webhooks from Space level to Folder level
+ * @route   POST /api/super-admin/migrate-webhooks
+ * @access  Private (Super User only)
+ */
+const migrateWebhooks = asyncHandler(async (req: any, res: any) => {
+  if (!req.user.isSuperUser) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Super user privileges required."
+    });
+  }
+
+  const { repoName, targetFolderId } = req.body;
+
+  if (!repoName || !targetFolderId) {
+    return res.status(400).json({
+      success: false,
+      message: "repoName and targetFolderId are required"
+    });
+  }
+
+  const Folder = require("../models/Folder");
+  const folder = await Folder.findById(targetFolderId);
+
+  if (!folder) {
+    return res.status(404).json({
+      success: false,
+      message: "Target folder not found"
+    });
+  }
+
+  const WorkspaceActivity = require("../models/WorkspaceActivity");
+  const ChatMessage = require("../models/ChatMessage");
+
+  // 1. Update WorkspaceActivity
+  const activityUpdateResult = await WorkspaceActivity.updateMany(
+    { type: "github_commit", "metadata.repoName": repoName },
+    { $set: { folder: targetFolderId, "metadata.folderId": targetFolderId } }
+  );
+
+  // 2. Update ChatMessage
+  const chatMessageUpdateResult = await ChatMessage.updateMany(
+    { type: "github_commit", "metadata.repoName": repoName },
+    { $set: { "metadata.folderId": targetFolderId, "metadata.folderName": folder.name } }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Webhooks migrated successfully",
+    data: {
+      activitiesUpdated: activityUpdateResult.modifiedCount,
+      chatMessagesUpdated: chatMessageUpdateResult.modifiedCount
+    }
+  });
+});
+
 module.exports = {
   getAdminUsers,
   updateUserSubscription,
   getFinancialAnalytics,
   getSystemSettings,
-  updateSystemSettings
+  updateSystemSettings,
+  migrateWebhooks
 };
 
 export {};

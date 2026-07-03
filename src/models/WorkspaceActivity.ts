@@ -60,6 +60,11 @@ const workspaceActivitySchema = new mongoose.Schema(
       ref: "Space",
     },
 
+    folder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Folder",
+    },
+
     list: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "List",
@@ -114,6 +119,7 @@ workspaceActivitySchema.statics.getWorkspaceActivity = function (
     .populate("user", "name email avatar profilePicture")
     .populate("targetUser", "name email avatar profilePicture")
     .populate("space", "name")
+    .populate("folder", "name")
     .populate("list", "name")
     .sort({ createdAt: -1 })
     .limit(options.limit || 100)
@@ -128,6 +134,7 @@ workspaceActivitySchema.statics.createActivity = async function (data: {
   type: string;
   description: string;
   space?: string;
+  folder?: string;
   list?: string;
   targetUser?: string;
   metadata?: any;

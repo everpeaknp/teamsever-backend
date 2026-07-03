@@ -22,6 +22,8 @@ interface CreateMessageData {
 interface GetMessagesOptions {
   page?: number;
   limit?: number;
+  userId?: string;
+  folderId?: string;
 }
 
 interface GetChannelsOptions {
@@ -430,6 +432,11 @@ class ChatService {
     // Optional: Filter by specific user (sender)
     if ((options as any).userId) {
       query.sender = (options as any).userId;
+    }
+
+    // Optional: Filter by folderId in metadata
+    if (options.folderId) {
+      query["metadata.folderId"] = options.folderId;
     }
 
     // Get total count

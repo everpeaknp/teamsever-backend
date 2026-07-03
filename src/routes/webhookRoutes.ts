@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { handleGithubPush } = require("../controllers/webhookController");
+const { handleGithubPush, handleGithubPushForFolder } = require("../controllers/webhookController");
 
 // Use express.json() but we might need raw body for HMAC verification later if this fails
 // GitHub sends JSON by default if configured
@@ -39,6 +39,7 @@ const { handleGithubPush } = require("../controllers/webhookController");
  *         description: Space not found
  */
 router.post("/github/:spaceId", handleGithubPush);
+router.post("/github/folder/:folderId", handleGithubPushForFolder);
 
 module.exports = router;
 

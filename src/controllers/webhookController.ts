@@ -203,8 +203,202 @@ const handleGithubPush = asyncHandler(async (req: any, res: any, next: any) => {
   }
 });
 
+const handleGithubPushForFolder = asyncHandler(async (req: any, res: any, next: any) => {
+  const { folderId } = req.params;
+  const signature = req.headers["x-hub-signature-256"];
+
+  console.log(`[Webhook] Received push for folder: ${folderId}`);
+
+  const Folder = require("../models/Folder");
+  const folder = await Folder.findById(folderId).populate("spaceId");
+  
+  if (!folder) {
+    console.error(`[Webhook] Folder not found: ${folderId}`);
+    return next(new AppError("Folder not found", 404));
+  }
+  
+  const space = folder.spaceId;
+  if (!space) {
+    return next(new AppError("Space not found for this folder", 404));
+  }
+  
+  const spaceId = space._id;
+
+  if (!folder.githubWebhookSecret) {
+    console.error(`[Webhook] No secret configured for folder: ${folderId}`);
+    return next(new AppError("Webhook secret not found", 404));
+  }
+
+  // 1. Verify GitHub Signature (HMAC SHA-256)
+  if (!signature) {
+    console.error(`[Webhook] Missing GitHub signature`);
+    return next(new AppError("No signature provided", 401));
+  }
+
+  const hmac = cryptoNode.createHmac("sha256", folder.githubWebhookSecret);
+  const digest = "sha256=" + hmac.update(JSON.stringify(req.body)).digest("hex");
+
+  if (signature !== digest) {
+    console.error(`[Webhook] Signature mismatch for folder: ${folderId}`);
+    console.error(`[Webhook] Expected prefix: ${digest.substring(0, 15)}...`);
+    return next(new AppError("Invalid signature", 401));
+  }
+
+  // Handle GitHub Ping event
+  const githubEvent = req.headers["x-github-event"];
+  if (githubEvent === "ping") {
+    console.log(`[Webhook] Ping received for folder: ${folderId}. hook_id: ${req.body.hook_id}`);
+    return res.status(200).json({ success: true, message: "PONG" });
+  }
+
+  // 2. Extract commit info with safety checks
+  const { ref = "", commits = [], repository = {}, pusher = {} } = req.body;
+  
+  if (commits.length === 0) {
+    console.log(`[Webhook] No commits in this event (${githubEvent})`);
+    return res.status(200).json({ success: true, message: "No commits found" });
+  }
+
+  const repoName = repository.name || "Unknown Repo";
+  const branchName = ref ? ref.replace("refs/heads/", "") : "unknown";
+  const pusherName = pusher.name || "Unknown User";
+
+  console.log(`[Webhook] Processing ${commits.length} commits from ${repoName} (${branchName}) by ${pusherName} (Folder: ${folderId})`);
+
+  try {
+    // 3. Log each commit as a WorkspaceActivity
+    const activities = await Promise.all(
+      commits.map(async (commit: any) => {
+        const authorEmail = commit.author?.email;
+        const authorUsername = commit.author?.username || commit.committer?.username;
+        let foundUser = null;
+
+        if (authorEmail) {
+          foundUser = await User.findOne({ email: authorEmail }).select("_id");
+        }
+
+        if (!foundUser && authorUsername) {
+          foundUser = await User.findOne({ 
+            githubUsername: { $regex: new RegExp(`^${authorUsername}$`, "i") } 
+          }).select("_id");
+        }
+
+        if (!foundUser && pusherName) {
+          foundUser = await User.findOne({ 
+            githubUsername: { $regex: new RegExp(`^${pusherName}$`, "i") } 
+          }).select("_id");
+        }
+
+        return WorkspaceActivity.create({
+          workspace: space.workspace,
+          space: spaceId,
+          folder: folderId,
+          user: foundUser ? foundUser._id : null,
+          type: "github_commit",
+          description: `Pushed to ${repoName}: "${commit.message || 'No message'}"`,
+          metadata: {
+            repoName: repoName,
+            folderId: folderId,
+            commitMessage: commit.message || "",
+            author: commit.author?.name || pusherName,
+            authorEmail: authorEmail,
+            url: commit.url || "",
+            branch: branchName,
+            pusher: pusherName
+          }
+        });
+      })
+    );
+
+    console.log(`[Webhook] Successfully logged ${activities.length} commits`);
+
+    // Trigger notifications for the push
+    const firstCommit = commits[0] || {};
+    const authorName = firstCommit.author?.name || pusherName;
+    const commitMessage = commits.length > 1 
+      ? `${firstCommit.message} (+ ${commits.length - 1} more)`
+      : firstCommit.message || "No message";
+
+    enhancedNotificationService.notifyGithubCommit(
+      spaceId,
+      repoName,
+      commitMessage,
+      authorName,
+      req.body.compare
+    ).catch((err: any) => console.error("[Webhook] Notification failed:", err));
+    
+    // 4. POST TO COMMIT LOG CHANNEL
+    try {
+      const commitLogChannel = await chatService.getOrCreateCommitLogChannel(space.workspace.toString());
+      
+      if (commitLogChannel) {
+        const firstActivity = activities[0];
+        const workspace = await require("../models/Workspace").findById(space.workspace).select("owner").lean();
+        const senderId = firstActivity?.user || workspace?.owner;
+
+        if (senderId) {
+          const commitCount = commits.length;
+          const content = commitCount > 1 
+            ? `Pushed ${commitCount} commits to ${repoName} [${branchName}]`
+            : `Pushed a commit to ${repoName} [${branchName}]: "${commitMessage}"`;
+
+          const message = await ChatMessage.create({
+            workspace: space.workspace,
+            channel: commitLogChannel._id,
+            sender: senderId,
+            type: "github_commit",
+            content: content,
+            metadata: {
+              repoName,
+              folderId,
+              branchName,
+              spaceName: space.name,
+              folderName: folder.name,
+              commits: commits.map((c: any) => ({
+                message: c.message,
+                url: c.url,
+                author: c.author?.name || pusherName
+              })),
+              compareUrl: req.body.compare
+            }
+          });
+          
+          await ChatChannel.findByIdAndUpdate(commitLogChannel._id, { lastMessageAt: new Date() });
+
+          const { emitChatMessage } = require("../socket/events");
+          emitChatMessage(commitLogChannel._id.toString(), {
+            _id: message._id,
+            workspace: message.workspace,
+            channel: commitLogChannel._id,
+            channelName: commitLogChannel.name,
+            sender: message.sender,
+            content: message.content,
+            type: message.type,
+            metadata: message.metadata,
+            createdAt: message.createdAt,
+            updatedAt: message.updatedAt,
+          }, space.workspace.toString());
+          
+          console.log(`[Webhook] Posted and broadcasted commit notification to channel: ${commitLogChannel.name}`);
+        }
+      }
+    } catch (chatErr: any) {
+      console.error(`[Webhook] Failed to post to chat: ${chatErr.message}`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully logged ${activities.length} commits`,
+    });
+  } catch (err: any) {
+    console.error(`[Webhook] Error saving activities: ${err.message}`);
+    return next(new AppError("Error processing webhook data", 500));
+  }
+});
+
 module.exports = {
-  handleGithubPush
+  handleGithubPush,
+  handleGithubPushForFolder
 };
 
 export {};

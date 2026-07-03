@@ -97,12 +97,45 @@ const deleteFolder = asyncHandler(async (req: AuthRequest, res: Response, next: 
   });
 });
 
+// @desc    Get folder webhook details
+// @route   GET /api/folders/:id/webhook
+// @access  Private
+const getWebhook = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  
+  // Note: For a real enterprise implementation, you'd want to check EntitlementService.canUseWebhooksInWorkspace here
+  // similar to how spaceController does it. Since we are just mirroring, we'll check folder existence.
+  
+  const webhookData = await folderService.getWebhook(id, req.user!.id);
+  
+  res.status(200).json({
+    success: true,
+    data: webhookData
+  });
+});
+
+// @desc    Generate or update GitHub webhook secret for a folder
+// @route   POST /api/folders/:id/webhook
+// @access  Private
+const generateWebhook = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { githubRepoName } = req.body;
+  
+  const webhookData = await folderService.generateWebhook(req.params.id, req.user!.id, githubRepoName);
+
+  res.status(200).json({
+    success: true,
+    data: webhookData
+  });
+});
+
 module.exports = {
   createFolder,
   getFolders,
   getFolder,
   updateFolder,
-  deleteFolder
+  deleteFolder,
+  getWebhook,
+  generateWebhook
 };
 
 export {};

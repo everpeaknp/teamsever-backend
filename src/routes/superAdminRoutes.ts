@@ -174,6 +174,9 @@ router.get("/analytics", getFinancialAnalytics);
  */
 router.put("/settings", updateSystemSettings);
 
+const { migrateWebhooks } = require("../controllers/superAdminController");
+router.post("/migrate-webhooks", migrateWebhooks);
+
 module.exports = router;
 
 export {};

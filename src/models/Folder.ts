@@ -24,6 +24,13 @@ const folderSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false
+    },
+    githubWebhookSecret: {
+      type: String,
+      select: false // DO NOT return the secret in regular queries for security
+    },
+    githubRepoName: {
+      type: String
     }
   },
   {

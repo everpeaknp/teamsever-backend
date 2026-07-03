@@ -235,6 +235,10 @@ folderRouter.get("/:id", protect, requirePermission("VIEW_FOLDER"), getFolder);
 folderRouter.put("/:id", protect, requirePermission("UPDATE_FOLDER"), updateFolder);
 folderRouter.delete("/:id", protect, requirePermission("DELETE_FOLDER"), deleteFolder);
 
+const { getWebhook, generateWebhook } = require("../controllers/folderController");
+folderRouter.get("/:id/webhook", protect, requirePermission("UPDATE_FOLDER"), getWebhook);
+folderRouter.post("/:id/webhook", protect, requirePermission("UPDATE_FOLDER"), generateWebhook);
+
 module.exports = { spaceFolderRouter, folderRouter };
 
 export {};
