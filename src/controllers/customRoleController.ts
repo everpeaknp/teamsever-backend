@@ -21,6 +21,7 @@ const PERMISSION_CATALOG = [
   { key: "CREATE_FOLDER", label: "Create Folders", category: "Hierarchy" },
   { key: "DELETE_FOLDER", label: "Delete Folders", category: "Hierarchy" },
   { key: "UPDATE_FOLDER", label: "Edit Folders", category: "Hierarchy" },
+  { key: "MANAGE_WEBHOOKS", label: "Manage Webhooks", category: "Hierarchy" },
   { key: "VIEW_FOLDER", label: "View Folders", category: "Hierarchy" },
   { key: "CREATE_LIST", label: "Create Lists", category: "Hierarchy" },
   { key: "DELETE_LIST", label: "Delete Lists", category: "Hierarchy" },

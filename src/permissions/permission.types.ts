@@ -73,6 +73,7 @@ export type PermissionAction =
   | "CREATE_FOLDER"
   | "DELETE_FOLDER"
   | "UPDATE_FOLDER"
+  | "MANAGE_WEBHOOKS"
   | "VIEW_FOLDER"
   
   // List actions

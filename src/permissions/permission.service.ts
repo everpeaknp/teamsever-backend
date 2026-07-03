@@ -606,6 +606,7 @@ class PermissionService {
       "CREATE_FOLDER",
       "DELETE_FOLDER",
       "UPDATE_FOLDER",
+      "MANAGE_WEBHOOKS",
       "CREATE_LIST",
       "DELETE_LIST",
       "UPDATE_LIST",
