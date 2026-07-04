@@ -239,7 +239,8 @@ class EnhancedNotificationService {
     repoName: string,
     commitMessage: string,
     authorName: string,
-    url?: string
+    url?: string,
+    folderName?: string
   ): Promise<void> {
     try {
       const Space = require("../models/Space");
@@ -268,7 +269,7 @@ class EnhancedNotificationService {
       
       console.log(`[EnhancedNotification] GitHub commit notification for space ${space.name} targeting:`, allRecipientIds);
       
-      const title = `New Commit in ${space.name}`;
+      const title = folderName ? `New Commit in ${folderName}` : `New Commit in ${space.name}`;
       const body = `${authorName} pushed to ${repoName}: "${commitMessage}"`;
 
       for (const recipientId of allRecipientIds) {

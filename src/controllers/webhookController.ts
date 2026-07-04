@@ -324,7 +324,8 @@ const handleGithubPushForFolder = asyncHandler(async (req: any, res: any, next: 
       repoName,
       commitMessage,
       authorName,
-      req.body.compare
+      req.body.compare,
+      folder.name
     ).catch((err: any) => console.error("[Webhook] Notification failed:", err));
     
     // 4. POST TO COMMIT LOG CHANNEL
