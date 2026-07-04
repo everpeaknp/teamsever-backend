@@ -174,6 +174,7 @@ class HierarchyService {
               color: folder.color,
               icon: folder.icon,
               folderPermissionLevel: folderPermissionById.get(folderId) || null,
+              githubRepoName: folder.githubRepoName || null,
               lists,
               createdAt: folder.createdAt
             };
@@ -226,6 +227,7 @@ class HierarchyService {
           status: space.status,
           color: space.color,
           spacePermissionLevel: spacePermissionById.get(spaceId) || null,
+          githubRepoName: space.githubRepoName || null,
           folders,
           lists: standaloneLists, // Renamed to match frontend interface
           totalTasks,
