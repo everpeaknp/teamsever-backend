@@ -24,6 +24,7 @@ interface GetMessagesOptions {
   limit?: number;
   userId?: string;
   folderId?: string;
+  spaceName?: string;
 }
 
 interface GetChannelsOptions {
