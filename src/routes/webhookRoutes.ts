@@ -38,8 +38,8 @@ const { handleGithubPush, handleGithubPushForFolder } = require("../controllers/
  *       404:
  *         description: Space not found
  */
-router.post("/github/:spaceId", handleGithubPush);
 router.post("/github/folder/:folderId", handleGithubPushForFolder);
+router.post("/github/:spaceId", handleGithubPush);
 
 module.exports = router;
 
