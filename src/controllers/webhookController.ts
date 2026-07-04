@@ -210,7 +210,7 @@ const handleGithubPushForFolder = asyncHandler(async (req: any, res: any, next: 
   console.log(`[Webhook] Received push for folder: ${folderId}`);
 
   const Folder = require("../models/Folder");
-  const folder = await Folder.findById(folderId).populate("spaceId");
+  const folder = await Folder.findById(folderId).select('+githubWebhookSecret').populate("spaceId");
   
   if (!folder) {
     console.error(`[Webhook] Folder not found: ${folderId}`);
