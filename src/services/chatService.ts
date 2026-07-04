@@ -439,6 +439,11 @@ class ChatService {
       query["metadata.folderId"] = options.folderId;
     }
 
+    // Optional: Filter by spaceName in metadata
+    if (options.spaceName) {
+      query["metadata.spaceName"] = options.spaceName;
+    }
+
     // Get total count
     const total = await ChatMessage.countDocuments(query);
 

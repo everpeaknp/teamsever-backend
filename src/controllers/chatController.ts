@@ -62,6 +62,7 @@ const getChannelMessages = asyncHandler(async (req: any, res: any) => {
     limit: limit ? parseInt(limit) : undefined,
     userId: req.query.userId, // Filter by user if provided
     folderId: req.query.folderId, // Filter by folder if provided
+    spaceName: req.query.spaceName, // Filter by space name if provided
   });
 
   res.status(200).json({
@@ -192,6 +193,7 @@ const getWorkspaceMessages = asyncHandler(async (req: any, res: any) => {
     limit: limit ? parseInt(limit) : undefined,
     userId: req.query.userId, // Filter by user if provided
     folderId: req.query.folderId, // Filter by folder if provided
+    spaceName: req.query.spaceName, // Filter by space name if provided
   });
 
   res.status(200).json({
