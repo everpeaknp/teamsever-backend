@@ -8,7 +8,7 @@ const sendInviteSchema = z.object({
       .toLowerCase()
       .optional(),
     role: z
-      .enum(["admin", "member"])
+      .enum(["admin", "operations_manager", "project_manager", "qa", "developer", "member", "guest"])
       .default("member"),
     inviteType: z
       .enum(["email", "link"])

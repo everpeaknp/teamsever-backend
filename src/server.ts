@@ -92,6 +92,7 @@ const startServer = async () => {
     const entitlementRoutes = require("./routes/entitlementRoutes");
     const paymentRoutes = require("./routes/paymentRoutes");
     const webhookRoutes = require("./routes/webhookRoutes");
+    const accessRequestRoutes = require("./routes/accessRequestRoutes");
     const initializeSocketIO = require("./socket");
     const { initializeFirebase } = require("./config/firebase");
     const recurringService = require("./services/recurringService");
@@ -232,6 +233,7 @@ const startServer = async () => {
     app.use("/api/search", searchRoutes);
     app.use("/api/tasks", timeTrackingRoutes);
     app.use("/api/workspaces/:workspaceId/members", memberRoutes);
+    app.use("/api/workspaces/:workspaceId/access-requests", accessRequestRoutes);
     app.use("/api/docs", documentRoutes);
     app.use("/api/invites", publicInviteRouter);
     app.use("/api/performance", performanceRoutes);

@@ -30,6 +30,8 @@ type NotificationType =
   | "INVITE_ACCEPTED"
   | "ANNOUNCEMENT_NEW"
   | "GITHUB_COMMIT"
+  | "ACCESS_REQUEST"
+  | "ACCESS_REQUEST_RESOLVED"
   | "SYSTEM";
 
 interface NotificationData {
@@ -99,6 +101,8 @@ class EnhancedNotificationService {
       case "SPACE_INVITATION":
       case "INVITE_ACCEPTED":
       case "ANNOUNCEMENT_NEW":
+      case "ACCESS_REQUEST":
+      case "ACCESS_REQUEST_RESOLVED":
       case "SYSTEM":
         return prefs.notices !== false;
       default:
