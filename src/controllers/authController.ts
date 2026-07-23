@@ -42,10 +42,22 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Get the free plan to assign to new users
+  const Plan = require('../models/Plan');
+  const freePlan = await Plan.findOne({ 
+    name: { $regex: /free/i },
+    isActive: true
+  });
+
   const user = await User.create({
     name,
     email: email.toLowerCase(), // Store email in lowercase
-    password: hashedPassword
+    password: hashedPassword,
+    subscription: {
+      isPaid: false,
+      status: 'free',
+      planId: freePlan ? freePlan._id : null
+    }
   });
 
   // STANDARDIZED RESPONSE - matches login format
@@ -139,12 +151,25 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   if (!user) {
     // Create new user with Google auth
     const randomPassword = crypto.randomBytes(32).toString('hex');
+    
+    // Get the free plan to assign to new users
+    const Plan = require('../models/Plan');
+    const freePlan = await Plan.findOne({ 
+      name: { $regex: /free/i },
+      isActive: true
+    });
+
     user = await User.create({
       name: name || email.split('@')[0],
       email: email.toLowerCase(),
       password: await bcrypt.hash(randomPassword, 10),
       profilePicture: picture || undefined,
       googleId: uid,
+      subscription: {
+        isPaid: false,
+        status: 'free',
+        planId: freePlan ? freePlan._id : null
+      }
     });
   } else {
     // Always link/update Google account to existing user
@@ -227,6 +252,13 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
     // GitHub users can hide email; create a stable fallback email for account creation.
     const signupEmail = normalizedEmail || `${uid}@users.noreply.github.local`;
 
+    // Get the free plan to assign to new users
+    const Plan = require('../models/Plan');
+    const freePlan = await Plan.findOne({ 
+      name: { $regex: /free/i },
+      isActive: true
+    });
+
     // Create new user with GitHub auth
     const randomPassword = crypto.randomBytes(32).toString('hex');
     user = await User.create({
@@ -235,6 +267,11 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
       password: await bcrypt.hash(randomPassword, 10),
       profilePicture: picture || undefined,
       githubUsername: githubUsername,
+      subscription: {
+        isPaid: false,
+        status: 'free',
+        planId: freePlan ? freePlan._id : null
+      }
     });
   } else {
     // Always update GitHub info
@@ -300,12 +337,25 @@ const appleAuth = asyncHandler(async (req: any, res: any) => {
 
   if (!user) {
     const randomPassword = crypto.randomBytes(32).toString("hex");
+    
+    // Get the free plan to assign to new users
+    const Plan = require('../models/Plan');
+    const freePlan = await Plan.findOne({ 
+      name: { $regex: /free/i },
+      isActive: true
+    });
+
     user = await User.create({
       name: name || normalizedEmail.split("@")[0] || "Apple User",
       email: normalizedEmail || `${uid}@apple.local`,
       password: await bcrypt.hash(randomPassword, 10),
       profilePicture: picture || undefined,
       appleId: uid,
+      subscription: {
+        isPaid: false,
+        status: 'free',
+        planId: freePlan ? freePlan._id : null
+      }
     });
   } else {
     user.appleId = uid;
