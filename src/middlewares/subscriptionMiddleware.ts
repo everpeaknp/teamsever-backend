@@ -96,7 +96,7 @@ const validateLimit = async (resourceKey: string, req: AuthRequest, res: Respons
     }
 
     // 5. Check numeric limit
-    const maxAllowed = features[config.planField] ?? config.defaultLimit;
+    const maxAllowed = features[config.planField] || config.defaultLimit;
     
     // -1 means unlimited in plan features
     if (maxAllowed === -1 && resourceKey !== 'members') {

@@ -204,6 +204,7 @@ class InvitationService {
     if (inviteType === "email" && email) {
       try {
         const existingUser = await User.findOne({ email: email.toLowerCase() });
+        
         if (existingUser) {
           const inviter = await User.findById(invitedBy);
           const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -406,7 +407,7 @@ class InvitationService {
 
     // Send push notification to workspace owner (non-blocking)
     try {
-      notificationService.createNotification({
+      await notificationService.createNotification({
         recipientId: workspace.owner.toString(),
         type: "INVITE_ACCEPTED",
         title: "Invitation Accepted",
@@ -416,11 +417,26 @@ class InvitationService {
           resourceType: "Workspace",
           workspaceId: workspace._id.toString(),
         },
-      }).catch((error: any) => {
-        console.error("Failed to send invitation accepted notification:", error);
       });
     } catch (error) {
-      console.error("Failed to send invitation accepted notification:", error);
+      console.error("Failed to send invitation accepted notification to owner:", error);
+    }
+
+    // Also send a welcome notification to the user who accepted
+    try {
+      await notificationService.createNotification({
+        recipientId: userId,
+        type: "INVITE_ACCEPTED",
+        title: "Welcome!",
+        body: `You've successfully joined ${workspace.name}`,
+        data: {
+          resourceId: workspace._id.toString(),
+          resourceType: "Workspace",
+          workspaceId: workspace._id.toString(),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to send welcome notification:", error);
     }
 
     // Return workspace details
