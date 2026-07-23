@@ -47,6 +47,10 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     _id: invitation._id,
   };
 
+  // Always include token and shortCode for link-type invites
+  if (invitation.token) responseData.token = invitation.token;
+  if (invitation.shortCode) responseData.shortCode = invitation.shortCode;
+
   if (typeof invitation.inviteType !== "undefined") responseData.inviteType = invitation.inviteType;
   if (typeof invitation.spaceId !== "undefined" && invitation.spaceId !== null) responseData.spaceId = invitation.spaceId;
   if (typeof invitation.spacePermissionLevel !== "undefined" && invitation.spacePermissionLevel !== null)
@@ -205,7 +209,8 @@ const redeemInvite = asyncHandler(async (req: AuthRequest, res: Response, next: 
       alreadyMember: result.alreadyMember || false,
       spaceId: result.spaceId || null,
       spaceName: result.spaceName || null,
-      spacePermissionLevel: result.spacePermissionLevel || null
+      spacePermissionLevel: result.spacePermissionLevel || null,
+      spaceAlreadyMember: result.spaceAlreadyMember || false // Flag: was already space member
     },
     message
   });

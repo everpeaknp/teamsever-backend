@@ -148,6 +148,36 @@ class InvitationService {
       return existingInvite;
     }
 
+    // For link-type invites (not email-specific), invalidate any previous pending link invites
+    // for the same workspace with the same role to prevent confusion
+    if (inviteType === "link") {
+      try {
+        const expiredCount = await Invitation.updateMany(
+          {
+            workspaceId,
+            inviteType: "link",
+            role, // Same role
+            status: "pending",
+            expiresAt: { $gt: new Date() }
+          },
+          {
+            $set: { 
+              status: "expired",
+              // Mark as replaced by new invitation
+              replacedAt: new Date()
+            }
+          }
+        );
+        
+        if (expiredCount.modifiedCount > 0) {
+          console.log(`[InvitationService] Expired ${expiredCount.modifiedCount} previous link invite(s) for workspace ${workspaceId} role ${role}`);
+        }
+      } catch (error) {
+        console.error("[InvitationService] Failed to expire previous link invites:", error);
+        // Non-critical, continue
+      }
+    }
+
     // Generate secure token
     const token = crypto.randomBytes(32).toString("hex");
 
@@ -312,6 +342,8 @@ class InvitationService {
       (member: any) => member.user.toString() === userId
     );
 
+    let actuallyJoined = false; // Track if user was newly added
+    
     if (!isAlreadyMember) {
       // Add user to workspace members using $push
       await Workspace.findByIdAndUpdate(
@@ -328,16 +360,22 @@ class InvitationService {
         { returnDocument: "after" }
       );
       console.log(`[InvitationService] Added user ${userId} to workspace ${workspace._id}`);
+      actuallyJoined = true;
     } else {
       console.log(`[InvitationService] User ${userId} is already a member of workspace ${workspace._id} — proceeding to space provisioning`);
     }
 
-    // Mark invitation as accepted
-    invitation.status = "accepted";
+    // Mark invitation status based on whether user was newly added
+    if (actuallyJoined) {
+      invitation.status = "accepted";
+    } else {
+      invitation.status = "already_member"; // New status for already-member case
+    }
     await invitation.save();
 
     // --- Fast-Pass: auto-provision user into attached space ---
     let joinedSpace: any = null;
+    let spaceAlreadyMember = false;
     if (invitation.spaceId) {
       try {
         const Space = require("../models/Space");
@@ -353,12 +391,15 @@ class InvitationService {
           );
 
           if (memberIndex === -1) {
+            // New member: add to space
             console.log(`[InvitationService] Auto-provisioning user ${userId} into space ${space._id} with level: ${permissionLevel}`);
             space.members.push({ user: userId, role, permissionLevel });
           } else {
+            // Already a member: only update permission if different
             console.log(`[InvitationService] User ${userId} already in space — updating permission to: ${permissionLevel}`);
             space.members[memberIndex].permissionLevel = permissionLevel;
             space.members[memberIndex].role = role;
+            spaceAlreadyMember = true;
           }
           
           await space.save();
@@ -381,62 +422,67 @@ class InvitationService {
       }
     }
 
-    // Log activity
-    await logger.logActivity({
-      userId,
-      workspaceId: workspace._id.toString(),
-      action: "UPDATE",
-      resourceType: "Workspace",
-      resourceId: workspace._id.toString(),
-      metadata: {
-        action: "member_joined",
-        role: invitation.role,
-        invitationId: invitation._id
+    // Log activity ONLY if user was newly added to workspace
+    if (actuallyJoined) {
+      await logger.logActivity({
+        userId,
+        workspaceId: workspace._id.toString(),
+        action: "UPDATE",
+        resourceType: "Workspace",
+        resourceId: workspace._id.toString(),
+        metadata: {
+          action: "member_joined",
+          role: invitation.role,
+          invitationId: invitation._id
+        }
+      });
+
+      // Create workspace activity
+      await WorkspaceActivity.createActivity({
+        workspace: workspace._id.toString(),
+        user: userId,
+        type: "member_joined",
+        description: `joined the workspace`,
+        targetUser: userId,
+        metadata: { role: invitation.role }
+      });
+
+      // Send push notification to workspace owner (non-blocking)
+      try {
+        await notificationService.createNotification({
+          recipientId: workspace.owner.toString(),
+          type: "INVITE_ACCEPTED",
+          title: "Invitation Accepted",
+          body: `${user.name} joined ${workspace.name}`,
+          data: {
+            resourceId: workspace._id.toString(),
+            resourceType: "Workspace",
+            workspaceId: workspace._id.toString(),
+          },
+        });
+      } catch (error) {
+        console.error("Failed to send invitation accepted notification to owner:", error);
       }
-    });
 
-    // Create workspace activity
-    await WorkspaceActivity.createActivity({
-      workspace: workspace._id.toString(),
-      user: userId,
-      type: "member_joined",
-      description: `joined the workspace`,
-      targetUser: userId,
-      metadata: { role: invitation.role }
-    });
-
-    // Send push notification to workspace owner (non-blocking)
-    try {
-      await notificationService.createNotification({
-        recipientId: workspace.owner.toString(),
-        type: "INVITE_ACCEPTED",
-        title: "Invitation Accepted",
-        body: `${user.name} joined ${workspace.name}`,
-        data: {
-          resourceId: workspace._id.toString(),
-          resourceType: "Workspace",
-          workspaceId: workspace._id.toString(),
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send invitation accepted notification to owner:", error);
-    }
-
-    // Also send a welcome notification to the user who accepted
-    try {
-      await notificationService.createNotification({
-        recipientId: userId,
-        type: "INVITE_ACCEPTED",
-        title: "Welcome!",
-        body: `You've successfully joined ${workspace.name}`,
-        data: {
-          resourceId: workspace._id.toString(),
-          resourceType: "Workspace",
-          workspaceId: workspace._id.toString(),
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send welcome notification:", error);
+      // Also send a welcome notification to the user who accepted
+      try {
+        await notificationService.createNotification({
+          recipientId: userId,
+          type: "INVITE_ACCEPTED",
+          title: "Welcome!",
+          body: `You've successfully joined ${workspace.name}`,
+          data: {
+            resourceId: workspace._id.toString(),
+            resourceType: "Workspace",
+            workspaceId: workspace._id.toString(),
+          },
+        });
+      } catch (error) {
+        console.error("Failed to send welcome notification:", error);
+      }
+    } else {
+      // User was already a member - log different activity
+      console.log(`[InvitationService] Skipping member_joined activity - user is already a member`);
     }
 
     // Return workspace details
@@ -449,7 +495,9 @@ class InvitationService {
       role: invitation.role,
       spaceId: joinedSpace?._id?.toString() || null,
       spaceName: joinedSpace?.name || null,
-      spacePermissionLevel: joinedSpace ? (invitation.spacePermissionLevel || "EDIT") : null
+      spacePermissionLevel: joinedSpace ? (invitation.spacePermissionLevel || "EDIT") : null,
+      spaceAlreadyMember: spaceAlreadyMember, // Flag to indicate if user was already a space member
+      alreadyMember: isAlreadyMember // Flag to indicate if user was already a workspace member
     };
   }
 
