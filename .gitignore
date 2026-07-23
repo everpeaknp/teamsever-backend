@@ -13,6 +13,10 @@ yarn.lock
 .env.test.local
 .env.production.local
 
+# Firebase service account (sensitive)
+config/
+config/*.json
+
 # Build output
 build/
 dist/
