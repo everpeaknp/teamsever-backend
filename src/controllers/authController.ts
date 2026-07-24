@@ -44,6 +44,8 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
 
   // Get the free plan to assign to new users
   const Plan = require('../models/Plan');
+  const EntitlementService = require('../services/entitlementService').default;
+  
   const freePlan = await Plan.findOne({ 
     name: { $regex: /free/i },
     isActive: true
@@ -59,6 +61,9 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
       planId: freePlan ? freePlan._id : null
     }
   });
+
+  // Invalidate cache for new user to ensure fresh usage data
+  await EntitlementService.invalidateUsageCache(user._id.toString());
 
   // STANDARDIZED RESPONSE - matches login format
   res.status(201).json({
@@ -154,6 +159,8 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
     
     // Get the free plan to assign to new users
     const Plan = require('../models/Plan');
+    const EntitlementService = require('../services/entitlementService').default;
+    
     const freePlan = await Plan.findOne({ 
       name: { $regex: /free/i },
       isActive: true
@@ -171,6 +178,9 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
         planId: freePlan ? freePlan._id : null
       }
     });
+    
+    // Invalidate cache for new user to ensure fresh usage data
+    await EntitlementService.invalidateUsageCache(user._id.toString());
   } else {
     // Always link/update Google account to existing user
     user.googleId = uid;
@@ -254,6 +264,8 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
 
     // Get the free plan to assign to new users
     const Plan = require('../models/Plan');
+    const EntitlementService = require('../services/entitlementService').default;
+    
     const freePlan = await Plan.findOne({ 
       name: { $regex: /free/i },
       isActive: true
@@ -273,6 +285,9 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
         planId: freePlan ? freePlan._id : null
       }
     });
+    
+    // Invalidate cache for new user to ensure fresh usage data
+    await EntitlementService.invalidateUsageCache(user._id.toString());
   } else {
     // Always update GitHub info
     if (githubUsername) user.githubUsername = githubUsername;
@@ -340,6 +355,8 @@ const appleAuth = asyncHandler(async (req: any, res: any) => {
     
     // Get the free plan to assign to new users
     const Plan = require('../models/Plan');
+    const EntitlementService = require('../services/entitlementService').default;
+    
     const freePlan = await Plan.findOne({ 
       name: { $regex: /free/i },
       isActive: true
@@ -357,6 +374,9 @@ const appleAuth = asyncHandler(async (req: any, res: any) => {
         planId: freePlan ? freePlan._id : null
       }
     });
+    
+    // Invalidate cache for new user to ensure fresh usage data
+    await EntitlementService.invalidateUsageCache(user._id.toString());
   } else {
     user.appleId = uid;
     if (picture && !user.profilePicture) {
