@@ -12,6 +12,8 @@ export interface ITimeEntry extends Document {
   duration?: number; // in seconds
   description?: string;
   isRunning: boolean;
+  attendanceMode?: "onsite" | "remote";
+  clockInAreaId?: Schema.Types.ObjectId;
   isDeleted: boolean;
   deletedAt?: Date;
   createdAt: Date;
@@ -55,6 +57,8 @@ const timeEntrySchema = new mongoose.Schema(
       type: String,
       maxlength: [500, "Description cannot exceed 500 characters"]
     },
+    attendanceMode: { type: String, enum: ["onsite", "remote"] },
+    clockInAreaId: { type: mongoose.Schema.Types.ObjectId },
     isRunning: {
       type: Boolean,
       default: true

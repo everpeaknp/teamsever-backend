@@ -24,6 +24,8 @@ export interface IWorkspaceMember {
   canMarkTaskDone?: boolean;
   additionalPermissions?: string[];
   restrictedPermissions?: string[];
+  attendanceMode?: "onsite" | "remote";
+  assignedRemoteLocationIds?: Schema.Types.ObjectId[];
 }
 
 export interface IRolePermissionAddition {
@@ -42,6 +44,13 @@ export interface IWorkspace extends Document {
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  attendanceLocationPolicy?: {
+    enabled: boolean;
+    maxAccuracyMeters: number;
+    checkIntervalSeconds: number;
+    staleAfterSeconds: number;
+    areas: Array<{ _id: Schema.Types.ObjectId; name: string; kind: "office" | "remote"; latitude: number; longitude: number; radiusMeters: number; isActive: boolean }>;
+  };
 }
 
 const workspaceSchema = new mongoose.Schema(
@@ -106,7 +115,9 @@ const workspaceSchema = new mongoose.Schema(
           {
             type: String
           }
-        ]
+        ],
+        attendanceMode: { type: String, enum: ["onsite", "remote"], default: "onsite" },
+        assignedRemoteLocationIds: [{ type: mongoose.Schema.Types.ObjectId }]
       }
     ],
     rolePermissionAdditions: [
@@ -134,6 +145,20 @@ const workspaceSchema = new mongoose.Schema(
     lastAnnouncementTime: {
       type: Date,
       default: null
+    },
+    attendanceLocationPolicy: {
+      enabled: { type: Boolean, default: false },
+      maxAccuracyMeters: { type: Number, default: 100 },
+      checkIntervalSeconds: { type: Number, default: 60 },
+      staleAfterSeconds: { type: Number, default: 120 },
+      areas: [{
+        name: { type: String, required: true, trim: true, maxlength: 80 },
+        kind: { type: String, enum: ["office", "remote"], required: true },
+        latitude: { type: Number, required: true, min: -90, max: 90 },
+        longitude: { type: Number, required: true, min: -180, max: 180 },
+        radiusMeters: { type: Number, required: true, min: 25, max: 50000 },
+        isActive: { type: Boolean, default: true }
+      }]
     }
   },
   {

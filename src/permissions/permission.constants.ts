@@ -191,6 +191,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "VIEW_ANNOUNCEMENT",
     "MANAGE_LEAVES",
     "VIEW_LEAVES",
+    "MANAGE_ATTENDANCE_LOCATIONS",
   ],
 
   [WorkspaceRole.ADMIN]: [
@@ -245,6 +246,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "DELETE_ANNOUNCEMENT",
     "MANAGE_LEAVES",
     "VIEW_LEAVES",
+    "MANAGE_ATTENDANCE_LOCATIONS",
   ],
 
   [WorkspaceRole.OPERATIONS_MANAGER]: [

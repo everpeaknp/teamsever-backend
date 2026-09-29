@@ -105,7 +105,8 @@ export type PermissionAction =
   | "DELETE_ANNOUNCEMENT"
   // Leaves
   | "MANAGE_LEAVES"
-  | "VIEW_LEAVES";
+  | "VIEW_LEAVES"
+  | "MANAGE_ATTENDANCE_LOCATIONS";
 
 /**
  * Context for permission checking

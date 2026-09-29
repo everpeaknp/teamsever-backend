@@ -44,6 +44,7 @@ const PERMISSION_CATALOG = [
   { key: "MANAGE_SETTINGS", label: "Manage Workspace Settings", category: "Workspace Settings" },
   { key: "MANAGE_LEAVES", label: "Manage & Approve Leaves", category: "HR & Leaves" },
   { key: "VIEW_LEAVES", label: "View Team Leaves", category: "HR & Leaves" },
+  { key: "MANAGE_ATTENDANCE_LOCATIONS", label: "Manage Attendance Locations", category: "Attendance" },
 ];
 
 const ALLOWED_PERMISSION_KEYS = new Set(PERMISSION_CATALOG.map((item) => item.key));

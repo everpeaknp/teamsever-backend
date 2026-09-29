@@ -78,6 +78,7 @@ const startServer = async () => {
     const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
     const leaveRoutes = require("./routes/leaveRoutes");
     const attendanceRoutes = require("./routes/attendanceRoutes");
+    const attendanceLocationRoutes = require("./routes/attendanceLocationRoutes");
     const memberRoutes = require("./routes/memberRoutes");
     const documentRoutes = require("./routes/documentRoutes");
     const performanceRoutes = require("./routes/performanceRoutes");
@@ -97,6 +98,9 @@ const startServer = async () => {
     const initializeSocketIO = require("./socket");
     const { initializeFirebase } = require("./config/firebase");
     const recurringService = require("./services/recurringService");
+    const attendanceLocationService = require("./services/attendanceLocationService");
+    const AttendanceLocationEvent = require("./models/AttendanceLocationEvent");
+    await AttendanceLocationEvent.createIndexes();
 
     // 2. Initialize Firebase Admin SDK
     initializeFirebase();
@@ -231,6 +235,7 @@ const startServer = async () => {
     app.use("/api/time", timeEntryRoutes);
     app.use("/api/recurring", recurringRoutes);
     app.use("/api/attendance", attendanceRoutes);
+    app.use("/api/attendance", attendanceLocationRoutes);
     app.use("/api", attachmentRoutes);
     app.use("/api", activityRoutes);
     app.use("/api/search", searchRoutes);
@@ -267,7 +272,7 @@ const startServer = async () => {
       console.log(`[Server] WebSocket server ready`);
 
       // Initialize recurring task cron job
-      cron.schedule("0 * * * *", async () => {
+    cron.schedule("0 * * * *", async () => {
         console.log("[Cron] Running recurring task processor...");
         try {
           const result = await recurringService.processRecurringTasks();
@@ -277,6 +282,16 @@ const startServer = async () => {
         }
       });
       console.log("[Cron] Recurring task processor scheduled (runs every hour)");
+
+      cron.schedule("* * * * *", async () => {
+        try {
+          const flagged = await attendanceLocationService.markStaleLocationChecks();
+          if (flagged) console.log(`[Cron] Marked ${flagged} stale attendance location session(s)`);
+        } catch (error) {
+          console.error("[Cron] Error checking stale attendance locations:", error);
+        }
+      });
+      console.log("[Cron] Attendance location review sweep scheduled (runs every minute)");
 
       // Initialize subscription expiry check cron job (runs every hour)
       cron.schedule("0 * * * *", async () => {
