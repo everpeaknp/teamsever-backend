@@ -9,6 +9,7 @@ const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
 const notificationService = require("./enhancedNotificationService");
 const entitlementService = require("./entitlementService").default;
+const socketService = require("./socketService").default || require("./socketService");
 
 interface CreateMessageData {
   workspaceId: string;
@@ -625,6 +626,82 @@ class ChatService {
     await softDelete(ChatChannel, channelId);
 
     return { message: "Channel deleted successfully" };
+  }
+
+  /**
+   * Toggle emoji reaction on a chat message
+   */
+  async toggleReaction(messageId: string, userId: string, emoji: string) {
+    if (!emoji || !emoji.trim()) {
+      throw new AppError("Emoji is required", 400);
+    }
+
+    const message = await ChatMessage.findOne({ _id: messageId, isDeleted: false });
+    if (!message) {
+      throw new AppError("Message not found", 404);
+    }
+
+    // Validate user access to the channel
+    await this.validateChannelAccess(message.channel.toString(), userId);
+
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+
+    const userAlreadyReactedSameEmoji = message.reactions.some(
+      (r: any) => r.emoji === emoji && r.users.some((u: any) => u.toString() === userId.toString())
+    );
+
+    // Remove user from ALL reactions on this message (one person, one react)
+    for (let i = message.reactions.length - 1; i >= 0; i--) {
+      const r = message.reactions[i];
+      const uIdx = r.users.findIndex((u: any) => u.toString() === userId.toString());
+      if (uIdx > -1) {
+        r.users.splice(uIdx, 1);
+        r.count = r.users.length;
+        if (r.count === 0) {
+          message.reactions.splice(i, 1);
+        }
+      }
+    }
+
+    // If user wasn't already reacting with this exact emoji, add them to it
+    if (!userAlreadyReactedSameEmoji) {
+      const existingReaction = message.reactions.find((r: any) => r.emoji === emoji);
+      if (existingReaction) {
+        existingReaction.users.push(userId as any);
+        existingReaction.count = existingReaction.users.length;
+      } else {
+        message.reactions.push({
+          emoji,
+          users: [userId as any],
+          count: 1,
+        });
+      }
+    }
+
+    await message.save();
+
+    // Populate sender
+    await message.populate("sender", "name email avatar profilePicture");
+
+    // Realtime broadcast via Socket.IO
+    try {
+      const io = socketService.getIO();
+      if (io) {
+        io.to(`channel:${message.channel.toString()}`).emit("chat:reaction", {
+          messageId: message._id,
+          channelId: message.channel,
+          reactions: message.reactions,
+          userId,
+          emoji,
+        });
+      }
+    } catch (err) {
+      console.error("[ChatService] Failed to emit reaction socket event:", err);
+    }
+
+    return message;
   }
 }
 

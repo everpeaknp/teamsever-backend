@@ -274,6 +274,22 @@ const markWorkspaceChatAsRead = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+const toggleReaction = asyncHandler(async (req: any, res: any) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const { emoji } = req.body;
+
+  const message = await chatService.toggleReaction(id, userId, emoji);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      messageId: message._id,
+      reactions: message.reactions,
+    },
+  });
+});
+
 module.exports = {
   createChannel,
   getChannels,
@@ -286,6 +302,7 @@ module.exports = {
   getWorkspaceUnreadCount,
   markWorkspaceChatAsRead,
   getWorkspaceMessages,
+  toggleReaction,
 };
 
 export {};

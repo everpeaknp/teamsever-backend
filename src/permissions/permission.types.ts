@@ -102,7 +102,10 @@ export type PermissionAction =
   // Announcements
   | "VIEW_ANNOUNCEMENT"
   | "CREATE_ANNOUNCEMENT"
-  | "DELETE_ANNOUNCEMENT";
+  | "DELETE_ANNOUNCEMENT"
+  // Leaves
+  | "MANAGE_LEAVES"
+  | "VIEW_LEAVES";
 
 /**
  * Context for permission checking

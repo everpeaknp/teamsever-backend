@@ -2694,6 +2694,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: "13. GitHub Integration",
         description: "Configure GitHub repositories and webhooks for real-time space activity."
+      },
+      {
+        name: "Leaves & Attendance",
+        description: "Manage employee leaves, in-DM interactive leave cards, approvals, denials, and monthly quota limits."
       }
     ]
   },

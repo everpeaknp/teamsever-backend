@@ -32,6 +32,8 @@ type NotificationType =
   | "GITHUB_COMMIT"
   | "ACCESS_REQUEST"
   | "ACCESS_REQUEST_RESOLVED"
+  | "LEAVE_APPROVED"
+  | "LEAVE_DENIED"
   | "SYSTEM";
 
 interface NotificationData {
@@ -1036,6 +1038,83 @@ class EnhancedNotificationService {
     } catch (error) {
       console.error("[Notification] Failed to send push notification:", error);
       return false;
+    }
+  }
+
+  /**
+   * Notify requester and all managers with MANAGE_LEAVES when a leave is approved
+   */
+  async notifyLeaveApproved(leave: any, approver: any, workspace: any, managerUserIds: string[]): Promise<void> {
+    try {
+      const requesterName = leave.requester?.name || "Team Member";
+      const approverName = approver?.name || "Manager";
+      const startStr = new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const endStr = new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const dateRange = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+
+      // 1. Notify the requester directly
+      await this.createNotification({
+        recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
+        type: "LEAVE_APPROVED",
+        title: "Leave Request Approved",
+        body: `Your leave request for ${dateRange} has been approved by ${approverName}.`,
+        data: {
+          resourceId: leave._id.toString(),
+          resourceType: "LeaveRequest",
+          workspaceId: workspace._id.toString(),
+          conversationId: leave.conversation ? leave.conversation.toString() : undefined,
+        },
+      });
+
+      // 2. Notify ALL managers with MANAGE_LEAVES (including User C, but excluding the approver if they already know)
+      const notifyManagerIds = managerUserIds.filter(
+        (id) => id !== approver._id?.toString() && id !== approver.id?.toString()
+      );
+
+      for (const managerId of notifyManagerIds) {
+        await this.createNotification({
+          recipientId: managerId,
+          type: "LEAVE_APPROVED",
+          title: `Leave Approved: ${requesterName}`,
+          body: `${requesterName} is on leave for ${dateRange} (${leave.daysCount} day${leave.daysCount > 1 ? "s" : ""}). Reason: "${leave.reason}". Approved by ${approverName}.`,
+          data: {
+            resourceId: leave._id.toString(),
+            resourceType: "LeaveRequest",
+            workspaceId: workspace._id.toString(),
+            conversationId: leave.conversation ? leave.conversation.toString() : undefined,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("[Notification] Failed to send leave approved notifications:", error);
+    }
+  }
+
+  /**
+   * Notify requester if their leave is denied
+   */
+  async notifyLeaveDenied(leave: any, denier: any, workspace: any): Promise<void> {
+    try {
+      const denierName = denier?.name || "Manager";
+      const startStr = new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const endStr = new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const dateRange = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+      const reasonSuffix = leave.denialReason ? ` Reason: "${leave.denialReason}"` : "";
+
+      await this.createNotification({
+        recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
+        type: "LEAVE_DENIED",
+        title: "Leave Request Denied",
+        body: `Your leave request for ${dateRange} was denied by ${denierName}.${reasonSuffix}`,
+        data: {
+          resourceId: leave._id.toString(),
+          resourceType: "LeaveRequest",
+          workspaceId: workspace._id.toString(),
+          conversationId: leave.conversation ? leave.conversation.toString() : undefined,
+        },
+      });
+    } catch (error) {
+      console.error("[Notification] Failed to send leave denied notification:", error);
     }
   }
 }

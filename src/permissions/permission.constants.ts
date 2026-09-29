@@ -189,6 +189,8 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "VIEW_ACTIVITY_LOG",
     "MANAGE_CUSTOM_ROLES",
     "VIEW_ANNOUNCEMENT",
+    "MANAGE_LEAVES",
+    "VIEW_LEAVES",
   ],
 
   [WorkspaceRole.ADMIN]: [
@@ -241,6 +243,8 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "VIEW_ANNOUNCEMENT",
     "CREATE_ANNOUNCEMENT",
     "DELETE_ANNOUNCEMENT",
+    "MANAGE_LEAVES",
+    "VIEW_LEAVES",
   ],
 
   [WorkspaceRole.OPERATIONS_MANAGER]: [
@@ -289,6 +293,8 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
     "VIEW_ANNOUNCEMENT",
     "CREATE_ANNOUNCEMENT",
     "DELETE_ANNOUNCEMENT",
+    "MANAGE_LEAVES",
+    "VIEW_LEAVES",
   ],
 
   [WorkspaceRole.PROJECT_MANAGER]: [

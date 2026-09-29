@@ -76,6 +76,7 @@ const startServer = async () => {
     const activityRoutes = require("./routes/activityRoutes");
     const searchRoutes = require("./routes/searchRoutes");
     const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
+    const leaveRoutes = require("./routes/leaveRoutes");
     const attendanceRoutes = require("./routes/attendanceRoutes");
     const memberRoutes = require("./routes/memberRoutes");
     const documentRoutes = require("./routes/documentRoutes");
@@ -122,7 +123,9 @@ const startServer = async () => {
     const allowedOriginPatterns = [
       /^https:\/\/teamsever(?:-frontend)?(?:-[a-z0-9]+)?\.vercel\.app$/i,
       /^https:\/\/(?:www\.)?teamsever\.everacy\.com(?::\d+)?$/i,
-      /^https:\/\/(?:[a-z0-9-]+\.)?everacy\.com(?::\d+)?$/i
+      /^https:\/\/(?:[a-z0-9-]+\.)?everacy\.com(?::\d+)?$/i,
+      /^http:\/\/localhost:\d+$/i,
+      /^http:\/\/127\.0\.0\.1:\d+$/i,
     ];
 
     const corsOptions = {
@@ -234,6 +237,7 @@ const startServer = async () => {
     app.use("/api/tasks", timeTrackingRoutes);
     app.use("/api/workspaces/:workspaceId/members", memberRoutes);
     app.use("/api/workspaces/:workspaceId/access-requests", accessRequestRoutes);
+    app.use("/api/workspaces/:workspaceId/leaves", leaveRoutes);
     app.use("/api/docs", documentRoutes);
     app.use("/api/invites", publicInviteRouter);
     app.use("/api/performance", performanceRoutes);

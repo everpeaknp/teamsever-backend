@@ -370,6 +370,8 @@ channelRouter
 const chatRouter = express.Router();
 
 chatRouter.route("/:id").delete(protect, chatController.deleteMessage);
+chatRouter.route("/messages/:id/react").post(protect, chatController.toggleReaction);
+chatRouter.route("/:id/react").post(protect, chatController.toggleReaction);
 
 module.exports = {
   workspaceChatRouter,

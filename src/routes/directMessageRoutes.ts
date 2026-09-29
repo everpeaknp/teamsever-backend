@@ -350,6 +350,40 @@ router.get("/:conversationId/messages", directMessageController.getMessages);
  */
 router.patch("/:conversationId/read", directMessageController.markAsRead);
 
+/**
+ * @swagger
+ * /api/dm/messages/{id}/react:
+ *   post:
+ *     summary: Toggle emoji reaction on a direct message
+ *     description: Toggles an emoji reaction (Fire, Pulse, Kudos, Love, Like, etc.) on a DM. Broadcasts dm:reaction via socket.
+ *     tags: ["5.3 Collaboration — Direct Messages"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: DirectMessage ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - emoji
+ *             properties:
+ *               emoji:
+ *                 type: string
+ *                 example: "🔥"
+ *     responses:
+ *       200:
+ *         description: Reaction updated
+ */
+router.post("/messages/:id/react", directMessageController.toggleReaction);
+
 module.exports = router;
 
 export {};

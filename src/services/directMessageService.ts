@@ -7,6 +7,7 @@ const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const enhancedNotificationService = require("./enhancedNotificationService");
 const { emitToUser } = require("../socket/events");
+const socketService = require("./socketService").default || require("./socketService");
 
 interface SendMessageData {
   senderId: string;
@@ -487,6 +488,90 @@ class DirectMessageService {
         $addToSet: { readBy: userId },
       }
     );
+  }
+
+  /**
+   * Toggle emoji reaction on a direct message
+   */
+  async toggleReaction(messageId: string, userId: string, emoji: string) {
+    if (!emoji || !emoji.trim()) {
+      throw new AppError("Emoji is required", 400);
+    }
+
+    const message = await DirectMessage.findById(messageId);
+    if (!message) {
+      throw new AppError("Message not found", 404);
+    }
+
+    // Validate participant in the conversation
+    const conversation = await Conversation.findById(message.conversation);
+    if (!conversation) {
+      throw new AppError("Conversation not found", 404);
+    }
+
+    const isParticipant = conversation.participants.some(
+      (p: any) => p.toString() === userId.toString()
+    );
+    if (!isParticipant) {
+      throw new AppError("You do not have access to this conversation", 403);
+    }
+
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+
+    const userAlreadyReactedSameEmoji = message.reactions.some(
+      (r: any) => r.emoji === emoji && r.users.some((u: any) => u.toString() === userId.toString())
+    );
+
+    // Remove user from ALL reactions on this message (one person, one react)
+    for (let i = message.reactions.length - 1; i >= 0; i--) {
+      const r = message.reactions[i];
+      const uIdx = r.users.findIndex((u: any) => u.toString() === userId.toString());
+      if (uIdx > -1) {
+        r.users.splice(uIdx, 1);
+        r.count = r.users.length;
+        if (r.count === 0) {
+          message.reactions.splice(i, 1);
+        }
+      }
+    }
+
+    // If user wasn't already reacting with this exact emoji, add them to it
+    if (!userAlreadyReactedSameEmoji) {
+      const existingReaction = message.reactions.find((r: any) => r.emoji === emoji);
+      if (existingReaction) {
+        existingReaction.users.push(userId as any);
+        existingReaction.count = existingReaction.users.length;
+      } else {
+        message.reactions.push({
+          emoji,
+          users: [userId as any],
+          count: 1,
+        });
+      }
+    }
+
+    await message.save();
+    await message.populate("sender", "name email avatar profilePicture");
+
+    // Realtime broadcast via Socket.IO to conversation room
+    try {
+      const io = socketService.getIO();
+      if (io) {
+        io.to(`conversation:${message.conversation.toString()}`).emit("dm:reaction", {
+          messageId: message._id,
+          conversationId: message.conversation,
+          reactions: message.reactions,
+          userId,
+          emoji,
+        });
+      }
+    } catch (err) {
+      console.error("[DirectMessageService] Failed to emit reaction socket event:", err);
+    }
+
+    return message;
   }
 }
 

@@ -19,6 +19,22 @@ const directMessageSchema = new Schema(
       required: true,
       maxlength: 5000,
     },
+    type: {
+      type: String,
+      enum: ["text", "leave_request"],
+      default: "text",
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        users: [{ type: Schema.Types.ObjectId, ref: "User" }],
+        count: { type: Number, default: 0 },
+      },
+    ],
     readBy: {
       type: [Schema.Types.ObjectId],
       ref: "User",

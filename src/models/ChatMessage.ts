@@ -5,8 +5,13 @@ export interface IChatMessage extends Document {
   channel: Types.ObjectId;
   sender: Types.ObjectId;
   content: string;
-  type: "text" | "system" | "github_commit";
+  type: "text" | "system" | "github_commit" | "leave_request";
   metadata?: any;
+  reactions?: {
+    emoji: string;
+    users: Types.ObjectId[];
+    count: number;
+  }[];
   mentions: Types.ObjectId[];
   isDeleted: boolean;
   deletedAt?: Date;
@@ -42,12 +47,19 @@ const chatMessageSchema = new Schema<IChatMessage>(
     },
     type: {
       type: String,
-      enum: ["text", "system", "github_commit"],
+      enum: ["text", "system", "github_commit", "leave_request"],
       default: "text",
     },
     metadata: {
       type: Schema.Types.Mixed,
     },
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        users: [{ type: Schema.Types.ObjectId, ref: "User" }],
+        count: { type: Number, default: 0 },
+      },
+    ],
     mentions: [
       {
         type: Schema.Types.ObjectId,

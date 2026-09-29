@@ -206,6 +206,27 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+/**
+ * @desc    Toggle emoji reaction on a direct message
+ * @route   POST /api/dm/messages/:id/react
+ * @access  Private
+ */
+const toggleReaction = asyncHandler(async (req: any, res: any) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const { emoji } = req.body;
+
+  const message = await directMessageService.toggleReaction(id, userId, emoji);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      messageId: message._id,
+      reactions: message.reactions,
+    },
+  });
+});
+
 module.exports = {
   startConversation,
   sendMessage,
@@ -213,6 +234,7 @@ module.exports = {
   getMessages,
   getConversation,
   markAsRead,
+  toggleReaction,
 };
 
 export {};
