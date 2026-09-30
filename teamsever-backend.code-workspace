@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../teamsever-frontend"
+		},
+		{
+			"path": "../TeamsEver"
 		}
 	],
 	"settings": {}

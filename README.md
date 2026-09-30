@@ -571,3 +571,8 @@ ISC
 **Version**: 1.0.0  
 **Last Updated**: March 2026  
 **Maintained by**: Development Team
+# Attendance IP corroboration
+
+Private remote places may optionally store one exact public IPv4 or IPv6 address. Clock-in uses GPS normally; a matching network IP can corroborate a fresh, low-accuracy GPS fix only when its uncertainty circle overlaps the member's geofence (up to 250 m uncertainty). It cannot authorize office clock-ins or override a precise GPS fix outside the geofence. The report records `gps` or `network_confirmed`.
+
+The server compares the observed Express `req.ip`; it never trusts a browser-provided IP header. If the API sits behind a reverse proxy, configure `TRUST_PROXY` as a comma-separated list of that proxy's exact IP addresses/CIDRs (for example, the private address range used by your own proxy). Do not set it to `*` or `true`; that would let clients spoof their IP. If unset, only the direct TCP peer is trusted, so network corroboration behind an unconfigured proxy will fail closed.

@@ -26,6 +26,8 @@ export interface IWorkspaceMember {
   restrictedPermissions?: string[];
   attendanceMode?: "onsite" | "remote";
   assignedRemoteLocationIds?: Schema.Types.ObjectId[];
+  privateRemoteAreas?: Array<{ _id?: Schema.Types.ObjectId; name: string; latitude: number; longitude: number; radiusMeters: number; isActive: boolean; networkIp?: string }>;
+  temporaryRemoteApprovals?: Array<{ areaId: Schema.Types.ObjectId; startDate: Date; endDate: Date; requestId: Schema.Types.ObjectId }>;
 }
 
 export interface IRolePermissionAddition {
@@ -117,7 +119,16 @@ const workspaceSchema = new mongoose.Schema(
           }
         ],
         attendanceMode: { type: String, enum: ["onsite", "remote"], default: "onsite" },
-        assignedRemoteLocationIds: [{ type: mongoose.Schema.Types.ObjectId }]
+        assignedRemoteLocationIds: [{ type: mongoose.Schema.Types.ObjectId }],
+        privateRemoteAreas: { type: [{
+          name: { type: String, required: true, trim: true, maxlength: 80 },
+          latitude: { type: Number, required: true, min: -90, max: 90 },
+          longitude: { type: Number, required: true, min: -180, max: 180 },
+          radiusMeters: { type: Number, required: true, min: 25, max: 50000 },
+          isActive: { type: Boolean, default: true },
+          networkIp: { type: String, trim: true, maxlength: 45, default: undefined }
+        }], select: false },
+        temporaryRemoteApprovals: { type: [{ areaId: mongoose.Schema.Types.ObjectId, startDate: Date, endDate: Date, requestId: mongoose.Schema.Types.ObjectId }], select: false }
       }
     ],
     rolePermissionAdditions: [

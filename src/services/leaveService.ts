@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+const mongoose = require("mongoose");
 
 const LeaveRequest = require("../models/LeaveRequest");
 const Workspace = require("../models/Workspace");
@@ -15,7 +16,7 @@ class LeaveService {
    * Helper: Get users in a workspace who have MANAGE_LEAVES permission
    */
   async getLeaveManagersForWorkspace(workspaceId: string): Promise<string[]> {
-    const workspace = await Workspace.findById(workspaceId).populate("rolePermissionAdditions");
+    const workspace = await Workspace.findById(workspaceId);
     if (!workspace) return [];
 
     const managerIds: string[] = [];
@@ -25,26 +26,11 @@ class LeaveService {
       managerIds.push(workspace.owner.toString());
     }
 
-    // Default roles that have MANAGE_LEAVES: owner, admin, operations_manager
-    const defaultManagerRoles = ["owner", "admin", "operations_manager"];
-
-    // Check custom roles or role permission additions
     for (const member of workspace.members || []) {
       const uId = member.user ? member.user.toString() : null;
-      if (!uId) continue;
-
-      if (defaultManagerRoles.includes(member.role)) {
-        if (!member.restrictedPermissions?.includes("MANAGE_LEAVES")) {
-          managerIds.push(uId);
-          continue;
-        }
-      }
-
-      // Explicitly added permission
-      if (member.additionalPermissions?.includes("MANAGE_LEAVES")) {
-        managerIds.push(uId);
-        continue;
-      }
+      if (!uId || member.status === "inactive") continue;
+      const canManage = (await permissionService.can(uId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: uId })) || (await permissionService.can(uId, "MANAGE_LEAVES", { workspaceId, userId: uId }));
+      if (canManage) managerIds.push(uId);
     }
 
     return Array.from(new Set(managerIds));
@@ -61,6 +47,7 @@ class LeaveService {
       workspace: workspaceId,
       requester: userId,
       status: "approved",
+      requestType: { $ne: "remote" },
       $or: [
         { startDate: { $gte: startOfMonth, $lte: endOfMonth } },
         { endDate: { $gte: startOfMonth, $lte: endOfMonth } },
@@ -87,6 +74,9 @@ class LeaveService {
     startDate,
     endDate,
     reason,
+    requestType = "leave",
+    remoteAreaId,
+    proposedRemoteArea,
   }: {
     workspaceId: string;
     requesterId: string;
@@ -95,12 +85,15 @@ class LeaveService {
     startDate: string | Date;
     endDate: string | Date;
     reason: string;
+    requestType?: "leave" | "remote";
+    remoteAreaId?: string;
+    proposedRemoteArea?: { name: string; latitude: number; longitude: number; radiusMeters?: number };
   }) {
     if (!reason || !reason.trim()) {
       throw new AppError("Leave reason is compulsory and cannot be empty", 400);
     }
 
-    const workspace = await Workspace.findById(workspaceId).select("owner members");
+    const workspace = await Workspace.findById(workspaceId).select("owner members +members.privateRemoteAreas");
     if (!workspace) {
       throw new AppError("Workspace not found", 404);
     }
@@ -118,13 +111,26 @@ class LeaveService {
       throw new AppError("Assigned approver must be an active member of this workspace", 400);
     }
 
-    const assignedManagerCanManageLeaves = await permissionService.can(
-      assignedManagerId,
-      "MANAGE_LEAVES",
-      { workspaceId, userId: assignedManagerId }
-    );
+    if (!["leave", "remote"].includes(requestType)) throw new AppError("Invalid request type", 400);
+    if (requestType === "remote" && !conversationId) throw new AppError("Remote work requests must be submitted through the assigned manager DM", 400);
+    const assignedManagerCanManageLeaves = (await permissionService.can(assignedManagerId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: assignedManagerId })) || (await permissionService.can(assignedManagerId, "MANAGE_LEAVES", { workspaceId, userId: assignedManagerId }));
     if (!assignedManagerCanManageLeaves) {
-      throw new AppError("Assigned approver must have permission to manage leaves", 400);
+      throw new AppError("Assigned approver must have permission to manage leave and remote requests", 400);
+    }
+
+    let requestedRemoteAreaName: string | undefined;
+    if (requestType === "remote") {
+      const requesterMember = workspace.members?.find((item: any) => item.user?.toString() === requesterId);
+      if ((requesterMember?.attendanceMode || "onsite") !== "onsite") throw new AppError("Temporary remote requests are for on-site members; manage a permanent remote place in workspace location settings", 400);
+      const existingArea = remoteAreaId && requesterMember?.privateRemoteAreas?.find((area: any) => String(area._id) === String(remoteAreaId) && area.isActive);
+      if (existingArea) requestedRemoteAreaName = existingArea.name;
+      if (!existingArea && !proposedRemoteArea) throw new AppError("Choose an approved private remote place or propose an address", 400);
+      if (proposedRemoteArea && (typeof proposedRemoteArea.name !== "string" || !proposedRemoteArea.name.trim() || !Number.isFinite(proposedRemoteArea.latitude) || proposedRemoteArea.latitude < -90 || proposedRemoteArea.latitude > 90 || !Number.isFinite(proposedRemoteArea.longitude) || proposedRemoteArea.longitude < -180 || proposedRemoteArea.longitude > 180)) throw new AppError("A valid proposed remote address is required", 400);
+      if (proposedRemoteArea) {
+        const isOwner = workspace.owner?.toString() === assignedManagerId;
+        const canManageAddresses = isOwner || (await permissionService.can(assignedManagerId, "MANAGE_ADDRESSES", { workspaceId, userId: assignedManagerId })) || (await permissionService.can(assignedManagerId, "MANAGE_ATTENDANCE_LOCATIONS", { workspaceId, userId: assignedManagerId }));
+        if (!canManageAddresses) throw new AppError("Assigned approver must also have Manage Addresses permission for a new private place", 400);
+      }
     }
 
     if (conversationId) {
@@ -132,9 +138,9 @@ class LeaveService {
         _id: conversationId,
         workspace: workspaceId,
         participants: { $all: [requesterId, assignedManagerId] },
-      }).select("_id");
-      if (!conversation) {
-        throw new AppError("Conversation must be a direct message between the requester and assigned approver in this workspace", 400);
+      }).select("_id participants");
+      if (!conversation || (conversation.participants || []).length !== 2) {
+        throw new AppError("Conversation must be a private two-person DM between the requester and assigned approver in this workspace", 400);
       }
     }
 
@@ -168,6 +174,10 @@ class LeaveService {
       daysCount,
       reason: reason.trim(),
       status: "pending",
+      requestType,
+      remoteAreaId: remoteAreaId || null,
+      remoteAreaName: requestedRemoteAreaName || proposedRemoteArea?.name,
+      proposedRemoteArea: requestType === "remote" ? proposedRemoteArea : undefined,
       isExceedingMonthlyQuota,
       monthlyLeaveCountAtRequest: approvedDaysThisMonth,
     });
@@ -178,13 +188,15 @@ class LeaveService {
         conversation: conversationId,
         sender: requesterId,
         type: "leave_request",
-        content: `🌴 Leave Request: ${daysCount} day${daysCount > 1 ? "s" : ""} (${start.toLocaleDateString()} - ${end.toLocaleDateString()})\nReason: ${reason.trim()}`,
+        content: requestType === "remote" ? `🏠 Remote Work Request: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\nReason: ${reason.trim()}` : `🌴 Leave Request: ${daysCount} day${daysCount > 1 ? "s" : ""} (${start.toLocaleDateString()} - ${end.toLocaleDateString()})\nReason: ${reason.trim()}`,
         metadata: {
           leaveRequestId: leave._id,
+          requestType,
           startDate: start,
           endDate: end,
           daysCount,
           reason: reason.trim(),
+          ...(requestType === "remote" ? { remoteAreaId: leave.remoteAreaId?.toString?.(), remoteAreaName: leave.remoteAreaName, proposedRemoteArea: leave.proposedRemoteArea?.toObject?.() || leave.proposedRemoteArea } : {}),
           status: "pending",
           isExceedingMonthlyQuota,
           monthlyLeaveCountAtRequest: approvedDaysThisMonth,
@@ -227,7 +239,7 @@ class LeaveService {
    * Approve Leave
    */
   async approveLeave(leaveId: string, approverId: string, workspaceId: string) {
-    const leave = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
+    let leave: any = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture");
 
@@ -246,10 +258,43 @@ class LeaveService {
       throw new AppError("Approver user not found", 404);
     }
 
-    leave.status = "approved";
-    leave.approvedBy = approverId as any;
-    leave.approvedAt = new Date();
-    await leave.save();
+    if (leave.requestType === "remote") {
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const currentRequest = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId }).session(session);
+          if (!currentRequest || currentRequest.status !== "pending") throw new AppError("Remote request is no longer pending", 409);
+          const workspaceDoc = await Workspace.findById(workspaceId).select("+members.privateRemoteAreas +members.temporaryRemoteApprovals").session(session);
+          const requesterId = currentRequest.requester.toString();
+          const member = workspaceDoc?.members?.find((item: any) => item.user?.toString() === requesterId);
+          if (!workspaceDoc || !member) throw new AppError("Remote request member not found in this workspace", 404);
+          let area = currentRequest.remoteAreaId && member.privateRemoteAreas?.find((item: any) => String(item._id) === String(currentRequest.remoteAreaId) && item.isActive);
+          if (!area && currentRequest.proposedRemoteArea) {
+            member.privateRemoteAreas ||= [];
+            member.privateRemoteAreas.push({ _id: new Types.ObjectId(), name: currentRequest.proposedRemoteArea.name, latitude: currentRequest.proposedRemoteArea.latitude, longitude: currentRequest.proposedRemoteArea.longitude, radiusMeters: currentRequest.proposedRemoteArea.radiusMeters || 60, isActive: true });
+            area = member.privateRemoteAreas[member.privateRemoteAreas.length - 1];
+          }
+          if (!area) throw new AppError("The requested private remote place is no longer active", 409);
+          member.temporaryRemoteApprovals ||= [];
+          member.temporaryRemoteApprovals.push({ areaId: area._id, startDate: currentRequest.startDate, endDate: currentRequest.endDate, requestId: currentRequest._id });
+          currentRequest.remoteAreaId = area._id;
+          currentRequest.status = "approved";
+          currentRequest.approvedBy = approverId as any;
+          currentRequest.approvedAt = new Date();
+          workspaceDoc.markModified("members");
+          await workspaceDoc.save({ session });
+          await currentRequest.save({ session });
+          leave = currentRequest;
+        });
+      } finally { await session.endSession(); }
+      await leave.populate("requester", "name email avatar profilePicture");
+      await leave.populate("assignedManager", "name email avatar profilePicture");
+    } else {
+      leave.status = "approved";
+      leave.approvedBy = approverId as any;
+      leave.approvedAt = new Date();
+      await leave.save();
+    }
 
     // If attached to a DM, update the DM card metadata live
     if (leave.directMessageId) {
@@ -378,11 +423,11 @@ class LeaveService {
       throw new AppError("Only the assigned approver or workspace owner may decide this leave request", 403);
     }
 
-    const canManageLeaves = await permissionService.can(
+    const canManageLeaves = (await permissionService.can(
       actorId,
-      "MANAGE_LEAVES",
+      "MANAGE_LEAVES_AND_REMOTE",
       { workspaceId, userId: actorId }
-    );
+    )) || (await permissionService.can(actorId, "MANAGE_LEAVES", { workspaceId, userId: actorId }));
     if (!canManageLeaves) {
       throw new AppError("Assigned approver no longer has permission to manage leaves", 403);
     }
@@ -392,7 +437,7 @@ class LeaveService {
    * Get workspace leaves with filters (status, month, user)
    */
   async getWorkspaceLeaves(workspaceId: string, query: any = {}) {
-    const filter: any = { workspace: workspaceId };
+    const filter: any = { workspace: workspaceId, requestType: { $ne: "remote" } };
 
     if (query.status) {
       filter.status = query.status;
@@ -430,12 +475,25 @@ class LeaveService {
 
     const activeLeaves = await LeaveRequest.find({
       workspace: workspaceId,
+      requestType: { $ne: "remote" },
       status: "approved",
       startDate: { $lte: todayEnd },
       endDate: { $gte: todayStart },
     }).populate("requester", "name email avatar profilePicture jobTitle department");
 
     return activeLeaves;
+  }
+
+  async getRemoteRequests(workspaceId: string, actorId: string) {
+    const workspace = await Workspace.findById(workspaceId).select("owner");
+    if (!workspace) throw new AppError("Workspace not found", 404);
+    const isOwner = workspace.owner?.toString() === actorId;
+    const canManage = (await permissionService.can(actorId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: actorId })) || (await permissionService.can(actorId, "MANAGE_LEAVES", { workspaceId, userId: actorId }));
+    if (!isOwner && !canManage) throw new AppError("You do not have permission to review remote requests", 403);
+    return LeaveRequest.find({ workspace: workspaceId, requestType: "remote", status: "pending", ...(isOwner ? {} : { assignedManager: actorId }) })
+      .populate("requester", "name email avatar profilePicture")
+      .populate("assignedManager", "name email avatar profilePicture")
+      .sort({ createdAt: -1 });
   }
 }
 

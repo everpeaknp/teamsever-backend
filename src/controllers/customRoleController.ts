@@ -42,9 +42,9 @@ const PERMISSION_CATALOG = [
   { key: "VIEW_ANALYTICS_TEAM", label: "View Workspace Analytics", category: "Analytics" },
   { key: "VIEW_ACTIVITY_LOG", label: "View Activity Log", category: "Analytics" },
   { key: "MANAGE_SETTINGS", label: "Manage Workspace Settings", category: "Workspace Settings" },
-  { key: "MANAGE_LEAVES", label: "Manage & Approve Leaves", category: "HR & Leaves" },
+  { key: "MANAGE_LEAVES_AND_REMOTE", label: "Manage Leave & Remote Requests", category: "HR & Leaves" },
+  { key: "MANAGE_ADDRESSES", label: "Manage Office & Member Addresses", category: "Attendance" },
   { key: "VIEW_LEAVES", label: "View Team Leaves", category: "HR & Leaves" },
-  { key: "MANAGE_ATTENDANCE_LOCATIONS", label: "Manage Attendance Locations", category: "Attendance" },
 ];
 
 const ALLOWED_PERMISSION_KEYS = new Set(PERMISSION_CATALOG.map((item) => item.key));
@@ -70,6 +70,16 @@ const normalizePermissions = (permissions: unknown): string[] => {
     if (key === "VIEW_ANALYTICS") {
       normalized.add("VIEW_ANALYTICS_PERSONAL");
       normalized.add("VIEW_ANALYTICS_TEAM");
+      continue;
+    }
+
+    if (key === "MANAGE_LEAVES") {
+      normalized.add("MANAGE_LEAVES_AND_REMOTE");
+      continue;
+    }
+
+    if (key === "MANAGE_ATTENDANCE_LOCATIONS") {
+      normalized.add("MANAGE_ADDRESSES");
       continue;
     }
 

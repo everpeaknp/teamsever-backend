@@ -90,6 +90,20 @@ router.get(
 
 /**
  * @swagger
+ * /api/workspaces/{workspaceId}/leaves/remote-requests:
+ *   get:
+ *     summary: Get pending remote requests assigned to the caller, or all pending requests for the owner
+ *     tags: [Leaves & Attendance]
+ *     security: [{ bearerAuth: [] }]
+ *     description: Proposed private address details are returned only to the assigned authorized approver and workspace owner.
+ *     responses:
+ *       200: { description: Private pending remote requests }
+ *       403: { description: Not authorized to review remote requests }
+ */
+router.get("/remote-requests", leaveController.getRemoteRequests);
+
+/**
+ * @swagger
  * /api/workspaces/{workspaceId}/leaves:
  *   get:
  *     summary: Get workspace leaves
@@ -114,7 +128,6 @@ router.get(
  */
 router.patch(
   "/:leaveId/approve",
-  requirePermission("MANAGE_LEAVES"),
   leaveController.approveLeave
 );
 
@@ -129,7 +142,6 @@ router.patch(
  */
 router.patch(
   "/:leaveId/deny",
-  requirePermission("MANAGE_LEAVES"),
   leaveController.denyLeave
 );
 

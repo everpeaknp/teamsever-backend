@@ -107,6 +107,10 @@ const startServer = async () => {
 
     // 3. Setup Express app
     const app = express();
+    // Only trust explicitly configured reverse proxies. Without this, req.ip
+    // remains the direct TCP peer and forwarded headers are ignored.
+    const trustedProxyAddresses = (process.env.TRUST_PROXY || "").split(",").map((value: string) => value.trim()).filter(Boolean);
+    if (trustedProxyAddresses.length) app.set("trust proxy", trustedProxyAddresses);
     const httpServer = http.createServer(app);
 
     // 4. Initialize Socket.io

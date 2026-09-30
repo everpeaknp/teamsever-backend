@@ -780,9 +780,16 @@ class TimeEntryService {
       {
         $project: {
           project: {
-            _id: "$projectInfo._id",
-            name: "$projectInfo.name",
-            color: "$projectInfo.color"
+            // Keep the grouped reference even when its project document was deleted.
+            // Null remains the single stable bucket for entries without a project.
+            _id: "$_id",
+            name: {
+              $ifNull: [
+                "$projectInfo.name",
+                { $cond: [{ $eq: ["$_id", null] }, "No project", "Deleted project"] }
+              ]
+            },
+            color: { $ifNull: ["$projectInfo.color", "#6b7280"] }
           },
           totalDuration: 1,
           entryCount: 1,

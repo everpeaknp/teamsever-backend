@@ -105,6 +105,8 @@ export type PermissionAction =
   | "DELETE_ANNOUNCEMENT"
   // Leaves
   | "MANAGE_LEAVES"
+  | "MANAGE_LEAVES_AND_REMOTE"
+  | "MANAGE_ADDRESSES"
   | "VIEW_LEAVES"
   | "MANAGE_ATTENDANCE_LOCATIONS";
 

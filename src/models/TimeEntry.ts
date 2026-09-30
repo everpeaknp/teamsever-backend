@@ -14,6 +14,10 @@ export interface ITimeEntry extends Document {
   isRunning: boolean;
   attendanceMode?: "onsite" | "remote";
   clockInAreaId?: Schema.Types.ObjectId;
+  clockInVerificationMethod?: "gps" | "network_confirmed";
+  clockInLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaName?: string };
+  clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; distanceFromClockInMeters?: number; withinRange: boolean };
+  locationReviewReason?: string;
   isDeleted: boolean;
   deletedAt?: Date;
   createdAt: Date;
@@ -59,6 +63,10 @@ const timeEntrySchema = new mongoose.Schema(
     },
     attendanceMode: { type: String, enum: ["onsite", "remote"] },
     clockInAreaId: { type: mongoose.Schema.Types.ObjectId },
+    clockInVerificationMethod: { type: String, enum: ["gps", "network_confirmed"] },
+    clockInLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaName: String }, select: false },
+    clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
+    locationReviewReason: { type: String, maxlength: 160 },
     isRunning: {
       type: Boolean,
       default: true

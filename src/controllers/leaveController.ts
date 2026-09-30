@@ -12,7 +12,7 @@ const AppError = require("../utils/AppError");
 export const requestLeave = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { workspaceId } = req.params;
   const requesterId = req.user?.id;
-  const { assignedManagerId, conversationId, startDate, endDate, reason } = req.body;
+  const { assignedManagerId, conversationId, startDate, endDate, reason, requestType, remoteAreaId, proposedRemoteArea } = req.body;
 
   if (!assignedManagerId) {
     return next(new AppError("Assigned manager ID is required", 400));
@@ -34,6 +34,9 @@ export const requestLeave = asyncHandler(async (req: AuthRequest, res: Response,
     startDate,
     endDate,
     reason,
+    requestType,
+    remoteAreaId,
+    proposedRemoteArea,
   });
 
   res.status(201).json({
@@ -90,6 +93,12 @@ export const getWorkspaceLeaves = asyncHandler(async (req: AuthRequest, res: Res
     success: true,
     data: leaves,
   });
+});
+
+export const getRemoteRequests = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { workspaceId } = req.params;
+  const requests = await leaveService.getRemoteRequests(workspaceId, req.user!.id);
+  res.status(200).json({ success: true, data: requests });
 });
 
 /**

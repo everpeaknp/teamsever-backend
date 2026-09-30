@@ -1052,6 +1052,17 @@ class EnhancedNotificationService {
       const endStr = new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
       const dateRange = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
 
+      if (leave.requestType === "remote") {
+        await this.createNotification({
+          recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
+          type: "LEAVE_APPROVED",
+          title: "Remote Work Approved",
+          body: `Your remote work request for ${dateRange} has been approved by ${approverName}.`,
+          data: { resourceId: leave._id.toString(), resourceType: "LeaveRequest", workspaceId: workspace._id.toString(), conversationId: leave.conversation ? leave.conversation.toString() : undefined },
+        });
+        return;
+      }
+
       // 1. Notify the requester directly
       await this.createNotification({
         recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
@@ -1104,8 +1115,8 @@ class EnhancedNotificationService {
       await this.createNotification({
         recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
         type: "LEAVE_DENIED",
-        title: "Leave Request Denied",
-        body: `Your leave request for ${dateRange} was denied by ${denierName}.${reasonSuffix}`,
+        title: leave.requestType === "remote" ? "Remote Work Request Denied" : "Leave Request Denied",
+        body: `Your ${leave.requestType === "remote" ? "remote work" : "leave"} request for ${dateRange} was denied by ${denierName}.${reasonSuffix}`,
         data: {
           resourceId: leave._id.toString(),
           resourceType: "LeaveRequest",

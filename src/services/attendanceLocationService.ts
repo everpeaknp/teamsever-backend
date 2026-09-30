@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Workspace = require("../models/Workspace");
 const WorkspaceActivity = require("../models/WorkspaceActivity");
 const AppError = require("../utils/AppError");
+const net = require("net");
 
 const defaults = { enabled: false, maxAccuracyMeters: 100, checkIntervalSeconds: 60, staleAfterSeconds: 120, areas: [] as any[] };
 
@@ -28,6 +29,26 @@ export function distanceMeters(a: { latitude: number; longitude: number }, b: { 
   return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+function normalizeIp(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  let ip = value.trim().toLowerCase();
+  if (ip.startsWith("::ffff:")) ip = ip.slice(7);
+  return net.isIP(ip) ? ip : null;
+}
+
+export function validateClockOutLocation(fix: any, clockInPoint: any, now = new Date(), maxAccuracyMeters = 100) {
+  if (!fix || !validateCoordinate(fix.latitude, -90, 90) || !validateCoordinate(fix.longitude, -180, 180) || typeof fix.accuracyMeters !== "number" || !Number.isFinite(fix.accuracyMeters) || fix.accuracyMeters < 0 || typeof fix.capturedAt !== "string" || !Number.isFinite(Date.parse(fix.capturedAt))) {
+    return { withinRange: false, distanceMeters: null, reason: "Clock-out location unavailable" };
+  }
+  const captured = Date.parse(fix.capturedAt);
+  if (now.getTime() - captured > 120000 || captured - now.getTime() > 15000) return { withinRange: false, distanceMeters: null, reason: "Clock-out location is stale" };
+  if (!clockInPoint || !validateCoordinate(clockInPoint.latitude, -90, 90) || !validateCoordinate(clockInPoint.longitude, -180, 180)) return { withinRange: false, distanceMeters: null, reason: "Clock-in location was not recorded" };
+  const measuredDistance = distanceMeters(fix, clockInPoint);
+  const distance = Math.round(measuredDistance);
+  if (fix.accuracyMeters > maxAccuracyMeters) return { withinRange: false, distanceMeters: distance, reason: "Clock-out location accuracy is too low" };
+  return { withinRange: measuredDistance <= 60, distanceMeters: distance, reason: measuredDistance <= 60 ? null : "Clock-out is more than 60 m from clock-in location" };
+}
+
 export function matchAttendanceArea(fix: any, areas: any[], policy: any, now = new Date()) {
   if (!fix || !validateCoordinate(fix.latitude, -90, 90) || !validateCoordinate(fix.longitude, -180, 180) || typeof fix.accuracyMeters !== "number" || !Number.isFinite(fix.accuracyMeters) || fix.accuracyMeters < 0 || typeof fix.capturedAt !== "string" || !fix.capturedAt.trim() || !Number.isFinite(Date.parse(fix.capturedAt))) {
     throw new AppError("A valid location reading is required", 400);
@@ -43,7 +64,8 @@ export function matchAttendanceArea(fix: any, areas: any[], policy: any, now = n
 
 export async function loadWorkspace(workspaceId: string) {
   if (!mongoose.Types.ObjectId.isValid(workspaceId)) throw new AppError("Workspace not found", 404);
-  const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: { $ne: true } });
+  const query = Workspace.findOne({ _id: workspaceId, isDeleted: { $ne: true } });
+  const workspace = await (query?.select ? query.select("+members.privateRemoteAreas +members.temporaryRemoteApprovals") : query);
   if (!workspace) throw new AppError("Workspace not found", 404);
   if (!workspace.attendanceLocationPolicy) workspace.attendanceLocationPolicy = defaults;
   return workspace;
@@ -56,9 +78,12 @@ export async function updateLocationPolicy(workspaceId: string, actorId: string,
   if (!input || typeof input !== "object" || !Array.isArray(input.areas)) throw new AppError("Invalid location policy", 400);
   if (input.areas.length > 100) throw new AppError("Maximum 100 areas allowed", 400);
   const areas = input.areas.map((area: any) => {
-    if (!area || typeof area.name !== "string" || !area.name.trim() || area.name.trim().length > 80 || !["office", "remote"].includes(area.kind) || !validateCoordinate(area.latitude, -90, 90) || !validateCoordinate(area.longitude, -180, 180) || !Number.isFinite(area.radiusMeters) || area.radiusMeters < 25 || area.radiusMeters > 50000 || typeof area.isActive !== "boolean") throw new AppError("Invalid attendance area", 400);
-    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), kind: area.kind, latitude: area.latitude, longitude: area.longitude, radiusMeters: area.radiusMeters, isActive: area.isActive };
+    if (!area || typeof area.name !== "string" || !area.name.trim() || area.name.trim().length > 80 || area.kind !== "office" || !validateCoordinate(area.latitude, -90, 90) || !validateCoordinate(area.longitude, -180, 180) || typeof area.isActive !== "boolean") throw new AppError("Only the shared office belongs in workspace location settings; remote areas are private to members", 400);
+    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), kind: "office", latitude: area.latitude, longitude: area.longitude, radiusMeters: 60, isActive: area.isActive };
   });
+  if (areas.filter((area: any) => area.kind === "office").length > 1) {
+    throw new AppError("Only one office location is allowed", 400);
+  }
   const areaIds = areas.map((area: any) => String(area._id));
   if (new Set(areaIds).size !== areaIds.length) throw new AppError("Attendance area IDs must be unique", 400);
   const maxAccuracyMeters = input.maxAccuracyMeters ?? current.maxAccuracyMeters ?? 100;
@@ -68,8 +93,7 @@ export async function updateLocationPolicy(workspaceId: string, actorId: string,
     if (!areas.some((area: any) => area.kind === "office" && area.isActive)) throw new AppError("Add an active office area before enabling enforcement", 400);
     for (const member of workspace.members) {
       if (member.attendanceMode === "remote") {
-        const allowed = new Set((member.assignedRemoteLocationIds || []).map(String));
-        if (!areas.some((area: any) => area.kind === "remote" && area.isActive && allowed.has(String(area._id)))) throw new AppError("Every remote member must have an active remote area assigned", 400);
+        if (!(member.privateRemoteAreas || []).some((area: any) => area.isActive)) throw new AppError("Every remote member must have an active private remote area", 400);
       }
     }
   }
@@ -92,33 +116,85 @@ export async function assignMemberAttendanceLocations(workspaceId: string, actor
   if (!input || !["onsite", "remote"].includes(input.attendanceMode) || !Array.isArray(input.remoteAreaIds)) throw new AppError("Invalid attendance assignment", 400);
   const ids = [...new Set(input.remoteAreaIds.map(String))];
   if (ids.some((id: string) => !mongoose.Types.ObjectId.isValid(id))) throw new AppError("Invalid remote area assignment", 400);
-  const activeRemoteIds = new Set((workspace.attendanceLocationPolicy?.areas || []).filter((area: any) => area.kind === "remote" && area.isActive).map((area: any) => String(area._id)));
-  if (ids.some((id: string) => !activeRemoteIds.has(id))) throw new AppError("Remote assignments must reference active remote areas in this workspace", 400);
-  if (input.attendanceMode === "remote" && workspace.attendanceLocationPolicy?.enabled && ids.length === 0) throw new AppError("Assign at least one remote area", 400);
+  if (ids.length) throw new AppError("Remote places are private to each member; update the member's own remote areas instead", 400);
+  if (input.attendanceMode === "remote" && workspace.attendanceLocationPolicy?.enabled && !(member.privateRemoteAreas || []).some((area: any) => area.isActive)) throw new AppError("Add at least one private remote place before setting this member to Remote", 400);
   member.attendanceMode = input.attendanceMode;
-  member.assignedRemoteLocationIds = ids as any;
+  member.assignedRemoteLocationIds = [] as any;
   workspace.markModified("members");
   await workspace.save();
   await WorkspaceActivity.createActivity({ workspace: workspaceId, user: actorId, targetUser: memberId, type: "workspace_updated", description: "Updated member attendance location assignment", metadata: { action: "attendance_location_member_assigned", targetMemberId: memberId, attendanceMode: input.attendanceMode, areaIds: ids } });
   return member;
 }
 
-export function eligibleAreasForMember(workspace: any, member: any) {
-  const areas = workspace.attendanceLocationPolicy?.areas || [];
-  if (member.attendanceMode === "remote") {
-    const assigned = new Set((member.assignedRemoteLocationIds || []).map(String));
-    return areas.filter((area: any) => area.kind === "remote" && area.isActive && assigned.has(String(area._id)));
+export async function updateMemberRemoteAreas(workspaceId: string, actorId: string, memberId: string, input: any) {
+  const workspace = await loadWorkspace(workspaceId);
+  assertActiveMember(workspace, actorId);
+  if (!mongoose.Types.ObjectId.isValid(memberId)) throw new AppError("Workspace member not found", 404);
+  let member = workspace.members.find((item: any) => String(item.user) === memberId);
+  if (!member && String(workspace.owner) === memberId) {
+    workspace.members.push({ user: workspace.owner, role: "owner", status: "active", attendanceMode: "onsite", privateRemoteAreas: [] });
+    member = workspace.members[workspace.members.length - 1];
   }
-  return areas.filter((area: any) => area.kind === "office" && area.isActive);
+  if (!member) throw new AppError("Workspace member not found", 404);
+  if (!input || !Array.isArray(input.areas) || input.areas.length > 30) throw new AppError("Invalid private remote areas", 400);
+  const areas = input.areas.map((area: any) => {
+    const networkIp = area?.networkIp == null || area.networkIp === "" ? undefined : normalizeIp(area.networkIp);
+    if (!area || typeof area.name !== "string" || !area.name.trim() || area.name.trim().length > 80 || !validateCoordinate(area.latitude, -90, 90) || !validateCoordinate(area.longitude, -180, 180) || !Number.isFinite(area.radiusMeters) || area.radiusMeters < 25 || area.radiusMeters > 50000 || typeof area.isActive !== "boolean" || (area.networkIp && !networkIp)) throw new AppError("Invalid private remote area or public IP address", 400);
+    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), latitude: area.latitude, longitude: area.longitude, radiusMeters: area.radiusMeters, isActive: area.isActive, ...(networkIp ? { networkIp } : {}) };
+  });
+  const ids = areas.map((area: any) => String(area._id));
+  if (new Set(ids).size !== ids.length) throw new AppError("Remote area IDs must be unique", 400);
+  member.privateRemoteAreas = areas;
+  workspace.markModified("members");
+  await workspace.save();
+  await WorkspaceActivity.createActivity({ workspace: workspaceId, user: actorId, targetUser: memberId, type: "workspace_updated", description: "Updated member private remote areas", metadata: { action: "member_private_remote_areas_updated", targetMemberId: memberId, areaIds: ids } });
+  return member;
 }
 
-export async function validateClockInLocation(workspace: any, member: any, fix: any, now = new Date()) {
+export function eligibleAreasForMember(workspace: any, member: any, at = new Date()) {
+  const areas = workspace.attendanceLocationPolicy?.areas || [];
+  if (member.attendanceMode === "remote") {
+    const own = (member.privateRemoteAreas || []).filter((area: any) => area.isActive).map((area: any) => ({ ...(area.toObject?.() ?? area), kind: "remote" }));
+    return own;
+  }
+  const officeAreas = areas.filter((area: any) => area.kind === "office" && area.isActive).map((area: any) => ({ ...(area.toObject?.() ?? area), radiusMeters: 60 }));
+  const today = at.toISOString().slice(0, 10);
+  const approvedIds = new Set((member.temporaryRemoteApprovals || []).filter((approval: any) => today >= new Date(approval.startDate).toISOString().slice(0, 10) && today <= new Date(approval.endDate).toISOString().slice(0, 10)).map((approval: any) => String(approval.areaId)));
+  const allowedPrivate = (member.privateRemoteAreas || []).filter((area: any) => area.isActive && approvedIds.has(String(area._id))).map((area: any) => ({ ...(area.toObject?.() ?? area), kind: "remote" }));
+  return [...officeAreas, ...allowedPrivate];
+}
+
+export async function validateClockInLocation(workspace: any, member: any, fix: any, now = new Date(), clientIp?: string) {
   const policy = workspace.attendanceLocationPolicy || defaults;
   if (!policy.enabled) return null;
   const areas = eligibleAreasForMember(workspace, member);
   if (areas.length === 0) throw new AppError("No active attendance area is assigned to you", 403);
-  const match = matchAttendanceArea(fix, areas, policy, now);
-  return { ...match, mode: member.attendanceMode || "onsite", observedAt: new Date(fix.capturedAt) };
+  let match: any;
+  let verificationMethod: "gps" | "network_confirmed" = "gps";
+  try {
+    match = matchAttendanceArea(fix, areas, policy, now);
+  } catch (error: any) {
+    // Network confirmation is only a fallback for a fresh, structurally valid,
+    // low-accuracy reading whose uncertainty circle still overlaps this member's
+    // private remote geofence. A matching IP alone must never authorize clock-in.
+    const observedIp = normalizeIp(clientIp);
+    const capturedAt = typeof fix?.capturedAt === "string" ? Date.parse(fix.capturedAt) : NaN;
+    const validFix = validateCoordinate(fix?.latitude, -90, 90) && validateCoordinate(fix?.longitude, -180, 180) && Number.isFinite(fix?.accuracyMeters) && fix.accuracyMeters >= 0 && Number.isFinite(capturedAt) && now.getTime() - capturedAt <= 120000 && capturedAt - now.getTime() <= 15000;
+    const maxFallbackAccuracyMeters = 250;
+    const remoteAreas = areas.filter((area: any) => area.kind === "remote" && (member.privateRemoteAreas || []).some((privateArea: any) => String(privateArea._id) === String(area._id)));
+    if (!validFix || fix.accuracyMeters <= policy.maxAccuracyMeters || remoteAreas.length === 0 || !remoteAreas.some((area: any) => normalizeIp(area.networkIp))) throw error;
+    if (!observedIp) throw new AppError("GPS accuracy is too low, and the server could not verify this connection's IP. Check the backend trusted-proxy configuration.", 400);
+    const matchingAreas = remoteAreas.filter((area: any) => normalizeIp(area.networkIp) === observedIp);
+    if (!matchingAreas.length) throw new AppError("GPS accuracy is too low, and the IP seen by the server does not match this member's registered remote-place IP. Check the saved IP and backend trusted-proxy configuration.", 400);
+    if (fix.accuracyMeters > maxFallbackAccuracyMeters) throw new AppError("GPS accuracy is too low for the network fallback. The uncertainty must be 250 m or better.", 400);
+    const candidate = matchingAreas.map((area: any) => ({ area, distance: distanceMeters(fix, area) })).filter(({ area, distance }: any) => distance <= area.radiusMeters + fix.accuracyMeters).sort((a: any, b: any) => a.distance - b.distance)[0];
+    if (!candidate) throw new AppError("The registered IP matched, but the GPS uncertainty circle does not overlap this remote place. Clock-in was stopped.", 403);
+    match = { areaId: candidate.area._id, distanceMeters: Math.round(candidate.distance), accuracyMeters: fix.accuracyMeters };
+    verificationMethod = "network_confirmed";
+  }
+  const matched = areas.find((area: any) => String(area._id) === String(match.areaId));
+  const isPrivateRemote = (member.privateRemoteAreas || []).some((area: any) => String(area._id) === String(match.areaId));
+  return { ...match, areaName: matched?.name, mode: matched?.kind === "remote" || isPrivateRemote ? "remote" : "onsite", verificationMethod, observedAt: new Date(fix.capturedAt) };
 }
 
 export async function recordLocationCheck(workspaceId: string, userId: string, timeEntryId: string, status: string, fix?: any) {
