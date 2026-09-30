@@ -10,12 +10,14 @@ const mongoose = require("mongoose");
 const AttendanceLocationService = require("../services/attendanceLocationService");
 const AttendanceLocationEvent = require("../models/AttendanceLocationEvent");
 const { resolveAttendanceClientIp } = require("../utils/attendanceClientIp");
+const { canClockOutFromClient } = require("../services/desktopClockAuthorization");
 
 const toggleWorkspaceClock = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { id: workspaceId } = req.params;
     const { status, locationFix } = req.body || {};
     const currentUserId = req.user!.id;
+    const desktopDevice = (req as any).desktopDevice;
 
     const validStatuses = ["active", "inactive"];
     if (!status || !validStatuses.includes(status)) {
@@ -43,6 +45,8 @@ const toggleWorkspaceClock = asyncHandler(
           const startTime = new Date();
           const [created] = await TimeEntry.create([{
             user: currentUserId, workspace: workspaceId, startTime, isRunning: true,
+            clockInSource: desktopDevice ? "desktop" : "web",
+            ...(desktopDevice ? { clockInDevice: desktopDevice._id } : {}),
             attendanceMode: locationMatch?.mode,
             clockInAreaId: locationMatch?.areaId,
             clockInVerificationMethod: locationMatch?.verificationMethod,
@@ -63,6 +67,8 @@ const toggleWorkspaceClock = asyncHandler(
         } else {
           const runningEntry = await TimeEntry.findOne({ user: currentUserId, workspace: workspaceId, isRunning: true, isDeleted: false }).select("+clockInLocation").session(session);
           if (runningEntry) {
+            const entrySource = runningEntry.clockInSource || "web";
+            if (!canClockOutFromClient(entrySource, runningEntry.clockInDevice ? String(runningEntry.clockInDevice) : null, desktopDevice ? "desktop" : "web", desktopDevice ? String(desktopDevice._id) : null)) throw new AppError("This shift must be clocked out from the same client and trusted device that clocked it in", 403);
             if (workspace.attendanceLocationPolicy?.enabled) {
               const locationResult = AttendanceLocationService.validateClockOutLocation(locationFix, runningEntry.clockInLocation, new Date(), workspace.attendanceLocationPolicy.maxAccuracyMeters || 100);
               const fixIsStructurallyValid = locationFix && Number.isFinite(locationFix.latitude) && Number.isFinite(locationFix.longitude) && typeof locationFix.accuracyMeters === "number" && Number.isFinite(Date.parse(locationFix.capturedAt));
@@ -71,6 +77,8 @@ const toggleWorkspaceClock = asyncHandler(
             }
             runningEntry.endTime = new Date();
             runningEntry.isRunning = false;
+            runningEntry.clockOutSource = desktopDevice ? "desktop" : "web";
+            if (desktopDevice) runningEntry.clockOutDevice = desktopDevice._id;
             await runningEntry.save({ session });
           }
           member.status = "inactive";

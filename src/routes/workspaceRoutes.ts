@@ -21,6 +21,7 @@ const { protect } = require("../middlewares/authMiddleware");
 const { checkWorkspaceLimit } = require("../middlewares/subscriptionMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const requireWorkspaceOwner = require("../middlewares/requireWorkspaceOwner");
+const { desktopDeviceAuth } = require("../middlewares/desktopDeviceAuth");
 
 const router = express.Router();
 
@@ -585,6 +586,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *               $ref: "#/components/schemas/ApiError"
  */
 router.post("/:id/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
+router.post("/:id/clock/desktop-toggle", desktopDeviceAuth, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
 router.patch("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.updateStickyNote);
 router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.getStickyNote);
 

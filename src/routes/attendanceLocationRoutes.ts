@@ -3,8 +3,19 @@ const router = express.Router();
 const { protect } = require("../middlewares/authMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const controller = require("../controllers/attendanceLocationController");
+const desktopController = require("../controllers/desktopAttendanceController");
+const { desktopDeviceAuth } = require("../middlewares/desktopDeviceAuth");
+
+// Device-scoped routes authenticate with the encrypted installation credential instead of a web JWT.
+router.get("/desktop/status", desktopDeviceAuth, desktopController.getDeviceStatus);
+router.post("/desktop/activity", desktopDeviceAuth, desktopController.recordAppPresence);
 
 router.use(protect);
+router.post("/desktop-devices", desktopController.createDevice);
+router.get("/desktop-devices", desktopController.listDevices);
+router.delete("/desktop-devices/:deviceId", desktopController.revokeDevice);
+router.patch("/desktop-devices/:deviceId/activity-consent", desktopController.setActivityConsent);
+router.get("/workspace/:workspaceId/desktop-activity", desktopController.getAppPresence);
 /**
  * @swagger
  * /api/attendance/workspace/{workspaceId}/location-policy:

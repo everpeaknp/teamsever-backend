@@ -15,6 +15,10 @@ export interface ITimeEntry extends Document {
   attendanceMode?: "onsite" | "remote";
   clockInAreaId?: Schema.Types.ObjectId;
   clockInVerificationMethod?: "gps" | "network_confirmed";
+  clockInSource?: "web" | "desktop";
+  clockOutSource?: "web" | "desktop";
+  clockInDevice?: Schema.Types.ObjectId;
+  clockOutDevice?: Schema.Types.ObjectId;
   clockInLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaName?: string };
   clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; distanceFromClockInMeters?: number; withinRange: boolean };
   locationReviewReason?: string;
@@ -64,6 +68,10 @@ const timeEntrySchema = new mongoose.Schema(
     attendanceMode: { type: String, enum: ["onsite", "remote"] },
     clockInAreaId: { type: mongoose.Schema.Types.ObjectId },
     clockInVerificationMethod: { type: String, enum: ["gps", "network_confirmed"] },
+    clockInSource: { type: String, enum: ["web", "desktop"], default: "web" },
+    clockOutSource: { type: String, enum: ["web", "desktop"] },
+    clockInDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
+    clockOutDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
     clockInLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaName: String }, select: false },
     clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
     locationReviewReason: { type: String, maxlength: 160 },

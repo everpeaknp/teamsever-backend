@@ -107,6 +107,8 @@ class AttendanceService {
         taskTitle: entry.task?.title || "N/A",
         description: entry.description || ""
         ,attendanceMode: entry.attendanceMode || "onsite"
+        ,clockInSource: entry.clockInSource || "web"
+        ,clockOutSource: entry.clockOutSource || null
         ,clockInVerificationMethod: entry.clockInVerificationMethod || (entry.clockInLocation ? "gps" : null)
         ,clockInLocation: entry.clockInLocation ? { areaName: entry.clockInLocation.areaName || "Allowed area", latitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockInLocation.latitude : undefined, longitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockInLocation.longitude : undefined, accuracyMeters: entry.clockInLocation.accuracyMeters, capturedAt: entry.clockInLocation.capturedAt } : null
         ,clockOutLocation: entry.clockOutLocation ? { latitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.latitude : undefined, longitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.longitude : undefined, accuracyMeters: entry.clockOutLocation.accuracyMeters, capturedAt: entry.clockOutLocation.capturedAt, distanceFromClockInMeters: entry.clockOutLocation.distanceFromClockInMeters, withinRange: entry.clockOutLocation.withinRange } : null
@@ -127,7 +129,7 @@ class AttendanceService {
       return "No data found for the selected filters.";
     }
 
-    const headers = ["Name", "Email", "Date", "Clock In", "Clock Out", "Total Hours", "Mode", "Clock-in Area", "Clock-in Verification", "Clock-in Latitude", "Clock-in Longitude", "Clock-out Latitude", "Clock-out Longitude", "Clock-out Distance (m)", "Location Review", "Description"];
+    const headers = ["Name", "Email", "Date", "Clock In", "Clock Out", "Total Hours", "Mode", "Clock-in Source", "Clock-out Source", "Clock-in Area", "Clock-in Verification", "Clock-in Latitude", "Clock-in Longitude", "Clock-out Latitude", "Clock-out Longitude", "Clock-out Distance (m)", "Location Review", "Description"];
     const rows = data.map((item) => [
       item.userName,
       item.userEmail,
@@ -136,6 +138,8 @@ class AttendanceService {
       item.clockOut,
       item.totalHours,
       item.attendanceMode,
+      item.clockInSource,
+      item.clockOutSource || "",
       item.clockInLocation?.areaName || "Location not recorded",
       item.clockInVerificationMethod || "not recorded",
       item.clockInLocation?.latitude ?? "",
@@ -174,6 +178,8 @@ class AttendanceService {
       { header: 'Clock Out', key: 'clockOut', width: 25 },
       { header: 'Total Hours', key: 'totalHours', width: 15 },
       { header: 'Mode', key: 'attendanceMode', width: 12 },
+      { header: 'Clock-in Source', key: 'clockInSource', width: 16 },
+      { header: 'Clock-out Source', key: 'clockOutSource', width: 16 },
       { header: 'Clock-in Area', key: 'clockInArea', width: 24 },
       { header: 'Clock-in Verification', key: 'clockInVerificationMethod', width: 24 },
       { header: 'Clock-in Latitude', key: 'clockInLatitude', width: 18 },
