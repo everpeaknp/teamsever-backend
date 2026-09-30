@@ -11,6 +11,8 @@ router.get("/desktop/status", desktopDeviceAuth, desktopController.getDeviceStat
 router.post("/desktop/activity", desktopDeviceAuth, desktopController.recordAppPresence);
 
 router.use(protect);
+router.get("/workspace/:workspaceId/desktop-presence-policy", desktopController.getDesktopPresencePolicy);
+router.put("/workspace/:workspaceId/desktop-presence-policy", desktopController.updateDesktopPresencePolicy);
 router.post("/desktop-devices", desktopController.createDevice);
 router.get("/desktop-devices", desktopController.listDevices);
 router.delete("/desktop-devices/:deviceId", desktopController.revokeDevice);

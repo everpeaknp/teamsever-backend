@@ -5,7 +5,10 @@ const desktopAppPresenceSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
   timeEntry: { type: mongoose.Schema.Types.ObjectId, ref: "TimeEntry", required: true, index: true },
   device: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice", required: true },
-  appId: { type: String, required: true, maxlength: 160 },
+  appId: { type: String, default: null, maxlength: 160 },
+  presenceStatus: { type: String, enum: ["active", "afk", "unavailable"], default: "unavailable" },
+  foregroundAppSupported: { type: Boolean, default: false },
+  idleDetectionSupported: { type: Boolean, default: false },
   startedAt: { type: Date, required: true },
   endedAt: { type: Date, required: true },
 }, { timestamps: true });

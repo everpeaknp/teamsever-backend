@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -48,6 +48,13 @@ Thumbs.db
 **/tests/
 **/test/
 **/__tests__/
+node_modules/
+!/src/__tests__/
+!/src/__tests__/desktopPresencePolicy.test.ts
+!/src/__tests__/desktopPresenceApi.test.ts
+!/src/__tests__/desktopActivityValidation.test.ts
+!/src/__tests__/desktopPresenceTimeline.test.ts
+src/__tests__/jest.setup.ts
 coverage/
 .nyc_output/
 test-*.js

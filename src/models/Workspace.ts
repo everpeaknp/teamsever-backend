@@ -53,6 +53,7 @@ export interface IWorkspace extends Document {
     staleAfterSeconds: number;
     areas: Array<{ _id: Schema.Types.ObjectId; name: string; kind: "office" | "remote"; latitude: number; longitude: number; radiusMeters: number; isActive: boolean }>;
   };
+  desktopPresencePolicy?: { afkThresholdMinutes: number };
 }
 
 const workspaceSchema = new mongoose.Schema(
@@ -156,6 +157,9 @@ const workspaceSchema = new mongoose.Schema(
     lastAnnouncementTime: {
       type: Date,
       default: null
+    },
+    desktopPresencePolicy: {
+      afkThresholdMinutes: { type: Number, default: 5, min: 1, max: 60 }
     },
     attendanceLocationPolicy: {
       enabled: { type: Boolean, default: false },
