@@ -79,7 +79,9 @@ export async function updateLocationPolicy(workspaceId: string, actorId: string,
   if (input.areas.length > 100) throw new AppError("Maximum 100 areas allowed", 400);
   const areas = input.areas.map((area: any) => {
     if (!area || typeof area.name !== "string" || !area.name.trim() || area.name.trim().length > 80 || area.kind !== "office" || !validateCoordinate(area.latitude, -90, 90) || !validateCoordinate(area.longitude, -180, 180) || typeof area.isActive !== "boolean") throw new AppError("Only the shared office belongs in workspace location settings; remote areas are private to members", 400);
-    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), kind: "office", latitude: area.latitude, longitude: area.longitude, radiusMeters: 60, isActive: area.isActive };
+    const networkIp = area.networkIp ? normalizeIp(area.networkIp) : null;
+    if (area.networkIp && !networkIp) throw new AppError("Invalid office network IP address", 400);
+    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), kind: "office", latitude: area.latitude, longitude: area.longitude, radiusMeters: 60, isActive: area.isActive, ...(networkIp ? { networkIp } : {}) };
   });
   if (areas.filter((area: any) => area.kind === "office").length > 1) {
     throw new AppError("Only one office location is allowed", 400);
@@ -175,20 +177,23 @@ export async function validateClockInLocation(workspace: any, member: any, fix: 
     match = matchAttendanceArea(fix, areas, policy, now);
   } catch (error: any) {
     // Network confirmation is only a fallback for a fresh, structurally valid,
-    // low-accuracy reading whose uncertainty circle still overlaps this member's
-    // private remote geofence. A matching IP alone must never authorize clock-in.
+    // reading whose uncertainty circle overlaps an eligible geofence. Office IPs
+    // are shared; remote IPs remain private to the assigned member. An IP alone
+    // must never authorize clock-in.
     const observedIp = normalizeIp(clientIp);
     const capturedAt = typeof fix?.capturedAt === "string" ? Date.parse(fix.capturedAt) : NaN;
     const validFix = validateCoordinate(fix?.latitude, -90, 90) && validateCoordinate(fix?.longitude, -180, 180) && Number.isFinite(fix?.accuracyMeters) && fix.accuracyMeters >= 0 && Number.isFinite(capturedAt) && now.getTime() - capturedAt <= 120000 && capturedAt - now.getTime() <= 15000;
     const maxFallbackAccuracyMeters = 250;
-    const remoteAreas = areas.filter((area: any) => area.kind === "remote" && (member.privateRemoteAreas || []).some((privateArea: any) => String(privateArea._id) === String(area._id)));
-    if (!validFix || fix.accuracyMeters <= policy.maxAccuracyMeters || remoteAreas.length === 0 || !remoteAreas.some((area: any) => normalizeIp(area.networkIp))) throw error;
-    if (!observedIp) throw new AppError("GPS accuracy is too low, and the server could not verify this connection's IP. Check the backend trusted-proxy configuration.", 400);
-    const matchingAreas = remoteAreas.filter((area: any) => normalizeIp(area.networkIp) === observedIp);
-    if (!matchingAreas.length) throw new AppError("GPS accuracy is too low, and the IP seen by the server does not match this member's registered remote-place IP. Check the saved IP and backend trusted-proxy configuration.", 400);
+    const confirmableAreas = areas.filter((area: any) => area.kind === "office"
+      || (area.kind === "remote" && (member.privateRemoteAreas || []).some((privateArea: any) => String(privateArea._id) === String(area._id))))
+      .filter((area: any) => normalizeIp(area.networkIp));
+    if (!validFix || confirmableAreas.length === 0) throw error;
     if (fix.accuracyMeters > maxFallbackAccuracyMeters) throw new AppError("GPS accuracy is too low for the network fallback. The uncertainty must be 250 m or better.", 400);
+    if (!observedIp) throw new AppError("GPS accuracy is too low, and the server could not verify this connection's IP. Check the backend trusted-proxy configuration.", 400);
+    const matchingAreas = confirmableAreas.filter((area: any) => normalizeIp(area.networkIp) === observedIp);
+    if (!matchingAreas.length) throw new AppError("GPS did not confirm this attendance area, and the IP seen by the server does not match its registered network IP. Check the saved IP and backend trusted-proxy configuration.", 400);
     const candidate = matchingAreas.map((area: any) => ({ area, distance: distanceMeters(fix, area) })).filter(({ area, distance }: any) => distance <= area.radiusMeters + fix.accuracyMeters).sort((a: any, b: any) => a.distance - b.distance)[0];
-    if (!candidate) throw new AppError("The registered IP matched, but the GPS uncertainty circle does not overlap this remote place. Clock-in was stopped.", 403);
+    if (!candidate) throw new AppError("The registered IP matched, but the GPS uncertainty circle does not overlap this attendance area. Clock-in was stopped.", 403);
     match = { areaId: candidate.area._id, distanceMeters: Math.round(candidate.distance), accuracyMeters: fix.accuracyMeters };
     verificationMethod = "network_confirmed";
   }

@@ -51,7 +51,7 @@ export interface IWorkspace extends Document {
     maxAccuracyMeters: number;
     checkIntervalSeconds: number;
     staleAfterSeconds: number;
-    areas: Array<{ _id: Schema.Types.ObjectId; name: string; kind: "office" | "remote"; latitude: number; longitude: number; radiusMeters: number; isActive: boolean }>;
+    areas: Array<{ _id: Schema.Types.ObjectId; name: string; kind: "office" | "remote"; latitude: number; longitude: number; radiusMeters: number; isActive: boolean; networkIp?: string }>;
   };
   desktopPresencePolicy?: { afkThresholdMinutes: number };
 }
@@ -172,7 +172,8 @@ const workspaceSchema = new mongoose.Schema(
         latitude: { type: Number, required: true, min: -90, max: 90 },
         longitude: { type: Number, required: true, min: -180, max: 180 },
         radiusMeters: { type: Number, required: true, min: 25, max: 50000 },
-        isActive: { type: Boolean, default: true }
+        isActive: { type: Boolean, default: true },
+        networkIp: { type: String, trim: true, maxlength: 45, default: undefined }
       }]
     }
   },
