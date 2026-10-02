@@ -8,6 +8,7 @@ const { desktopDeviceAuth } = require("../middlewares/desktopDeviceAuth");
 
 // Device-scoped routes authenticate with the encrypted installation credential instead of a web JWT.
 router.get("/desktop/status", desktopDeviceAuth, desktopController.getDeviceStatus);
+router.post("/desktop/presence-session", desktopDeviceAuth, desktopController.attachPresenceToActiveShift);
 router.post("/desktop/activity", desktopDeviceAuth, desktopController.recordAppPresence);
 
 router.use(protect);

@@ -44,9 +44,37 @@ const setActivityConsent = asyncHandler(async (req: any, res: Response, next: Ne
 });
 
 const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
-  const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false }).select("workspace startTime clockInSource clockInDevice").sort({ startTime: -1 });
-  const ownsActiveEntry = entry && entry.clockInSource === "desktop" && String(entry.clockInDevice) === String(req.desktopDevice._id);
-  return res.json({ success: true, data: { clockedIn: !!ownsActiveEntry, workspaceId: ownsActiveEntry ? entry.workspace : null, timeEntryId: ownsActiveEntry ? entry._id : null, startTime: ownsActiveEntry ? entry.startTime : null, activityMonitoringEnabled: req.desktopDevice.activityMonitoringEnabled } });
+  const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false }).sort({ startTime: -1 });
+  const deviceId = String(req.desktopDevice._id);
+  const clockedInOnThisDevice = !!entry && entry.clockInSource === "desktop" && String(entry.clockInDevice) === deviceId;
+  const presenceTrackingActive = !!entry && !!req.desktopDevice.activityMonitoringEnabled && (clockedInOnThisDevice || String(entry.desktopPresenceDevice || "") === deviceId);
+  return res.json({ success: true, data: {
+    clockedIn: !!entry,
+    clockedInOnThisDevice,
+    presenceTrackingActive,
+    workspaceId: entry ? entry.workspace : null,
+    timeEntryId: entry ? entry._id : null,
+    startTime: entry ? entry.startTime : null,
+    clockInSource: entry?.clockInSource || null,
+    activityMonitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
+  } });
+});
+
+const attachPresenceToActiveShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (req.body?.consent !== true) return next(new AppError("Explicit consent is required to share desktop presence for this shift", 400));
+  if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable desktop presence consent on this device first", 403));
+  const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false });
+  if (!entry) return next(new AppError("No active shift was found for this account", 409));
+  const deviceId = String(req.desktopDevice._id);
+  if (entry.clockInSource === "desktop" && String(entry.clockInDevice || "") === deviceId) {
+    return res.json({ success: true, data: { workspaceId: entry.workspace, timeEntryId: entry._id, startTime: entry.startTime, presenceTrackingActive: true, clockedInOnThisDevice: true } });
+  }
+  if (entry.clockInSource === "desktop") return next(new AppError("This shift is already tied to another desktop for attendance and presence", 409));
+  if (entry.desktopPresenceDevice && String(entry.desktopPresenceDevice) !== deviceId) return next(new AppError("Another paired desktop is already reporting presence for this shift", 409));
+  entry.desktopPresenceDevice = req.desktopDevice._id;
+  entry.desktopPresenceConsentedAt = new Date();
+  await entry.save();
+  return res.json({ success: true, data: { workspaceId: entry.workspace, timeEntryId: entry._id, startTime: entry.startTime, presenceTrackingActive: true, clockedInOnThisDevice: false } });
 });
 
 const recordAppPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -59,13 +87,14 @@ const recordAppPresence = asyncHandler(async (req: any, res: Response, next: Nex
   const idleDetectionSupported = isLegacyHeartbeat ? false : req.body?.idleDetectionSupported;
   if (!presenceStatus || (appId !== null && appId !== undefined && !safeAppId) || !mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(timeEntryId) || !validDesktopActivityInterval(startedAt, endedAt) || !validDesktopPresenceCapabilities(presenceStatus, foregroundAppSupported, idleDetectionSupported) || (safeAppId && !foregroundAppSupported)) return next(new AppError("Invalid desktop presence sample", 400));
   if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Desktop presence monitoring is disabled for this device", 403));
-  const entry = await TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, clockInSource: "desktop", clockInDevice: req.desktopDevice._id });
+  const entry = await TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop", clockInDevice: req.desktopDevice._id }, { desktopPresenceDevice: req.desktopDevice._id }] });
   if (!entry || !canRecordDesktopPresence({
     monitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
     isRunning: !!entry.isRunning,
     entrySource: entry.clockInSource,
     entryUserId: String(entry.user),
     entryDeviceId: String(entry.clockInDevice),
+    presenceDeviceId: String(entry.desktopPresenceDevice || ""),
     userId: String(req.user.id),
     deviceId: String(req.desktopDevice._id),
   })) return next(new AppError("No consented active desktop shift for this device", 409));
@@ -120,8 +149,8 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
   const reportIncludesNow = !filter.startedAt || ((!filter.startedAt.$gte || now >= filter.startedAt.$gte) && (!filter.startedAt.$lte || now <= filter.startedAt.$lte));
   const openGaps: any[] = [];
   if (reportIncludesNow) {
-    const runningEntries = await TimeEntry.find({ workspace: workspaceId, ...(teamRequested ? {} : { user: targetUserId }), isRunning: true, isDeleted: false, clockInSource: "desktop" }).select("user startTime clockInDevice").populate("user", "name").lean();
-    const deviceIds = runningEntries.map((entry: any) => entry.clockInDevice).filter(Boolean);
+    const runningEntries = await TimeEntry.find({ workspace: workspaceId, ...(teamRequested ? {} : { user: targetUserId }), isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }] }).select("user startTime clockInSource clockInDevice desktopPresenceDevice").populate("user", "name").lean();
+    const deviceIds = runningEntries.map((entry: any) => entry.clockInSource === "desktop" ? entry.clockInDevice : entry.desktopPresenceDevice).filter(Boolean);
     const enabledDevices = await TrustedAttendanceDevice.find({ _id: { $in: deviceIds }, revokedAt: null, activityMonitoringEnabled: true }).select("_id activityMonitoringEnabledAt").lean();
     const allowedDeviceIds = new Set(enabledDevices.map((device: any) => String(device._id)));
     const enabledAtByDevice = new Map<string, number | null>(enabledDevices.map((device: any): [string, number | null] => [String(device._id), device.activityMonitoringEnabledAt ? new Date(device.activityMonitoringEnabledAt).getTime() : null]));
@@ -131,7 +160,7 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
     for (const event of latestEvents) if (!latestByEntry.has(String(event.timeEntry))) latestByEntry.set(String(event.timeEntry), event);
     for (const entry of runningEntries) {
       const event = latestByEntry.get(String(entry._id));
-      const deviceId = String(entry.clockInDevice || "");
+      const deviceId = String(entry.clockInSource === "desktop" ? entry.clockInDevice || "" : entry.desktopPresenceDevice || "");
       if (!allowedDeviceIds.has(deviceId) || (event && String(event.device) !== deviceId)) continue;
       const lastSeenAt = getDesktopPresenceGapBaseline(entry.startTime, enabledAtByDevice.get(deviceId), event?.endedAt);
       if (lastSeenAt === null) continue;
@@ -194,4 +223,4 @@ const updateDesktopPresencePolicy = asyncHandler(async (req: any, res: Response,
   await workspace.save();
   return res.json({ success: true, data: { policy: { afkThresholdMinutes }, canManage: true } });
 });
-module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, getDeviceStatus, recordAppPresence, getAppPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };
+module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };

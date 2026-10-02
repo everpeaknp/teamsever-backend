@@ -19,6 +19,8 @@ export interface ITimeEntry extends Document {
   clockOutSource?: "web" | "desktop";
   clockInDevice?: Schema.Types.ObjectId;
   clockOutDevice?: Schema.Types.ObjectId;
+  desktopPresenceDevice?: Schema.Types.ObjectId;
+  desktopPresenceConsentedAt?: Date;
   clockInLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaName?: string };
   clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; distanceFromClockInMeters?: number; withinRange: boolean };
   locationReviewReason?: string;
@@ -72,6 +74,8 @@ const timeEntrySchema = new mongoose.Schema(
     clockOutSource: { type: String, enum: ["web", "desktop"] },
     clockInDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
     clockOutDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
+    desktopPresenceDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
+    desktopPresenceConsentedAt: { type: Date },
     clockInLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaName: String }, select: false },
     clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
     locationReviewReason: { type: String, maxlength: 160 },
@@ -100,6 +104,7 @@ timeEntrySchema.index({ project: 1, isDeleted: 1 });
 timeEntrySchema.index({ startTime: 1 });
 timeEntrySchema.index({ endTime: 1 });
 timeEntrySchema.index({ user: 1, workspace: 1, isRunning: 1, isDeleted: 1 }); // Performance check for active timers
+timeEntrySchema.index({ desktopPresenceDevice: 1, isRunning: 1, isDeleted: 1 });
 
 // Calculate duration before saving if endTime is set
 timeEntrySchema.pre("save", function (this: ITimeEntry) {

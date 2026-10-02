@@ -4,8 +4,11 @@ export function canRecordDesktopPresence(input: {
   entrySource: string | undefined;
   entryUserId: string;
   entryDeviceId: string;
+  presenceDeviceId?: string;
   userId: string;
   deviceId: string;
 }): boolean {
-  return input.monitoringEnabled && input.isRunning && input.entrySource === "desktop" && input.entryUserId === input.userId && input.entryDeviceId === input.deviceId;
+  const ownsClockIn = input.entrySource === "desktop" && input.entryDeviceId === input.deviceId;
+  const ownsConsentedPresence = input.presenceDeviceId === input.deviceId;
+  return input.monitoringEnabled && input.isRunning && input.entryUserId === input.userId && (ownsClockIn || ownsConsentedPresence);
 }
