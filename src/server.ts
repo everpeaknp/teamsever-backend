@@ -30,6 +30,7 @@ if (!process.env.JWT_SECRET) {
 }
 const express = require("express");
 const http = require("http");
+const { resolveTrustedProxyConfig } = require("./utils/trustedProxyConfig");
 const cors = require("cors");
 const compression = require("compression");
 const morgan = require("morgan");
@@ -107,10 +108,10 @@ const startServer = async () => {
 
     // 3. Setup Express app
     const app = express();
-    // Only trust explicitly configured reverse proxies. Without this, req.ip
-    // remains the direct TCP peer and forwarded headers are ignored.
-    const trustedProxyAddresses = (process.env.TRUST_PROXY || "").split(",").map((value: string) => value.trim()).filter(Boolean);
-    if (trustedProxyAddresses.length) app.set("trust proxy", trustedProxyAddresses);
+    // Trust only proxies explicitly configured for this deployment. VPS
+    // proxy addresses and hop counts depend on its actual network topology.
+    const trustedProxyConfig = resolveTrustedProxyConfig();
+    if (trustedProxyConfig !== undefined) app.set("trust proxy", trustedProxyConfig);
     const httpServer = http.createServer(app);
 
     // 4. Initialize Socket.io

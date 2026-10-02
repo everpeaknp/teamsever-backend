@@ -115,7 +115,14 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
   if (!workspace) return next(new AppError("Workspace not found", 404));
   const isOwner = String(workspace.owner) === String(req.user.id);
   const isActiveMember = (workspace.members || []).some((item: any) => String(item.user?._id || item.user) === String(req.user.id) && item.status !== "inactive");
-  if (!isOwner && !isActiveMember) return next(new AppError("Active workspace membership required", 403));
+  const hasOwnActiveDesktopShift = !isOwner && !isActiveMember && await TimeEntry.exists({
+    workspace: workspaceId,
+    user: req.user.id,
+    isRunning: true,
+    isDeleted: false,
+    $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }],
+  });
+  if (!isOwner && !isActiveMember && !hasOwnActiveDesktopShift) return next(new AppError("Active workspace membership required", 403));
   const teamRequested = req.query.userId === "all";
   const targetUserId = req.query.userId && !teamRequested ? String(req.query.userId) : String(req.user.id);
   const canSeeTeam = isOwner || (await PermissionService.can(req.user.id, "MANAGE_ADDRESSES", { userId: req.user.id, workspaceId })) || (await PermissionService.can(req.user.id, "MANAGE_ATTENDANCE_LOCATIONS", { userId: req.user.id, workspaceId }));
