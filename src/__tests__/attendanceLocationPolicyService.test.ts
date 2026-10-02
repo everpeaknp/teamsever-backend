@@ -79,6 +79,21 @@ describe("attendance location policy storage and workspace scoping", () => {
     expect(JSON.stringify(activity.metadata)).not.toContain("longitude");
   });
 
+  it("stores an optional public IP on the single shared office", async () => {
+    await Service.updateLocationPolicy(workspaceId, ownerId, {
+      enabled: true,
+      areas: [{ name: "HQ", kind: "office", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" }]
+    });
+    expect(workspace.attendanceLocationPolicy.areas[0]).toMatchObject({ kind: "office", networkIp: "203.0.113.10", radiusMeters: 60 });
+  });
+
+  it("rejects an invalid optional office IP", async () => {
+    await expect(Service.updateLocationPolicy(workspaceId, ownerId, {
+      enabled: true,
+      areas: [{ name: "HQ", kind: "office", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true, networkIp: "not-an-ip" }]
+    })).rejects.toThrow("Invalid office network IP address");
+  });
+
   it("stores private remote areas on the selected member, not in the shared office policy", async () => {
     const result = await Service.updateMemberRemoteAreas(workspaceId, ownerId, memberId, {
       areas: [{ name: "Home", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" }]
@@ -100,6 +115,20 @@ describe("attendance location policy storage and workspace scoping", () => {
       .rejects.toThrow("IP seen by the server does not match");
   });
 
+  it("allows office-network confirmation only when the GPS uncertainty overlaps the fixed office geofence", async () => {
+    const office = { _id: remoteA, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" };
+    workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
+    const capturedAt = new Date().toISOString();
+    const nearButOutside = { latitude: 40.0006, longitude: -74, accuracyMeters: 20, capturedAt };
+    await expect(Service.validateClockInLocation(workspace, workspace.members[0], nearButOutside, new Date(), "203.0.113.10"))
+      .resolves.toMatchObject({ areaId: remoteA, verificationMethod: "network_confirmed", mode: "onsite" });
+    const farAway = { ...nearButOutside, latitude: 40.002 };
+    await expect(Service.validateClockInLocation(workspace, workspace.members[0], farAway, new Date(), "203.0.113.10"))
+      .rejects.toThrow("uncertainty circle does not overlap");
+    await expect(Service.validateClockInLocation(workspace, workspace.members[0], nearButOutside, new Date(), "198.51.100.2"))
+      .rejects.toThrow("does not match");
+  });
+
   it("allows a matching private remote IP only when the imprecise GPS uncertainty circle overlaps the geofence", async () => {
     const area = { _id: remoteA, name: "Home", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" };
     workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [] };
@@ -116,14 +145,14 @@ describe("attendance location policy storage and workspace scoping", () => {
       .rejects.toThrow("uncertainty must be 250 m or better");
   });
 
-  it("never lets a registered IP override an accurate GPS reading outside the remote place", async () => {
+  it("never lets a registered IP authorize an accurate GPS reading outside the remote place", async () => {
     const area = { _id: remoteA, name: "Home", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" };
     workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [] };
     workspace.members[0].attendanceMode = "remote";
     workspace.members[0].privateRemoteAreas = [area];
     const fix = { latitude: 28, longitude: 84, accuracyMeters: 10, capturedAt: new Date().toISOString() };
     await expect(Service.validateClockInLocation(workspace, workspace.members[0], fix, new Date(), "203.0.113.10"))
-      .rejects.toThrow("outside");
+      .rejects.toThrow("uncertainty circle does not overlap");
   });
 
   it("rejects invalid optional remote-area IP addresses", async () => {
