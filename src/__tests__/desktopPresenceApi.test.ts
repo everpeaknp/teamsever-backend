@@ -11,13 +11,19 @@ jest.mock("../middlewares/authMiddleware", () => ({ protect: (_req: any, _res: a
 jest.mock("../middlewares/desktopDeviceAuth", () => ({
   desktopDeviceAuth: (req: any, _res: any, next: any) => {
     req.user = { id: mockUserId };
-    req.desktopDevice = { _id: mockDeviceId, activityMonitoringEnabled: req.header("x-consent") !== "off" };
+    req.desktopDevice = {
+      _id: mockDeviceId,
+      activityMonitoringEnabled: req.header("x-consent") !== "off",
+      autoSyncMobileShifts: req.header("x-auto-sync") === "on",
+    };
     next();
   },
 }));
 jest.mock("../controllers/attendanceLocationController", () => new Proxy({}, { get: () => (_req: any, res: any) => res.status(200).json({ success: true }) }));
 jest.mock("../models/TimeEntry", () => ({ findOne: jest.fn() }));
-jest.mock("../models/TrustedAttendanceDevice", () => ({ find: jest.fn() }));
+jest.mock("../models/TrustedAttendanceDevice", () => ({ find: jest.fn(), findOneAndUpdate: jest.fn() }));
+jest.mock("../utils/attendanceClientIp", () => ({ resolveAttendanceClientIp: jest.fn().mockResolvedValue("203.0.113.8") }));
+jest.mock("../services/attendanceNetworkFingerprint", () => ({ attendanceNetworkFingerprint: jest.fn(() => "test-network-fingerprint") }));
 jest.mock("../models/DesktopAppPresence", () => ({
   create: jest.fn(),
   findOne: jest.fn(),
@@ -202,6 +208,60 @@ describe("desktop presence heartbeat API", () => {
     const response = await request(app).get("/api/attendance/desktop/status");
     expect(response.body).toMatchObject({ success: true });
     expect(response.body.data).toMatchObject({ clockedIn: true, clockedInOnThisDevice: false, presenceTrackingActive: false, clockInSource: "web" });
+  });
+
+  it("offers a same-network mobile shift for explicit companion sync", async () => {
+    const mobileEntry = {
+      ...validEntry,
+      clockInSource: "mobile",
+      clockInDevice: undefined,
+      startTime: new Date(),
+      networkFingerprint: "test-network-fingerprint",
+      networkFingerprintExpiresAt: new Date(Date.now() + 60_000),
+    };
+    TimeEntry.findOne.mockReturnValueOnce({ select() { return this; }, sort: async () => mobileEntry });
+
+    const response = await request(app).get("/api/attendance/desktop/status");
+
+    expect(response.body.data).toMatchObject({
+      clockedIn: true,
+      clockedInOnThisDevice: false,
+      presenceTrackingActive: false,
+      source: "mobile",
+      pendingMobileShift: {
+        timeEntryId: mockTimeEntryId,
+        workspaceId: mockWorkspaceId,
+      },
+    });
+  });
+
+  it("links an opted-in trusted desktop automatically for a fresh same-network mobile shift", async () => {
+    const mobileEntry = {
+      ...validEntry,
+      clockInSource: "mobile",
+      clockInDevice: undefined,
+      networkFingerprint: "test-network-fingerprint",
+      networkFingerprintExpiresAt: new Date(Date.now() + 60_000),
+    };
+    const query = { select() { return this; }, sort: async () => mobileEntry };
+    TimeEntry.findOne.mockReturnValueOnce(query);
+    TimeEntry.findOneAndUpdate = jest.fn().mockResolvedValue(mobileEntry);
+    const reqDevice = require("../middlewares/desktopDeviceAuth");
+    void reqDevice;
+
+    const response = await request(app).get("/api/attendance/desktop/status").set("x-auto-sync", "on");
+
+    expect(response.body.data).toMatchObject({
+      clockedIn: true,
+      presenceTrackingActive: true,
+      source: "mobile",
+      pendingMobileShift: null,
+    });
+    expect(TimeEntry.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ networkFingerprint: "test-network-fingerprint" }),
+      expect.objectContaining({ $set: { presenceCompanionDevice: mockDeviceId } }),
+      { new: true },
+    );
   });
 
   it("records laptop presence on a phone/web-started shift only after it was explicitly attached", async () => {

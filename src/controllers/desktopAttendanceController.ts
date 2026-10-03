@@ -122,7 +122,8 @@ const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: 
   }
   const ip = await resolveAttendanceClientIp(req.ip);
   const fingerprint = attendanceNetworkFingerprint(ip);
-  if (!fingerprint || fingerprint !== entry.networkFingerprint || (entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() <= Date.now())) {
+  const fingerprintFresh = !!entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() > Date.now();
+  if (!fingerprintFresh || !fingerprint || fingerprint !== entry.networkFingerprint) {
     return next(new AppError("This mobile shift is not on the same network. Use the pairing code from the mobile app.", 409));
   }
   if (action === "always") {
