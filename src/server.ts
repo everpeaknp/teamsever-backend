@@ -80,6 +80,7 @@ const startServer = async () => {
     const leaveRoutes = require("./routes/leaveRoutes");
     const attendanceRoutes = require("./routes/attendanceRoutes");
     const attendanceLocationRoutes = require("./routes/attendanceLocationRoutes");
+    const { mountAttendanceRoutes } = require("./routes/mountAttendanceRoutes");
     const memberRoutes = require("./routes/memberRoutes");
     const documentRoutes = require("./routes/documentRoutes");
     const performanceRoutes = require("./routes/performanceRoutes");
@@ -239,8 +240,7 @@ const startServer = async () => {
     app.use("/api/task-dependencies", taskDependencyRoutes);
     app.use("/api/time", timeEntryRoutes);
     app.use("/api/recurring", recurringRoutes);
-    app.use("/api/attendance", attendanceRoutes);
-    app.use("/api/attendance", attendanceLocationRoutes);
+    mountAttendanceRoutes(app, attendanceRoutes, attendanceLocationRoutes);
     app.use("/api", attachmentRoutes);
     app.use("/api", activityRoutes);
     app.use("/api/search", searchRoutes);
