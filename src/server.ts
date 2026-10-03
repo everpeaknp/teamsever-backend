@@ -90,6 +90,7 @@ const startServer = async () => {
     const legalRoutes = require("./routes/legalRoutes");
     const subscriptionRoutes = require("./routes/subscriptionRoutes");
     const feedbackRoutes = require("./routes/feedbackRoutes");
+    const desktopDownloadRoutes = require("./routes/desktopDownloadRoutes");
     const { workspaceFileRouter, fileRouter } = require("./routes/workspaceFileRoutes");
     const { spaceTableRouter, tableRouter } = require("./routes/customTableRoutes");
     const tableMemberRoutes = require("./routes/tableMemberRoutes");
@@ -204,6 +205,7 @@ const startServer = async () => {
     // 7. Routes
     console.log("[Server] Mounting Webhook routes at /api/webhooks");
     app.use("/api/webhooks", webhookRoutes);
+    app.use("/api/desktop-downloads", desktopDownloadRoutes);
 
     app.use("/api/auth", authRoutes);
     const customRoleRoutes = require("./routes/customRoleRoutes");
