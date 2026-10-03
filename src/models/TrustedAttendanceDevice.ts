@@ -7,6 +7,7 @@ const trustedAttendanceDeviceSchema = new mongoose.Schema({
   tokenHash: { type: String, required: true, unique: true, select: false },
   activityMonitoringEnabled: { type: Boolean, default: false },
   activityMonitoringEnabledAt: { type: Date, default: null },
+  autoSyncMobileShifts: { type: Boolean, default: false },
   lastSeenAt: { type: Date },
   revokedAt: { type: Date, default: null },
 }, { timestamps: true });

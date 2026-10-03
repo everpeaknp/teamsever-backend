@@ -587,6 +587,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  */
 router.post("/:id/clock/toggle", protect, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
 router.post("/:id/clock/desktop-toggle", desktopDeviceAuth, requirePermission("VIEW_WORKSPACE"), toggleWorkspaceClock);
+router.post("/:id/clock/mobile-toggle", protect, requirePermission("VIEW_WORKSPACE"), (req: any, _res: any, next: any) => { req.mobileClockRequest = true; next(); }, toggleWorkspaceClock);
 router.patch("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.updateStickyNote);
 router.get("/:id/sticky-note", protect, requirePermission("VIEW_WORKSPACE"), stickyNoteController.getStickyNote);
 

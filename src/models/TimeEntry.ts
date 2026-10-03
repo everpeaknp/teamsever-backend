@@ -15,12 +15,18 @@ export interface ITimeEntry extends Document {
   attendanceMode?: "onsite" | "remote";
   clockInAreaId?: Schema.Types.ObjectId;
   clockInVerificationMethod?: "gps" | "network_confirmed";
-  clockInSource?: "web" | "desktop";
-  clockOutSource?: "web" | "desktop";
+  clockInSource?: "web" | "desktop" | "mobile";
+  clockOutSource?: "web" | "desktop" | "mobile";
   clockInDevice?: Schema.Types.ObjectId;
   clockOutDevice?: Schema.Types.ObjectId;
   desktopPresenceDevice?: Schema.Types.ObjectId;
   desktopPresenceConsentedAt?: Date;
+  presenceCompanionDevice?: Schema.Types.ObjectId;
+  networkFingerprint?: string;
+  networkFingerprintExpiresAt?: Date;
+  companionPairingCodeHash?: string;
+  companionPairingExpiresAt?: Date;
+  companionDismissedDevices?: Schema.Types.ObjectId[];
   clockInLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaName?: string };
   clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; distanceFromClockInMeters?: number; withinRange: boolean };
   locationReviewReason?: string;
@@ -70,12 +76,18 @@ const timeEntrySchema = new mongoose.Schema(
     attendanceMode: { type: String, enum: ["onsite", "remote"] },
     clockInAreaId: { type: mongoose.Schema.Types.ObjectId },
     clockInVerificationMethod: { type: String, enum: ["gps", "network_confirmed"] },
-    clockInSource: { type: String, enum: ["web", "desktop"], default: "web" },
-    clockOutSource: { type: String, enum: ["web", "desktop"] },
+    clockInSource: { type: String, enum: ["web", "desktop", "mobile"], default: "web" },
+    clockOutSource: { type: String, enum: ["web", "desktop", "mobile"] },
     clockInDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
     clockOutDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
     desktopPresenceDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" },
     desktopPresenceConsentedAt: { type: Date },
+    presenceCompanionDevice: { type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice", select: false },
+    networkFingerprint: { type: String, select: false },
+    networkFingerprintExpiresAt: { type: Date, select: false },
+    companionPairingCodeHash: { type: String, select: false },
+    companionPairingExpiresAt: { type: Date, select: false },
+    companionDismissedDevices: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" }], select: false },
     clockInLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaName: String }, select: false },
     clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
     locationReviewReason: { type: String, maxlength: 160 },

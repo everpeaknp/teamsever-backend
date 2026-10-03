@@ -1,5 +1,7 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const router = express.Router();
+const companionPairingRateLimit = rateLimit({ windowMs: 5 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { success: false, message: "Too many desktop pairing attempts. Wait a few minutes and retry." } });
 const { protect } = require("../middlewares/authMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const controller = require("../controllers/attendanceLocationController");
@@ -10,6 +12,8 @@ const { desktopDeviceAuth } = require("../middlewares/desktopDeviceAuth");
 router.get("/desktop/status", desktopDeviceAuth, desktopController.getDeviceStatus);
 router.post("/desktop/presence-session", desktopDeviceAuth, desktopController.attachPresenceToActiveShift);
 router.post("/desktop/activity", desktopDeviceAuth, desktopController.recordAppPresence);
+router.post("/desktop/companion/:timeEntryId/respond", desktopDeviceAuth, desktopController.respondToMobileShift);
+router.post("/desktop/companion/pair", companionPairingRateLimit, desktopDeviceAuth, desktopController.pairMobileShiftWithCode);
 
 router.use(protect);
 router.get("/workspace/:workspaceId/desktop-presence-policy", desktopController.getDesktopPresencePolicy);
@@ -18,6 +22,8 @@ router.post("/desktop-devices", desktopController.createDevice);
 router.get("/desktop-devices", desktopController.listDevices);
 router.delete("/desktop-devices/:deviceId", desktopController.revokeDevice);
 router.patch("/desktop-devices/:deviceId/activity-consent", desktopController.setActivityConsent);
+router.patch("/desktop-devices/:deviceId/auto-sync-mobile-shifts", desktopController.setAutoSyncMobileShifts);
+router.post("/workspace/:workspaceId/mobile-companion-code", companionPairingRateLimit, desktopController.createMobilePairingCode);
 router.get("/workspace/:workspaceId/desktop-activity", desktopController.getAppPresence);
 /**
  * @swagger

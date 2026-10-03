@@ -60,6 +60,15 @@ coverage/
 test-*.js
 test-*.ts
 
+# Keep focused regression coverage for the leave request flow.
+!src/__tests__/
+src/__tests__/*
+!src/__tests__/leaveApprovalFlow.test.ts
+!src/__tests__/leaveRequestWorkspaceProjection.test.ts
+!src/__tests__/invitationCodeReuse.test.ts
+!src/__tests__/invitationLifecycle.test.ts
+!src/__tests__/apiRoutes.test.ts
+
 # Seed files
 **/seeds/
 **/seed/

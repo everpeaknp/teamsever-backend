@@ -13,6 +13,7 @@ const sendInviteSchema = z.object({
     inviteType: z
       .enum(["email", "link"])
       .default("email"),
+    expiresInHours: z.coerce.number().int().positive().optional(),
     spaceId: z
       .string()
       .optional(),

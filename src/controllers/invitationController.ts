@@ -50,6 +50,9 @@ const sendInvite = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
   // Always include token and shortCode for link-type invites
   if (invitation.token) responseData.token = invitation.token;
   if (invitation.shortCode) responseData.shortCode = invitation.shortCode;
+  if (invitation.token) {
+    responseData.inviteUrl = `${frontendUrl}/join?token=${invitation.token}`;
+  }
 
   if (typeof invitation.inviteType !== "undefined") responseData.inviteType = invitation.inviteType;
   if (typeof invitation.spaceId !== "undefined" && invitation.spaceId !== null) responseData.spaceId = invitation.spaceId;

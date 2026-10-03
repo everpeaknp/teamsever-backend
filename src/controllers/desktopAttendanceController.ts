@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import { normalizeDesktopAppId, normalizeDesktopPresenceStatus, validDesktopPresenceCapabilities, validDesktopActivityInterval, shouldFlagMissingPresenceHeartbeat, getDesktopPresenceGapBaseline } from "../services/desktopActivityValidation";
 import { createDesktopCredential, hashDesktopCredential } from "../services/desktopDeviceToken";
 import { canRecordDesktopPresence } from "../services/desktopPresenceAuthorization";
+import { attendanceNetworkFingerprint } from "../services/attendanceNetworkFingerprint";
+import { resolveAttendanceClientIp } from "../utils/attendanceClientIp";
+import { createHash, randomInt } from "node:crypto";
 
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
@@ -23,7 +26,7 @@ const createDevice = asyncHandler(async (req: any, res: Response) => {
 });
 
 const listDevices = asyncHandler(async (req: any, res: Response) => {
-  const devices = await TrustedAttendanceDevice.find({ user: req.user.id }).select("name platform activityMonitoringEnabled lastSeenAt revokedAt createdAt").sort({ createdAt: -1 });
+  const devices = await TrustedAttendanceDevice.find({ user: req.user.id }).select("name platform activityMonitoringEnabled autoSyncMobileShifts lastSeenAt revokedAt createdAt").sort({ createdAt: -1 });
   return res.json({ success: true, data: devices });
 });
 
@@ -43,21 +46,122 @@ const setActivityConsent = asyncHandler(async (req: any, res: Response, next: Ne
   return res.json({ success: true, data: { id: device._id, activityMonitoringEnabled: device.activityMonitoringEnabled } });
 });
 
+const setAutoSyncMobileShifts = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") return next(new AppError("enabled must be a boolean", 400));
+  const device = await TrustedAttendanceDevice.findOneAndUpdate(
+    { _id: req.params.deviceId, user: req.user.id, revokedAt: null },
+    { $set: { autoSyncMobileShifts: enabled } },
+    { new: true },
+  );
+  if (!device) return next(new AppError("Active device not found", 404));
+  return res.json({ success: true, data: { id: device._id, autoSyncMobileShifts: device.autoSyncMobileShifts } });
+});
+
 const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
-  const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false }).sort({ startTime: -1 });
+  const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false })
+    .select("workspace startTime clockInSource clockInDevice desktopPresenceDevice +presenceCompanionDevice +networkFingerprint +networkFingerprintExpiresAt +companionDismissedDevices")
+    .sort({ startTime: -1 });
   const deviceId = String(req.desktopDevice._id);
   const clockedInOnThisDevice = !!entry && entry.clockInSource === "desktop" && String(entry.clockInDevice) === deviceId;
-  const presenceTrackingActive = !!entry && !!req.desktopDevice.activityMonitoringEnabled && (clockedInOnThisDevice || String(entry.desktopPresenceDevice || "") === deviceId);
+  let presenceTrackingActive = !!entry && !!req.desktopDevice.activityMonitoringEnabled && (clockedInOnThisDevice || String(entry.desktopPresenceDevice || "") === deviceId);
+  let pendingMobileShift: { timeEntryId: string; workspaceId: string; startTime: string } | null = null;
+  if (entry?.clockInSource === "mobile") {
+    if (String(entry.presenceCompanionDevice || "") === deviceId && req.desktopDevice.activityMonitoringEnabled) {
+      presenceTrackingActive = true;
+    } else if (!entry.presenceCompanionDevice && req.desktopDevice.activityMonitoringEnabled) {
+      const dismissed = (entry.companionDismissedDevices || []).some((id: any) => String(id) === deviceId);
+      const fingerprintFresh = !!entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() > Date.now();
+      const ip = await resolveAttendanceClientIp(req.ip);
+      const fingerprint = attendanceNetworkFingerprint(ip);
+      if (!dismissed && fingerprintFresh && fingerprint && fingerprint === entry.networkFingerprint) {
+        if (req.desktopDevice.autoSyncMobileShifts) {
+          const linked = await TimeEntry.findOneAndUpdate(
+            { _id: entry._id, user: req.user.id, isRunning: true, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, networkFingerprint: fingerprint },
+            { $set: { presenceCompanionDevice: req.desktopDevice._id }, $unset: { networkFingerprint: 1, networkFingerprintExpiresAt: 1 } },
+            { new: true },
+          );
+          presenceTrackingActive = !!linked;
+        } else {
+          pendingMobileShift = { timeEntryId: String(entry._id), workspaceId: String(entry.workspace), startTime: new Date(entry.startTime).toISOString() };
+        }
+      }
+    }
+  }
   return res.json({ success: true, data: {
     clockedIn: !!entry,
+    hasActiveShift: !!entry,
     clockedInOnThisDevice,
     presenceTrackingActive,
-    workspaceId: entry ? entry.workspace : null,
-    timeEntryId: entry ? entry._id : null,
-    startTime: entry ? entry.startTime : null,
+    workspaceId: presenceTrackingActive ? entry?.workspace : null,
+    timeEntryId: presenceTrackingActive ? entry?._id : null,
+    startTime: presenceTrackingActive ? entry?.startTime : null,
     clockInSource: entry?.clockInSource || null,
+    source: entry?.clockInSource || null,
     activityMonitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
+    pendingMobileShift,
   } });
+});
+
+const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const action = req.body?.action;
+  if (!["sync_once", "always", "not_now"].includes(action)) return next(new AppError("Invalid companion action", 400));
+  if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable foreground app presence for this desktop before linking a mobile shift", 403));
+  const entry = await TimeEntry.findOne({
+    _id: req.params.timeEntryId,
+    user: req.user.id,
+    isRunning: true,
+    isDeleted: false,
+    clockInSource: "mobile",
+    presenceCompanionDevice: { $exists: false },
+  }).select("+networkFingerprint +networkFingerprintExpiresAt");
+  if (!entry) return next(new AppError("Mobile shift is no longer available to sync", 409));
+  if (action === "not_now") {
+    await TimeEntry.updateOne({ _id: entry._id, isRunning: true }, { $addToSet: { companionDismissedDevices: req.desktopDevice._id } });
+    return res.json({ success: true, data: { synced: false } });
+  }
+  const ip = await resolveAttendanceClientIp(req.ip);
+  const fingerprint = attendanceNetworkFingerprint(ip);
+  if (!fingerprint || fingerprint !== entry.networkFingerprint || (entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() <= Date.now())) {
+    return next(new AppError("This mobile shift is not on the same network. Use the pairing code from the mobile app.", 409));
+  }
+  if (action === "always") {
+    req.desktopDevice.autoSyncMobileShifts = true;
+    await req.desktopDevice.save();
+  }
+  const linked = await TimeEntry.findOneAndUpdate(
+    { _id: entry._id, user: req.user.id, isRunning: true, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, networkFingerprint: fingerprint },
+    { $set: { presenceCompanionDevice: req.desktopDevice._id }, $unset: { networkFingerprint: 1, networkFingerprintExpiresAt: 1 } },
+    { new: true },
+  );
+  if (!linked) return next(new AppError("Mobile shift was already paired with another desktop", 409));
+  return res.json({ success: true, data: { synced: true, alwaysSync: action === "always" } });
+});
+
+const createMobilePairingCode = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const expiresAt = new Date(Date.now() + 5 * 60_000);
+  const entry = await TimeEntry.findOneAndUpdate(
+    { user: req.user.id, workspace: req.params.workspaceId, isRunning: true, isDeleted: false, clockInSource: "mobile", presenceCompanionDevice: { $exists: false } },
+    { $set: { companionPairingCodeHash: createHash("sha256").update(code).digest("hex"), companionPairingExpiresAt: expiresAt } },
+    { new: true },
+  ).select("_id");
+  if (!entry) return next(new AppError("Clock in from the mobile app before pairing a desktop", 409));
+  return res.json({ success: true, data: { code, expiresAt } });
+});
+
+const pairMobileShiftWithCode = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable foreground app presence for this desktop before linking a mobile shift", 403));
+  const code = String(req.body?.code || "");
+  if (!/^\d{6}$/.test(code)) return next(new AppError("Enter the 6-digit code shown in the mobile app", 400));
+  const codeHash = createHash("sha256").update(code).digest("hex");
+  const linked = await TimeEntry.findOneAndUpdate(
+    { user: req.user.id, isRunning: true, isDeleted: false, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, companionPairingCodeHash: codeHash, companionPairingExpiresAt: { $gt: new Date() } },
+    { $set: { presenceCompanionDevice: req.desktopDevice._id }, $unset: { companionPairingCodeHash: 1, companionPairingExpiresAt: 1, networkFingerprint: 1, networkFingerprintExpiresAt: 1 } },
+    { new: true },
+  ).select("workspace startTime");
+  if (!linked) return next(new AppError("Pairing code is invalid or expired", 409));
+  return res.json({ success: true, data: { synced: true, workspaceId: linked.workspace, startTime: linked.startTime } });
 });
 
 const attachPresenceToActiveShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
@@ -87,7 +191,7 @@ const recordAppPresence = asyncHandler(async (req: any, res: Response, next: Nex
   const idleDetectionSupported = isLegacyHeartbeat ? false : req.body?.idleDetectionSupported;
   if (!presenceStatus || (appId !== null && appId !== undefined && !safeAppId) || !mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(timeEntryId) || !validDesktopActivityInterval(startedAt, endedAt) || !validDesktopPresenceCapabilities(presenceStatus, foregroundAppSupported, idleDetectionSupported) || (safeAppId && !foregroundAppSupported)) return next(new AppError("Invalid desktop presence sample", 400));
   if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Desktop presence monitoring is disabled for this device", 403));
-  const entry = await TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop", clockInDevice: req.desktopDevice._id }, { desktopPresenceDevice: req.desktopDevice._id }] });
+  const entry = await TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop", clockInDevice: req.desktopDevice._id }, { desktopPresenceDevice: req.desktopDevice._id }, { clockInSource: "mobile", presenceCompanionDevice: req.desktopDevice._id }] });
   if (!entry || !canRecordDesktopPresence({
     monitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
     isRunning: !!entry.isRunning,
@@ -95,6 +199,7 @@ const recordAppPresence = asyncHandler(async (req: any, res: Response, next: Nex
     entryUserId: String(entry.user),
     entryDeviceId: String(entry.clockInDevice),
     presenceDeviceId: String(entry.desktopPresenceDevice || ""),
+    companionDeviceId: entry.presenceCompanionDevice ? String(entry.presenceCompanionDevice) : null,
     userId: String(req.user.id),
     deviceId: String(req.desktopDevice._id),
   })) return next(new AppError("No consented active desktop shift for this device", 409));
@@ -120,7 +225,7 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
     user: req.user.id,
     isRunning: true,
     isDeleted: false,
-    $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }],
+    $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }, { clockInSource: "mobile", presenceCompanionDevice: { $exists: true, $ne: null } }],
   });
   if (!isOwner && !isActiveMember && !hasOwnActiveDesktopShift) return next(new AppError("Active workspace membership required", 403));
   const teamRequested = req.query.userId === "all";
@@ -156,8 +261,8 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
   const reportIncludesNow = !filter.startedAt || ((!filter.startedAt.$gte || now >= filter.startedAt.$gte) && (!filter.startedAt.$lte || now <= filter.startedAt.$lte));
   const openGaps: any[] = [];
   if (reportIncludesNow) {
-    const runningEntries = await TimeEntry.find({ workspace: workspaceId, ...(teamRequested ? {} : { user: targetUserId }), isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }] }).select("user startTime clockInSource clockInDevice desktopPresenceDevice").populate("user", "name").lean();
-    const deviceIds = runningEntries.map((entry: any) => entry.clockInSource === "desktop" ? entry.clockInDevice : entry.desktopPresenceDevice).filter(Boolean);
+    const runningEntries = await TimeEntry.find({ workspace: workspaceId, ...(teamRequested ? {} : { user: targetUserId }), isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop" }, { desktopPresenceDevice: { $exists: true, $ne: null } }, { clockInSource: "mobile", presenceCompanionDevice: { $exists: true, $ne: null } }] }).select("user startTime clockInSource clockInDevice desktopPresenceDevice presenceCompanionDevice").populate("user", "name").lean();
+    const deviceIds = runningEntries.map((entry: any) => entry.clockInSource === "mobile" ? entry.presenceCompanionDevice : entry.clockInSource === "desktop" ? entry.clockInDevice : entry.desktopPresenceDevice).filter(Boolean);
     const enabledDevices = await TrustedAttendanceDevice.find({ _id: { $in: deviceIds }, revokedAt: null, activityMonitoringEnabled: true }).select("_id activityMonitoringEnabledAt").lean();
     const allowedDeviceIds = new Set(enabledDevices.map((device: any) => String(device._id)));
     const enabledAtByDevice = new Map<string, number | null>(enabledDevices.map((device: any): [string, number | null] => [String(device._id), device.activityMonitoringEnabledAt ? new Date(device.activityMonitoringEnabledAt).getTime() : null]));
@@ -167,7 +272,7 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
     for (const event of latestEvents) if (!latestByEntry.has(String(event.timeEntry))) latestByEntry.set(String(event.timeEntry), event);
     for (const entry of runningEntries) {
       const event = latestByEntry.get(String(entry._id));
-      const deviceId = String(entry.clockInSource === "desktop" ? entry.clockInDevice || "" : entry.desktopPresenceDevice || "");
+      const deviceId = String(entry.clockInSource === "mobile" ? entry.presenceCompanionDevice || "" : entry.clockInSource === "desktop" ? entry.clockInDevice || "" : entry.desktopPresenceDevice || "");
       if (!allowedDeviceIds.has(deviceId) || (event && String(event.device) !== deviceId)) continue;
       const lastSeenAt = getDesktopPresenceGapBaseline(entry.startTime, enabledAtByDevice.get(deviceId), event?.endedAt);
       if (lastSeenAt === null) continue;
@@ -230,4 +335,4 @@ const updateDesktopPresencePolicy = asyncHandler(async (req: any, res: Response,
   await workspace.save();
   return res.json({ success: true, data: { policy: { afkThresholdMinutes }, canManage: true } });
 });
-module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };
+module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };

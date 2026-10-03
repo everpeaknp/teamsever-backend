@@ -195,7 +195,10 @@ describe("desktop presence heartbeat API", () => {
 
   it("reports an active mobile/web shift without claiming this desktop owns clock-in or presence", async () => {
     const webEntry = { ...validEntry, clockInSource: "web", clockInDevice: undefined, desktopPresenceDevice: undefined };
-    TimeEntry.findOne.mockReturnValueOnce({ sort: async () => webEntry });
+    TimeEntry.findOne.mockReturnValueOnce({
+      select() { return this; },
+      sort: async () => webEntry,
+    });
     const response = await request(app).get("/api/attendance/desktop/status");
     expect(response.body).toMatchObject({ success: true });
     expect(response.body.data).toMatchObject({ clockedIn: true, clockedInOnThisDevice: false, presenceTrackingActive: false, clockInSource: "web" });

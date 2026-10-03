@@ -10,7 +10,8 @@ const mongoose = require("mongoose");
 const AttendanceLocationService = require("../services/attendanceLocationService");
 const AttendanceLocationEvent = require("../models/AttendanceLocationEvent");
 const { resolveAttendanceClientIp } = require("../utils/attendanceClientIp");
-const { canClockOutFromClient } = require("../services/desktopClockAuthorization");
+const { canClockOutFromClient, resolveAttendanceClockSource } = require("../services/desktopClockAuthorization");
+const { attendanceNetworkFingerprint } = require("../services/attendanceNetworkFingerprint");
 
 const toggleWorkspaceClock = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -18,6 +19,8 @@ const toggleWorkspaceClock = asyncHandler(
     const { status, locationFix } = req.body || {};
     const currentUserId = req.user!.id;
     const desktopDevice = (req as any).desktopDevice;
+    const mobileClockRequest = (req as any).mobileClockRequest === true;
+    const requestSource = resolveAttendanceClockSource({ mobileClockRequest, desktopDeviceId: desktopDevice?._id ? String(desktopDevice._id) : null });
 
     const validStatuses = ["active", "inactive"];
     if (!status || !validStatuses.includes(status)) {
@@ -45,8 +48,9 @@ const toggleWorkspaceClock = asyncHandler(
           const startTime = new Date();
           const [created] = await TimeEntry.create([{
             user: currentUserId, workspace: workspaceId, startTime, isRunning: true,
-            clockInSource: desktopDevice ? "desktop" : "web",
+            clockInSource: requestSource,
             ...(desktopDevice ? { clockInDevice: desktopDevice._id } : {}),
+            ...(requestSource === "mobile" ? { networkFingerprint: attendanceNetworkFingerprint(observedClientIp) || undefined, networkFingerprintExpiresAt: new Date(startTime.getTime() + 16 * 60 * 60 * 1000) } : {}),
             attendanceMode: locationMatch?.mode,
             clockInAreaId: locationMatch?.areaId,
             clockInVerificationMethod: locationMatch?.verificationMethod,
@@ -68,7 +72,7 @@ const toggleWorkspaceClock = asyncHandler(
           const runningEntry = await TimeEntry.findOne({ user: currentUserId, workspace: workspaceId, isRunning: true, isDeleted: false }).select("+clockInLocation").session(session);
           if (runningEntry) {
             const entrySource = runningEntry.clockInSource || "web";
-            if (!canClockOutFromClient(entrySource, runningEntry.clockInDevice ? String(runningEntry.clockInDevice) : null, desktopDevice ? "desktop" : "web", desktopDevice ? String(desktopDevice._id) : null)) throw new AppError("This shift must be clocked out from the same client and trusted device that clocked it in", 403);
+            if (!canClockOutFromClient(entrySource, runningEntry.clockInDevice ? String(runningEntry.clockInDevice) : null, requestSource, desktopDevice ? String(desktopDevice._id) : null)) throw new AppError("This shift must be clocked out from the same client and trusted device that clocked it in", 403);
             if (workspace.attendanceLocationPolicy?.enabled) {
               const locationResult = AttendanceLocationService.validateClockOutLocation(locationFix, runningEntry.clockInLocation, new Date(), workspace.attendanceLocationPolicy.maxAccuracyMeters || 100);
               const fixIsStructurallyValid = locationFix && Number.isFinite(locationFix.latitude) && Number.isFinite(locationFix.longitude) && typeof locationFix.accuracyMeters === "number" && Number.isFinite(Date.parse(locationFix.capturedAt));
@@ -77,8 +81,13 @@ const toggleWorkspaceClock = asyncHandler(
             }
             runningEntry.endTime = new Date();
             runningEntry.isRunning = false;
-            runningEntry.clockOutSource = desktopDevice ? "desktop" : "web";
+            runningEntry.clockOutSource = requestSource;
             if (desktopDevice) runningEntry.clockOutDevice = desktopDevice._id;
+            runningEntry.presenceCompanionDevice = undefined;
+            runningEntry.networkFingerprint = undefined;
+            runningEntry.networkFingerprintExpiresAt = undefined;
+            runningEntry.companionPairingCodeHash = undefined;
+            runningEntry.companionPairingExpiresAt = undefined;
             await runningEntry.save({ session });
           }
           member.status = "inactive";

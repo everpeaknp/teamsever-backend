@@ -16,13 +16,13 @@ const ensureAttendanceEntitlement = async (workspaceId: string) => {
 // @access  Private
 const getAttendanceReport = asyncHandler(async (req, res) => {
   const { workspaceId } = req.params;
-  const { startDate, endDate, userId, projectId } = req.query;
+  const { startDate, endDate, userId, projectId, page, pageSize } = req.query;
   await ensureAttendanceEntitlement(workspaceId);
 
   const data = await attendanceService.getAttendanceReport(
     workspaceId,
     req.user.id,
-    { startDate, endDate, userId, projectId }
+    { startDate, endDate, userId, projectId, page, pageSize }
   );
 
   res.status(200).json({

@@ -7,11 +7,12 @@ const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const emailService = require("./emailService");
 const notificationService = require("./enhancedNotificationService");
+import { invitationStatusAfterAcceptance } from "./invitationLifecycle";
 
 interface SendInviteData {
   email?: string;
   workspaceId: string;
-  role: "admin" | "operations_manager" | "project_manager" | "qa" | "developer" | "member";
+  role: "admin" | "operations_manager" | "project_manager" | "qa" | "developer" | "member" | "guest";
   invitedBy: string;
   inviteType?: "email" | "link";
   spaceId?: string;
@@ -366,11 +367,10 @@ class InvitationService {
     }
 
     // Mark invitation status based on whether user was newly added
-    if (actuallyJoined) {
-      invitation.status = "accepted";
-    } else {
-      invitation.status = "already_member"; // New status for already-member case
-    }
+    invitation.status = invitationStatusAfterAcceptance(
+      invitation.inviteType,
+      actuallyJoined,
+    );
     await invitation.save();
 
     // --- Fast-Pass: auto-provision user into attached space ---

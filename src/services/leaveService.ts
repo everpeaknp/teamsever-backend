@@ -93,7 +93,11 @@ class LeaveService {
       throw new AppError("Leave reason is compulsory and cannot be empty", 400);
     }
 
-    const workspace = await Workspace.findById(workspaceId).select("owner members +members.privateRemoteAreas");
+    // members.privateRemoteAreas is select:false. Selecting it with the
+    // members.* inclusion list creates a Mongo projection path collision on
+    // the nested members array, so request the hidden field as an override and
+    // let the schema's normal projection include the other member fields.
+    const workspace = await Workspace.findById(workspaceId).select("+members.privateRemoteAreas");
     if (!workspace) {
       throw new AppError("Workspace not found", 404);
     }
@@ -126,11 +130,11 @@ class LeaveService {
       if (existingArea) requestedRemoteAreaName = existingArea.name;
       if (!existingArea && !proposedRemoteArea) throw new AppError("Choose an approved private remote place or propose an address", 400);
       if (proposedRemoteArea && (typeof proposedRemoteArea.name !== "string" || !proposedRemoteArea.name.trim() || !Number.isFinite(proposedRemoteArea.latitude) || proposedRemoteArea.latitude < -90 || proposedRemoteArea.latitude > 90 || !Number.isFinite(proposedRemoteArea.longitude) || proposedRemoteArea.longitude < -180 || proposedRemoteArea.longitude > 180)) throw new AppError("A valid proposed remote address is required", 400);
-      if (proposedRemoteArea) {
-        const isOwner = workspace.owner?.toString() === assignedManagerId;
-        const canManageAddresses = isOwner || (await permissionService.can(assignedManagerId, "MANAGE_ADDRESSES", { workspaceId, userId: assignedManagerId })) || (await permissionService.can(assignedManagerId, "MANAGE_ATTENDANCE_LOCATIONS", { workspaceId, userId: assignedManagerId }));
-        if (!canManageAddresses) throw new AppError("Assigned approver must also have Manage Addresses permission for a new private place", 400);
-      }
+      // The requester proposes a private place, but it is not added to the
+      // workspace member until this assigned approver approves the request.
+      // MANAGE_LEAVES authorizes that decision; requiring the separate address
+      // management permission made normal assigned approvers unable to process
+      // remote requests.
     }
 
     if (conversationId) {

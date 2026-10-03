@@ -45,6 +45,19 @@ router.use(protect);
  *         schema:
  *           type: string
  *         description: Filter by Space/Project ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Optional page number. When present, data is returned as { records, pagination } rather than the legacy array.
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Optional page size (defaults to 25 and is capped at 100); applies only when page is provided.
  *     responses:
  *       200:
  *         description: Report retrieved successfully

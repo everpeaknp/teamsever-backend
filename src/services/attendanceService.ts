@@ -8,7 +8,7 @@ class AttendanceService {
    * Get attendance report data
    */
   async getAttendanceReport(workspaceId, adminId, filters) {
-    const { startDate, endDate, userId, projectId } = filters;
+    const { startDate, endDate, userId, projectId, page, pageSize } = filters;
 
     // Verify workspace exists
     const workspace = await Workspace.findById(workspaceId);
@@ -69,14 +69,27 @@ class AttendanceService {
       }
     }
 
-    // Fetch entries with populated data
-    const entries = await TimeEntry.find(matchQuery)
-      .select("+clockInLocation +clockOutLocation")
+    // The optional page mode is used by clients that need bounded responses.
+    // Keep the legacy array response as the default for existing web/export callers.
+    const paginated = Number.isInteger(Number(page)) && Number(page) > 0;
+    const normalizedPage = paginated ? Number(page) : 1;
+    const normalizedPageSize = paginated
+      ? Math.min(100, Math.max(1, Number(pageSize) || 25))
+      : null;
+    const total = paginated ? await TimeEntry.countDocuments(matchQuery) : null;
+
+    // Select only fields used by the report, including the normally-hidden
+    // location fields. This avoids hydrating unrelated TimeEntry data.
+    let entriesQuery = TimeEntry.find(matchQuery)
+      .select("user project task startTime endTime duration isRunning isDeleted description attendanceMode clockInSource clockOutSource clockInVerificationMethod clockInLocation clockOutLocation locationReviewReason +clockInLocation +clockOutLocation")
       .populate("user", "name email avatar profilePicture")
       .populate("project", "name")
       .populate("task", "title")
-      .sort({ startTime: -1 })
-      .lean();
+      .sort({ startTime: -1, _id: -1 });
+    if (paginated) {
+      entriesQuery = entriesQuery.skip((normalizedPage - 1) * normalizedPageSize).limit(normalizedPageSize);
+    }
+    const entries = await entriesQuery.lean();
 
     // Format for report
     const now = new Date();
@@ -116,7 +129,18 @@ class AttendanceService {
       };
     });
 
-    return reportData;
+    if (!paginated) return reportData;
+    return {
+      records: reportData,
+      pagination: {
+        page: normalizedPage,
+        pageSize: normalizedPageSize,
+        total,
+        totalPages: Math.ceil(total / normalizedPageSize),
+        hasNextPage: normalizedPage * normalizedPageSize < total,
+        hasPreviousPage: normalizedPage > 1,
+      },
+    };
   }
 
   /**
