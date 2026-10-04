@@ -10,8 +10,46 @@ const AppError = require("../utils/AppError");
 const permissionService = require("../permissions/permission.service");
 const enhancedNotificationService = require("./enhancedNotificationService").default || require("./enhancedNotificationService");
 const socketService = require("./socketService").default || require("./socketService");
+const { getWorkspaceTimezone, workspaceCalendarDateKey, isRequestExpired } = require("./workspaceCalendar");
 
 class LeaveService {
+  async expireWorkspaceRequests(workspaceId: string, now = new Date()): Promise<number> {
+    // A few older unit-test doubles expose only findOne. Production Mongoose
+    // always provides find; missing test-double capabilities mean no sweep.
+    if (typeof LeaveRequest.find !== "function" || typeof LeaveRequest.findOneAndUpdate !== "function") return 0;
+    const timezone = await getWorkspaceTimezone(workspaceId);
+    const today = workspaceCalendarDateKey(now, timezone);
+    const cutoff = new Date(`${today}T00:00:00.000Z`);
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+    const candidates = await LeaveRequest.find({ workspace: workspaceId, status: "pending", endDate: { $lt: cutoff } });
+    let expired = 0;
+    for (const candidate of candidates) {
+      const updated = await LeaveRequest.findOneAndUpdate(
+        { _id: candidate._id, status: "pending", endDate: { $lt: cutoff } },
+        { $set: { status: "expired", expiredAt: now } },
+        { new: true }
+      );
+      if (!updated) continue;
+      expired += 1;
+      if (updated.directMessageId) {
+        const dm = await DirectMessage.findById(updated.directMessageId);
+        if (dm) {
+          dm.metadata = { ...dm.metadata, status: "expired", expiredAt: now };
+          await dm.save();
+          if (updated.conversation) {
+            try {
+              const io = socketService.getIO();
+              io?.to(`conversation:${updated.conversation.toString()}`).emit("dm:updated", {
+                conversationId: updated.conversation.toString(), message: dm,
+              });
+            } catch (err) { console.error("[LeaveService] Failed to emit expired DM update:", err); }
+          }
+        }
+      }
+    }
+    return expired;
+  }
+
   /**
    * Helper: Get users in a workspace who have MANAGE_LEAVES permission
    */
@@ -92,6 +130,8 @@ class LeaveService {
     if (!reason || !reason.trim()) {
       throw new AppError("Leave reason is compulsory and cannot be empty", 400);
     }
+
+    await this.expireWorkspaceRequests(workspaceId);
 
     // members.privateRemoteAreas is select:false. Selecting it with the
     // members.* inclusion list creates a Mongo projection path collision on
@@ -243,6 +283,7 @@ class LeaveService {
    * Approve Leave
    */
   async approveLeave(leaveId: string, approverId: string, workspaceId: string) {
+    await this.expireWorkspaceRequests(workspaceId);
     let leave: any = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture");
@@ -254,7 +295,13 @@ class LeaveService {
     await this.assertCanDecideLeave(leave, approverId, workspaceId);
 
     if (leave.status !== "pending") {
-      throw new AppError(`Leave request has already been ${leave.status}`, 400);
+      throw new AppError(`Leave request has already been ${leave.status}`, leave.status === "expired" ? 409 : 400);
+    }
+
+    const timezone = await getWorkspaceTimezone(workspaceId);
+    if (isRequestExpired(leave.endDate, new Date(), timezone)) {
+      await this.expireWorkspaceRequests(workspaceId);
+      throw new AppError("This request has expired and can no longer be approved", 409);
     }
 
     const approver = await User.findById(approverId).select("name email avatar profilePicture");
@@ -267,7 +314,7 @@ class LeaveService {
       try {
         await session.withTransaction(async () => {
           const currentRequest = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId }).session(session);
-          if (!currentRequest || currentRequest.status !== "pending") throw new AppError("Remote request is no longer pending", 409);
+          if (!currentRequest || currentRequest.status !== "pending" || isRequestExpired(currentRequest.endDate, new Date(), timezone)) throw new AppError("Remote request is no longer pending or has expired", 409);
           const workspaceDoc = await Workspace.findById(workspaceId).select("+members.privateRemoteAreas +members.temporaryRemoteApprovals").session(session);
           const requesterId = currentRequest.requester.toString();
           const member = workspaceDoc?.members?.find((item: any) => item.user?.toString() === requesterId);
@@ -294,10 +341,22 @@ class LeaveService {
       await leave.populate("requester", "name email avatar profilePicture");
       await leave.populate("assignedManager", "name email avatar profilePicture");
     } else {
-      leave.status = "approved";
-      leave.approvedBy = approverId as any;
-      leave.approvedAt = new Date();
-      await leave.save();
+      const approvedAt = new Date();
+      const date = workspaceCalendarDateKey(approvedAt, timezone);
+      const cutoff = new Date(`${date}T00:00:00.000Z`);
+      cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+      const updated = await LeaveRequest.findOneAndUpdate(
+        { _id: leaveId, workspace: workspaceId, status: "pending", endDate: { $gte: cutoff } },
+        { $set: { status: "approved", approvedBy: approverId, approvedAt } },
+        { new: true }
+      );
+      if (!updated) {
+        await this.expireWorkspaceRequests(workspaceId);
+        throw new AppError("This request is no longer pending or has expired", 409);
+      }
+      leave = updated;
+      await leave.populate("requester", "name email avatar profilePicture");
+      await leave.populate("assignedManager", "name email avatar profilePicture");
     }
 
     // If attached to a DM, update the DM card metadata live
@@ -345,6 +404,7 @@ class LeaveService {
    * Deny Leave (denialReason is optional)
    */
   async denyLeave(leaveId: string, denierId: string, workspaceId: string, denialReason?: string) {
+    await this.expireWorkspaceRequests(workspaceId);
     const leave = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture");
@@ -356,7 +416,13 @@ class LeaveService {
     await this.assertCanDecideLeave(leave, denierId, workspaceId);
 
     if (leave.status !== "pending") {
-      throw new AppError(`Leave request has already been ${leave.status}`, 400);
+      throw new AppError(`Leave request has already been ${leave.status}`, leave.status === "expired" ? 409 : 400);
+    }
+
+    const timezone = await getWorkspaceTimezone(workspaceId);
+    if (isRequestExpired(leave.endDate, new Date(), timezone)) {
+      await this.expireWorkspaceRequests(workspaceId);
+      throw new AppError("This request has expired and can no longer be denied", 409);
     }
 
     const denier = await User.findById(denierId).select("name email avatar profilePicture");
@@ -364,11 +430,20 @@ class LeaveService {
       throw new AppError("Denier user not found", 404);
     }
 
-    leave.status = "denied";
-    leave.deniedBy = denierId as any;
-    leave.deniedAt = new Date();
-    leave.denialReason = denialReason ? denialReason.trim() : null;
-    await leave.save();
+    const deniedAt = new Date();
+    const date = workspaceCalendarDateKey(deniedAt, timezone);
+    const cutoff = new Date(`${date}T00:00:00.000Z`);
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+    const updated = await LeaveRequest.findOneAndUpdate(
+      { _id: leaveId, workspace: workspaceId, status: "pending", endDate: { $gte: cutoff } },
+      { $set: { status: "denied", deniedBy: denierId, deniedAt, denialReason: denialReason ? denialReason.trim() : null } },
+      { new: true }
+    );
+    if (!updated) {
+      await this.expireWorkspaceRequests(workspaceId);
+      throw new AppError("This request is no longer pending or has expired", 409);
+    }
+    Object.assign(leave, updated.toObject());
 
     // Update DM card metadata
     if (leave.directMessageId) {
@@ -441,6 +516,7 @@ class LeaveService {
    * Get workspace leaves with filters (status, month, user)
    */
   async getWorkspaceLeaves(workspaceId: string, query: any = {}) {
+    await this.expireWorkspaceRequests(workspaceId);
     const filter: any = { workspace: workspaceId, requestType: { $ne: "remote" } };
 
     if (query.status) {
@@ -489,6 +565,7 @@ class LeaveService {
   }
 
   async getRemoteRequests(workspaceId: string, actorId: string) {
+    await this.expireWorkspaceRequests(workspaceId);
     const workspace = await Workspace.findById(workspaceId).select("owner");
     if (!workspace) throw new AppError("Workspace not found", 404);
     const isOwner = workspace.owner?.toString() === actorId;
@@ -498,6 +575,34 @@ class LeaveService {
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture")
       .sort({ createdAt: -1 });
+  }
+
+  async getMyRequests(workspaceId: string, requesterId: string) {
+    await this.expireWorkspaceRequests(workspaceId);
+    return LeaveRequest.find({ workspace: workspaceId, requester: requesterId })
+      .populate("requester", "name email avatar profilePicture")
+      .populate("assignedManager", "name email avatar profilePicture")
+      .sort({ createdAt: -1 });
+  }
+
+  async getAssignedInbox(workspaceId: string, actorId: string) {
+    await this.expireWorkspaceRequests(workspaceId);
+    const workspace = await Workspace.findById(workspaceId).select("owner");
+    if (!workspace) throw new AppError("Workspace not found", 404);
+    const isOwner = workspace.owner?.toString() === actorId;
+    const canManage = (await permissionService.can(actorId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: actorId })) || (await permissionService.can(actorId, "MANAGE_LEAVES", { workspaceId, userId: actorId }));
+    if (!isOwner && !canManage) throw new AppError("You do not have permission to review leave and remote requests", 403);
+    return LeaveRequest.find({ workspace: workspaceId, status: "pending", ...(isOwner ? {} : { assignedManager: actorId }) })
+      .populate("requester", "name email avatar profilePicture")
+      .populate("assignedManager", "name email avatar profilePicture")
+      .sort({ createdAt: -1 });
+  }
+
+  async expireAllPendingRequests(): Promise<number> {
+    const workspaces = await Workspace.find({ isDeleted: false }).select("_id").lean();
+    let total = 0;
+    for (const workspace of workspaces) total += await this.expireWorkspaceRequests(String(workspace._id));
+    return total;
   }
 }
 

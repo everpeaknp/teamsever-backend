@@ -72,6 +72,8 @@ router.get(
   requirePermission("VIEW_WORKSPACE"),
   leaveController.getMyLeaveQuota
 );
+router.get("/my-requests", requirePermission("VIEW_WORKSPACE"), leaveController.getMyRequests);
+router.get("/inbox", requirePermission("VIEW_WORKSPACE"), leaveController.getAssignedInbox);
 
 /**
  * @swagger

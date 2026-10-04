@@ -62,9 +62,9 @@ const getWorkspace = asyncHandler(async (req: AuthRequest, res: Response, next: 
 // @route   PUT /api/workspaces/:id
 // @access  Private
 const updateWorkspace = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { name, logo } = req.body;
+  const { name, logo, timezone } = req.body;
 
-  const workspace = await workspaceService.updateWorkspace(req.params.id, req.user!.id, { name, logo });
+  const workspace = await workspaceService.updateWorkspace(req.params.id, req.user!.id, { name, logo, timezone });
 
   res.status(200).json({
     success: true,

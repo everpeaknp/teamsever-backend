@@ -17,6 +17,7 @@ const PlanInheritanceService = require("./planInheritanceService").default;
 const EntitlementService = require("./entitlementService").default;
 const analyticsV2CacheService = require("./analyticsV2CacheService");
 import { resolveAnalyticsViewAccess } from "../permissions/analyticsAccess";
+const { isValidTimeZone } = require("./workspaceCalendar");
 interface CreateWorkspaceData {
   name: string;
   owner: string;
@@ -173,6 +174,7 @@ class WorkspaceService {
     // Transform workspaces to include subscription at workspace level
     const transformedWorkspaces = await Promise.all(workspaces.map(async (workspace: any) => {
       const workspaceObj = workspace.toObject();
+      workspaceObj.timezone = workspaceObj.timezone || "UTC";
       
       if (workspaceObj.owner && workspaceObj.owner.subscription && workspaceObj.owner.subscription.planId) {
         // Use plan features directly
@@ -237,6 +239,7 @@ class WorkspaceService {
 
     // Transform the response to include subscription at workspace level for easier access
     const workspaceObj = workspace.toObject();
+    workspaceObj.timezone = workspaceObj.timezone || "UTC";
     
     // Always try to get plan information
     let planFeatures = null;
@@ -333,7 +336,7 @@ class WorkspaceService {
     return { message: "Workspace deleted successfully" };
   }
 
-  async updateWorkspace(workspaceId: string, userId: string, updateData: { name?: string; logo?: string }) {
+  async updateWorkspace(workspaceId: string, userId: string, updateData: { name?: string; logo?: string; timezone?: string }) {
     const workspace = await Workspace.findOne({
       _id: workspaceId,
       isDeleted: false
@@ -352,6 +355,10 @@ class WorkspaceService {
       throw new AppError("Only workspace owner or admins can update this workspace", 403);
     }
 
+    if (updateData.timezone !== undefined && !isValidTimeZone(updateData.timezone)) {
+      throw new AppError("Please provide a valid IANA timezone", 400);
+    }
+
     const oldValue = workspace.toObject();
 
     if (updateData.name) {
@@ -360,6 +367,10 @@ class WorkspaceService {
 
     if (updateData.logo) {
       workspace.logo = updateData.logo;
+    }
+
+    if (updateData.timezone !== undefined) {
+      workspace.timezone = updateData.timezone.trim();
     }
 
     await workspace.save();

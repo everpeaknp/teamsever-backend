@@ -37,6 +37,7 @@ export interface IRolePermissionAddition {
 
 export interface IWorkspace extends Document {
   name: string;
+  timezone: string;
   logo?: string;
   owner: Schema.Types.ObjectId;
   members: IWorkspaceMember[];
@@ -63,6 +64,12 @@ const workspaceSchema = new mongoose.Schema(
       required: [true, "Please provide workspace name"],
       trim: true,
       maxlength: [100, "Workspace name cannot exceed 100 characters"]
+    },
+    timezone: {
+      type: String,
+      trim: true,
+      default: "UTC",
+      maxlength: [100, "Workspace timezone is invalid"]
     },
     logo: {
       type: String,

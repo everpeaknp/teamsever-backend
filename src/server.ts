@@ -329,6 +329,17 @@ const startServer = async () => {
         }
       });
       console.log("[Cron] Subscription expiry checker scheduled (runs every hour)");
+
+      cron.schedule("*/15 * * * *", async () => {
+        try {
+          const leaveService = require("./services/leaveService").default || require("./services/leaveService");
+          const expired = await leaveService.expireAllPendingRequests();
+          if (expired) console.log(`[Cron] ${expired} expired leave/remote request(s)`);
+        } catch (error) {
+          console.error("[Cron] Error expiring leave/remote requests:", error);
+        }
+      });
+      console.log("[Cron] Leave/remote request expiry sweep scheduled (runs every 15 minutes)");
     });
 
     // Return for graceful shutdown

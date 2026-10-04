@@ -1,5 +1,5 @@
-jest.mock("../models/Workspace", () => ({ findById: jest.fn() }));
-jest.mock("../models/LeaveRequest", () => ({ findOne: jest.fn() }));
+jest.mock("../models/Workspace", () => ({ findById: jest.fn(), findOne: jest.fn().mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ timezone: "UTC" }) }) }) }));
+jest.mock("../models/LeaveRequest", () => ({ findOne: jest.fn(), findOneAndUpdate: jest.fn() }));
 jest.mock("../models/User", () => ({ findById: jest.fn() }));
 jest.mock("../models/DirectMessage", () => ({ findById: jest.fn() }));
 jest.mock("../permissions/permission.service", () => ({ can: jest.fn().mockResolvedValue(false) }));
@@ -48,6 +48,7 @@ describe("leave and remote approval decisions", () => {
       directMessageId: null,
       populate: jest.fn().mockResolvedValue(undefined),
       save: jest.fn().mockResolvedValue(undefined),
+      toObject: jest.fn(() => ({ ...request })),
     };
     const member = { user: requesterId, privateRemoteAreas: [], temporaryRemoteApprovals: [] };
     const workspaceDoc = { owner: "owner-1", members: [member], markModified: jest.fn(), save: jest.fn().mockResolvedValue(undefined) };
@@ -73,7 +74,7 @@ describe("leave and remote approval decisions", () => {
     expect(member.temporaryRemoteApprovals).toHaveLength(1);
     expect(member.temporaryRemoteApprovals[0]).toMatchObject({ startDate: request.startDate, endDate: request.endDate });
     expect(workspaceDoc.save).toHaveBeenCalled();
-    expect(request.save).toHaveBeenCalled();
+    expect(request.save).toHaveBeenCalledWith({ session });
     expect(session.endSession).toHaveBeenCalled();
     startSession.mockRestore();
   });
@@ -86,9 +87,12 @@ describe("leave and remote approval decisions", () => {
       assignedManager: "manager-1",
       status: "pending",
       requestType: "leave",
+      startDate: new Date("2026-10-05T00:00:00Z"),
+      endDate: new Date("2026-10-05T00:00:00Z"),
       directMessageId: null,
       populate: jest.fn().mockResolvedValue(undefined),
       save: jest.fn().mockResolvedValue(undefined),
+      toObject: jest.fn(() => ({ ...request })),
     };
     let workspaceReads = 0;
     Workspace.findById.mockImplementation(() => {
@@ -98,13 +102,21 @@ describe("leave and remote approval decisions", () => {
         : Promise.resolve({ _id: "workspace-1", owner: "manager-1", members: [] });
     });
     LeaveRequest.findOne.mockReturnValue(queryFor(request));
+    LeaveRequest.findOneAndUpdate.mockImplementation(async (_filter: any, update: any) => {
+      Object.assign(request, update.$set);
+      return request;
+    });
 
     const result = await LeaveService.denyLeave(request._id, "manager-1", "workspace-1", "Coverage is unavailable");
 
     expect(result.status).toBe("denied");
     expect(result.denialReason).toBe("Coverage is unavailable");
     expect(result.deniedBy).toBe("manager-1");
-    expect(request.save).toHaveBeenCalled();
+    expect(LeaveRequest.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: request._id, workspace: "workspace-1", status: "pending", endDate: { $gte: expect.any(Date) } }),
+      expect.objectContaining({ $set: expect.objectContaining({ status: "denied", denialReason: "Coverage is unavailable" }) }),
+      { new: true }
+    );
     expect(notifications.notifyLeaveDenied).toHaveBeenCalled();
   });
 });

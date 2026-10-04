@@ -10,7 +10,8 @@ export interface ILeaveRequest extends Document {
   endDate: Date;
   daysCount: number; // calculated number of days
   reason: string; // Compulsory reason
-  status: "pending" | "approved" | "denied";
+  status: "pending" | "approved" | "denied" | "expired";
+  expiredAt?: Date;
   requestType?: "leave" | "remote";
   remoteAreaId?: Types.ObjectId;
   remoteAreaName?: string;
@@ -79,7 +80,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "denied"],
+      enum: ["pending", "approved", "denied", "expired"],
       default: "pending",
       index: true,
     },
@@ -110,6 +111,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
       type: Date,
       default: null,
     },
+    expiredAt: { type: Date, default: null },
     denialReason: {
       type: String,
       trim: true,

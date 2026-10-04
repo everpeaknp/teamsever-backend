@@ -101,6 +101,16 @@ export const getRemoteRequests = asyncHandler(async (req: AuthRequest, res: Resp
   res.status(200).json({ success: true, data: requests });
 });
 
+export const getMyRequests = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const requests = await leaveService.getMyRequests(req.params.workspaceId, req.user!.id);
+  res.status(200).json({ success: true, data: requests });
+});
+
+export const getAssignedInbox = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const requests = await leaveService.getAssignedInbox(req.params.workspaceId, req.user!.id);
+  res.status(200).json({ success: true, data: requests });
+});
+
 /**
  * Get active leaves today (for "Who's on leave" banner)
  * GET /api/workspaces/:workspaceId/leaves/today
