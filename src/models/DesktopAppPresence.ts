@@ -14,4 +14,6 @@ const desktopAppPresenceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 desktopAppPresenceSchema.index({ timeEntry: 1, startedAt: 1 });
+desktopAppPresenceSchema.index({ workspace: 1, user: 1, startedAt: -1, _id: -1 });
+desktopAppPresenceSchema.index({ workspace: 1, timeEntry: 1, endedAt: -1, _id: -1 });
 module.exports = mongoose.model("DesktopAppPresence", desktopAppPresenceSchema);

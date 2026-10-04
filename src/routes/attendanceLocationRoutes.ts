@@ -25,6 +25,7 @@ router.delete("/desktop-devices/:deviceId", desktopController.revokeDevice);
 router.patch("/desktop-devices/:deviceId/activity-consent", desktopController.setActivityConsent);
 router.patch("/desktop-devices/:deviceId/auto-sync-mobile-shifts", desktopController.setAutoSyncMobileShifts);
 router.post("/workspace/:workspaceId/mobile-companion-code", companionPairingRateLimit, desktopController.createMobilePairingCode);
+router.get("/workspace/:workspaceId/desktop-presence/current", desktopController.getWorkspaceCurrentPresence);
 router.get("/workspace/:workspaceId/desktop-activity", desktopController.getAppPresence);
 /**
  * @swagger

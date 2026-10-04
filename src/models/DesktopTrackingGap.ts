@@ -11,4 +11,5 @@ const desktopTrackingGapSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 desktopTrackingGapSchema.index({ timeEntry: 1, gapStartedAt: 1 }, { unique: true });
+desktopTrackingGapSchema.index({ workspace: 1, user: 1, gapStartedAt: -1, _id: -1 });
 module.exports = mongoose.model("DesktopTrackingGap", desktopTrackingGapSchema);
