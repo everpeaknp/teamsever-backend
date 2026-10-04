@@ -295,7 +295,7 @@ class LeaveService {
     await this.assertCanDecideLeave(leave, approverId, workspaceId);
 
     if (leave.status !== "pending") {
-      throw new AppError(`Leave request has already been ${leave.status}`, leave.status === "expired" ? 409 : 400);
+      throw new AppError(`Leave request has already been ${leave.status}`, 409);
     }
 
     const timezone = await getWorkspaceTimezone(workspaceId);
@@ -416,7 +416,7 @@ class LeaveService {
     await this.assertCanDecideLeave(leave, denierId, workspaceId);
 
     if (leave.status !== "pending") {
-      throw new AppError(`Leave request has already been ${leave.status}`, leave.status === "expired" ? 409 : 400);
+      throw new AppError(`Leave request has already been ${leave.status}`, 409);
     }
 
     const timezone = await getWorkspaceTimezone(workspaceId);

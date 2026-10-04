@@ -119,4 +119,30 @@ describe("leave and remote approval decisions", () => {
     );
     expect(notifications.notifyLeaveDenied).toHaveBeenCalled();
   });
+
+  it.each([
+    ["approved", "approve"],
+    ["denied", "deny"],
+    ["expired", "approve"],
+  ])("returns a conflict when a %s request receives another %s decision", async (status, action) => {
+    const request = {
+      _id: "terminal-leave-1",
+      workspace: "workspace-1",
+      requester: "requester-1",
+      assignedManager: "manager-1",
+      status,
+      requestType: "leave",
+      startDate: new Date("2026-10-05T00:00:00Z"),
+      endDate: new Date("2026-10-05T00:00:00Z"),
+      populate: jest.fn().mockResolvedValue(undefined),
+    };
+    Workspace.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ owner: "manager-1" }) });
+    LeaveRequest.findOne.mockReturnValue(queryFor(request));
+
+    const decide = action === "approve"
+      ? LeaveService.approveLeave(request._id, "manager-1", "workspace-1")
+      : LeaveService.denyLeave(request._id, "manager-1", "workspace-1");
+
+    await expect(decide).rejects.toMatchObject({ statusCode: 409 });
+  });
 });
