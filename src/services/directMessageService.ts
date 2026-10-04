@@ -4,6 +4,7 @@ const DirectMessage = require("../models/DirectMessage");
 const User = require("../models/User");
 const Workspace = require("../models/Workspace");
 const AppError = require("../utils/AppError");
+const leaveService = require("./leaveService");
 const logger = require("../utils/logger");
 const enhancedNotificationService = require("./enhancedNotificationService");
 const { emitToUser } = require("../socket/events");
@@ -364,6 +365,11 @@ class DirectMessageService {
     if ((conversation as any).workspace?.toString?.() !== options.workspaceId) {
       throw new AppError("Conversation does not belong to the requested workspace", 403);
     }
+
+    // Keep interactive leave/remote cards truthful when the conversation is
+    // opened after the request's final day. This runs only after membership
+    // and workspace access have been verified, and updates the DM metadata.
+    await leaveService.expireWorkspaceRequests(options.workspaceId);
 
     const page = options.page || 1;
     const limit = options.limit || 50;
