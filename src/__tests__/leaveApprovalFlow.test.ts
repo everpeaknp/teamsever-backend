@@ -2,16 +2,20 @@ jest.mock("../models/Workspace", () => ({ findById: jest.fn(), findOne: jest.fn(
 jest.mock("../models/LeaveRequest", () => ({ findOne: jest.fn(), findOneAndUpdate: jest.fn() }));
 jest.mock("../models/User", () => ({ findById: jest.fn() }));
 jest.mock("../models/DirectMessage", () => ({ findById: jest.fn() }));
+jest.mock("../models/Conversation", () => ({ findById: jest.fn() }));
 jest.mock("../permissions/permission.service", () => ({ can: jest.fn().mockResolvedValue(false) }));
 jest.mock("../services/enhancedNotificationService", () => ({
   default: { notifyLeaveApproved: jest.fn(), notifyLeaveDenied: jest.fn() },
 }));
-jest.mock("../services/socketService", () => ({ default: { getIO: jest.fn(() => null) } }));
+jest.mock("../services/socketService", () => ({ default: { getIO: jest.fn(() => null), emitToUsers: jest.fn() } }));
 
 const mongoose = require("mongoose");
 const Workspace = require("../models/Workspace");
 const LeaveRequest = require("../models/LeaveRequest");
 const User = require("../models/User");
+const DirectMessage = require("../models/DirectMessage");
+const Conversation = require("../models/Conversation");
+const socketService = require("../services/socketService").default;
 const PermissionService = require("../permissions/permission.service");
 const notifications = require("../services/enhancedNotificationService").default;
 const LeaveService = require("../services/leaveService");
@@ -87,8 +91,8 @@ describe("leave and remote approval decisions", () => {
       assignedManager: "manager-1",
       status: "pending",
       requestType: "leave",
-      startDate: new Date("2026-10-05T00:00:00Z"),
-      endDate: new Date("2026-10-05T00:00:00Z"),
+      startDate: new Date("2026-10-06T00:00:00Z"),
+      endDate: new Date("2026-10-06T00:00:00Z"),
       directMessageId: null,
       populate: jest.fn().mockResolvedValue(undefined),
       save: jest.fn().mockResolvedValue(undefined),
@@ -144,5 +148,57 @@ describe("leave and remote approval decisions", () => {
       : LeaveService.denyLeave(request._id, "manager-1", "workspace-1");
 
     await expect(decide).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it("emits a denied DM-card update to the request participants' personal socket rooms", async () => {
+    const request: any = {
+      _id: "leave-live-1",
+      workspace: "workspace-1",
+      requester: "requester-1",
+      assignedManager: "manager-1",
+      conversation: "conversation-1",
+      directMessageId: "dm-1",
+      status: "pending",
+      requestType: "leave",
+      startDate: new Date("2026-10-06T00:00:00Z"),
+      endDate: new Date("2026-10-06T00:00:00Z"),
+      populate: jest.fn().mockResolvedValue(undefined),
+    };
+    const dm: any = {
+      _id: "dm-1",
+      metadata: { status: "pending" },
+      save: jest.fn().mockResolvedValue(undefined),
+      populate: jest.fn().mockResolvedValue(undefined),
+      toObject: () => ({ _id: "dm-1", type: "leave_request", metadata: dm.metadata }),
+    };
+    DirectMessage.findById.mockResolvedValue(dm);
+    Conversation.findById.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue({ participants: ["requester-1", "manager-2"] }),
+      }),
+    });
+    let workspaceReads = 0;
+    Workspace.findById.mockImplementation(() => {
+      workspaceReads += 1;
+      if (workspaceReads === 1) return { select: jest.fn().mockResolvedValue({ owner: "manager-1" }) };
+      return Promise.resolve({ _id: "workspace-1", owner: "manager-1", members: [] });
+    });
+    LeaveRequest.findOne.mockReturnValue(queryFor(request));
+    LeaveRequest.findOneAndUpdate.mockImplementation(async (_filter: any, update: any) => ({
+      ...request,
+      ...update.$set,
+      toObject: () => ({ ...request, ...update.$set }),
+    }));
+
+    await LeaveService.denyLeave(request._id, "manager-1", "workspace-1");
+
+    expect(socketService.emitToUsers).toHaveBeenCalledWith(
+      ["requester-1", "manager-1", "manager-2"],
+      "dm:updated",
+      expect.objectContaining({
+        conversationId: "conversation-1",
+        message: expect.objectContaining({ metadata: expect.objectContaining({ status: "denied" }) }),
+      }),
+    );
   });
 });

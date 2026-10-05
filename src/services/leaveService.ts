@@ -13,6 +13,25 @@ const socketService = require("./socketService").default || require("./socketSer
 const { getWorkspaceTimezone, workspaceCalendarDateKey, isRequestExpired } = require("./workspaceCalendar");
 
 class LeaveService {
+  private async emitDirectMessageEvent(event: string, leave: any, dm: any) {
+    if (!leave.conversation || !dm) return;
+    let participants: any[] = [];
+    try {
+      const conversation = await Conversation.findById(leave.conversation).select("participants").lean();
+      participants = conversation?.participants || [];
+    } catch (error) {
+      console.error("[LeaveService] Failed to read DM participants for socket event:", error);
+    }
+    const userIds = [leave.requester, leave.assignedManager, ...participants]
+      .map((value: any) => value?._id?.toString?.() || value?.toString?.())
+      .filter((value: string | undefined): value is string => Boolean(value));
+    const message = typeof dm.toObject === "function" ? dm.toObject() : dm;
+    socketService.emitToUsers?.(Array.from(new Set(userIds)), event, {
+      conversationId: leave.conversation.toString(),
+      message: { ...message, conversation: leave.conversation.toString() },
+    });
+  }
+
   async expireWorkspaceRequests(workspaceId: string, now = new Date()): Promise<number> {
     // A few older unit-test doubles expose only findOne. Production Mongoose
     // always provides find; missing test-double capabilities mean no sweep.
@@ -38,10 +57,7 @@ class LeaveService {
           await dm.save();
           if (updated.conversation) {
             try {
-              const io = socketService.getIO();
-              io?.to(`conversation:${updated.conversation.toString()}`).emit("dm:updated", {
-                conversationId: updated.conversation.toString(), message: dm,
-              });
+              await this.emitDirectMessageEvent("dm:updated", updated, dm);
             } catch (err) { console.error("[LeaveService] Failed to emit expired DM update:", err); }
           }
         }
@@ -259,15 +275,9 @@ class LeaveService {
 
       await dm.populate("sender", "name email avatar profilePicture");
 
-      // Realtime emit to DM conversation room
+      // Emit to participant user rooms so every client session gets the DM card.
       try {
-        const io = socketService.getIO();
-        if (io) {
-          io.to(`conversation:${conversationId}`).emit("dm:new", {
-            conversationId,
-            message: dm,
-          });
-        }
+        await this.emitDirectMessageEvent("dm:new", leave, dm);
       } catch (err) {
         console.error("[LeaveService] Failed to emit DM message socket:", err);
       }
@@ -275,6 +285,13 @@ class LeaveService {
 
     await leave.populate("requester", "name email avatar profilePicture");
     await leave.populate("assignedManager", "name email avatar profilePicture");
+
+    try {
+      const managerIds = await this.getLeaveManagersForWorkspace(workspaceId);
+      await enhancedNotificationService.notifyLeaveRequested(leave, workspace, managerIds);
+    } catch (error) {
+      console.error("[LeaveService] Failed to notify request reviewers:", error);
+    }
 
     return leave;
   }
@@ -376,13 +393,8 @@ class LeaveService {
 
         if (leave.conversation) {
           try {
-            const io = socketService.getIO();
-            if (io) {
-              io.to(`conversation:${leave.conversation.toString()}`).emit("dm:updated", {
-                conversationId: leave.conversation.toString(),
-                message: dm,
-              });
-            }
+            await dm.populate("sender", "name email avatar profilePicture");
+            await this.emitDirectMessageEvent("dm:updated", leave, dm);
           } catch (err) {
             console.error("[LeaveService] Failed to emit DM update socket:", err);
           }
@@ -463,13 +475,8 @@ class LeaveService {
 
         if (leave.conversation) {
           try {
-            const io = socketService.getIO();
-            if (io) {
-              io.to(`conversation:${leave.conversation.toString()}`).emit("dm:updated", {
-                conversationId: leave.conversation.toString(),
-                message: dm,
-              });
-            }
+            await dm.populate("sender", "name email avatar profilePicture");
+            await this.emitDirectMessageEvent("dm:updated", leave, dm);
           } catch (err) {
             console.error("[LeaveService] Failed to emit DM update socket:", err);
           }
@@ -477,10 +484,11 @@ class LeaveService {
       }
     }
 
-    // Notify requester (as requested: do NOT spam other managers when denied)
+    // Notify the requester and other reviewers so workspace admins see the outcome.
     const workspace = await Workspace.findById(leave.workspace);
     if (workspace) {
-      await enhancedNotificationService.notifyLeaveDenied(leave, denier, workspace);
+      const managerIds = await this.getLeaveManagersForWorkspace(workspace._id.toString());
+      await enhancedNotificationService.notifyLeaveDenied(leave, denier, workspace, managerIds);
     }
 
     return leave;
