@@ -284,6 +284,190 @@ const getAppPresence = asyncHandler(async (req: any, res: Response, next: NextFu
   return res.json({ success: true, data: { events, gaps } });
 });
 
+const getPublicClockPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const workspaceId = String(req.params.workspaceId);
+  const targetUserId = String(req.params.userId);
+  const viewerId = String(req.user.id);
+  if (!mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(targetUserId)) {
+    return next(new AppError("Workspace or member not found", 404));
+  }
+
+  const workspace = await Workspace.findById(workspaceId).select("owner members");
+  if (!workspace) return next(new AppError("Workspace not found", 404));
+  const isWorkspaceOwner = String(workspace.owner) === viewerId;
+  const isActiveViewer = (workspace.members || []).some((member: any) =>
+    String(member.user?._id || member.user) === viewerId && member.status !== "inactive",
+  );
+  if (!isWorkspaceOwner && !isActiveViewer) return next(new AppError("Active workspace membership required", 403));
+
+  const isTargetOwner = String(workspace.owner) === targetUserId;
+  const isActiveTarget = (workspace.members || []).some((member: any) =>
+    String(member.user?._id || member.user) === targetUserId && member.status !== "inactive",
+  );
+  if (!isTargetOwner && !isActiveTarget) return next(new AppError("Active workspace member not found", 404));
+
+  const entry = await TimeEntry.findOne({ workspace: workspaceId, user: targetUserId, isRunning: true, isDeleted: false })
+    .select("_id startTime clockInSource clockInDevice desktopPresenceDevice presenceCompanionDevice")
+    .sort({ startTime: -1 });
+  if (!entry) return res.json({ success: true, data: { clockedIn: false, clockedInAt: null, foregroundApp: null } });
+
+  const deviceId = String(entry.clockInSource === "mobile"
+    ? entry.presenceCompanionDevice || ""
+    : entry.clockInSource === "desktop"
+      ? entry.clockInDevice || ""
+      : entry.desktopPresenceDevice || "");
+  let foregroundApp = null;
+  if (deviceId) {
+    const device = await TrustedAttendanceDevice.findOne({
+      _id: deviceId,
+      user: targetUserId,
+      revokedAt: null,
+      activityMonitoringEnabled: true,
+    }).select("activityMonitoringEnabledAt");
+    if (device) {
+      const now = Date.now();
+      const report = await DesktopAppPresence.findOne({
+        workspace: workspaceId,
+        user: targetUserId,
+        timeEntry: entry._id,
+        device: deviceId,
+        endedAt: { $gte: new Date(now - 90_000), $lte: new Date(now + 30_000) },
+      }).sort({ endedAt: -1 }).select("appId presenceStatus startedAt endedAt");
+      const enabledAt = device.activityMonitoringEnabledAt ? new Date(device.activityMonitoringEnabledAt).getTime() : null;
+      if (report && (report.presenceStatus === "active" || report.presenceStatus === "afk") && (!enabledAt || new Date(report.endedAt).getTime() >= enabledAt)) {
+        foregroundApp = {
+          appId: report.appId || null,
+          presenceStatus: report.presenceStatus,
+          startedAt: report.startedAt,
+          reportedAt: report.endedAt,
+        };
+      }
+    }
+  }
+
+  return res.json({
+    success: true,
+    data: { clockedIn: true, clockedInAt: entry.startTime, foregroundApp },
+  });
+});
+
+const getCurrentDesktopPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const workspaceId = String(req.params.workspaceId);
+  const userId = String(req.user.id);
+  const workspace = await loadDesktopPresenceWorkspace(workspaceId, userId, next);
+  if (!workspace) return;
+
+  const requestedPageSize = Number.parseInt(String(req.query.pageSize ?? "50"), 10);
+  if (!Number.isFinite(requestedPageSize) || requestedPageSize < 1 || requestedPageSize > 100) {
+    return next(new AppError("pageSize must be between 1 and 100", 400));
+  }
+
+  let cursor: { startTime: Date; entryId: any } | null = null;
+  if (req.query.cursor) {
+    try {
+      const decoded = JSON.parse(Buffer.from(String(req.query.cursor), "base64url").toString("utf8"));
+      if (!decoded || !Number.isFinite(Date.parse(decoded.startTime)) || !mongoose.Types.ObjectId.isValid(decoded.entryId)) throw new Error("invalid cursor");
+      cursor = { startTime: new Date(decoded.startTime), entryId: new mongoose.Types.ObjectId(decoded.entryId) };
+    } catch {
+      return next(new AppError("Invalid desktop presence cursor", 400));
+    }
+  }
+
+  const activeMemberIds = (workspace.members || [])
+    .filter((member: any) => member.status !== "inactive")
+    .map((member: any) => String(member.user?._id || member.user));
+  if (workspace.owner) activeMemberIds.push(String(workspace.owner));
+  const canViewHistory = await canManageDesktopPresence(workspace, userId, workspaceId);
+  const filter: any = {
+    workspace: workspaceId,
+    user: { $in: [...new Set(activeMemberIds)] },
+    isRunning: true,
+    isDeleted: false,
+    $or: [
+      { clockInSource: "desktop" },
+      { desktopPresenceDevice: { $exists: true, $ne: null } },
+      { clockInSource: "mobile", presenceCompanionDevice: { $exists: true, $ne: null } },
+    ],
+  };
+  if (cursor) {
+    filter.$and = [{
+      $or: [
+        { startTime: { $lt: cursor.startTime } },
+        { startTime: cursor.startTime, _id: { $lt: cursor.entryId } },
+      ],
+    }];
+  }
+  const entries = await TimeEntry.find(filter)
+    .select("user startTime clockInSource clockInDevice desktopPresenceDevice presenceCompanionDevice")
+    .populate("user", "name profilePicture")
+    .sort({ startTime: -1, _id: -1 })
+    .limit(requestedPageSize + 1)
+    .lean();
+  const hasMore = entries.length > requestedPageSize;
+  const pageEntries = hasMore ? entries.slice(0, requestedPageSize) : entries;
+  const deviceByEntry = new Map<string, string>();
+  for (const entry of pageEntries as any[]) {
+    const deviceId = entry.clockInSource === "mobile"
+      ? entry.presenceCompanionDevice
+      : entry.clockInSource === "desktop"
+        ? entry.clockInDevice
+        : entry.desktopPresenceDevice;
+    if (deviceId) deviceByEntry.set(String(entry._id), String(deviceId));
+  }
+  const deviceIds = [...new Set(deviceByEntry.values())];
+  const [devices, reports] = deviceIds.length
+    ? await Promise.all([
+        TrustedAttendanceDevice.find({ _id: { $in: deviceIds }, revokedAt: null, activityMonitoringEnabled: true })
+          .select("_id activityMonitoringEnabledAt").lean(),
+        DesktopAppPresence.find({
+          workspace: workspaceId,
+          timeEntry: { $in: pageEntries.map((entry: any) => entry._id) },
+          device: { $in: deviceIds },
+          endedAt: { $gte: new Date(Date.now() - 90_000), $lte: new Date(Date.now() + 30_000) },
+        }).select("timeEntry device appId presenceStatus endedAt")
+          .sort({ endedAt: -1 }).lean(),
+      ])
+    : [[], []];
+  const enabledAt = new Map<string, number | null>((devices as any[]).map((device) => [
+    String(device._id),
+    device.activityMonitoringEnabledAt ? new Date(device.activityMonitoringEnabledAt).getTime() : null,
+  ]));
+  const latestReport = new Map<string, any>();
+  for (const report of reports as any[]) {
+    const entryId = String(report.timeEntry);
+    if (!latestReport.has(entryId) && deviceByEntry.get(entryId) === String(report.device)) latestReport.set(entryId, report);
+  }
+  const members = (pageEntries as any[]).map((entry) => {
+    const user = entry.user || {};
+    const deviceId = deviceByEntry.get(String(entry._id));
+    const report = latestReport.get(String(entry._id));
+    const isEnabled = !!deviceId && enabledAt.has(deviceId);
+    const isFreshAndConsented = isEnabled && report &&
+      (!enabledAt.get(deviceId!) || new Date(report.endedAt).getTime() >= enabledAt.get(deviceId!));
+    return {
+      userId: String(user._id || user),
+      displayName: user.name || "Workspace member",
+      avatar: user.profilePicture || null,
+      presence: isFreshAndConsented && (report.presenceStatus === "active" || report.presenceStatus === "afk")
+        ? { appId: report.appId || null, presenceStatus: report.presenceStatus, reportedAt: report.endedAt }
+        : null,
+    };
+  });
+  const lastEntry = pageEntries[pageEntries.length - 1] as any;
+  const nextCursor = hasMore && lastEntry
+    ? Buffer.from(JSON.stringify({ startTime: new Date(lastEntry.startTime).toISOString(), entryId: String(lastEntry._id) })).toString("base64url")
+    : null;
+
+  return res.json({
+    success: true,
+    data: {
+      members,
+      pagination: { pageSize: requestedPageSize, nextCursor, hasMore },
+      permissions: { canViewHistory },
+    },
+  });
+});
+
 const canManageDesktopPresence = async (workspace: any, userId: string, workspaceId: string) => {
   if (String(workspace.owner) === userId) return true;
   const context = { userId, workspaceId };
@@ -336,4 +520,4 @@ const updateDesktopPresencePolicy = asyncHandler(async (req: any, res: Response,
   await workspace.save();
   return res.json({ success: true, data: { policy: { afkThresholdMinutes }, canManage: true } });
 });
-module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };
+module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getCurrentDesktopPresence, getPublicClockPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };

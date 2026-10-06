@@ -17,6 +17,8 @@ jest.mock("../controllers/desktopAttendanceController", () => ({
   pairMobileShiftWithCode: (_req: any, res: any) => res.status(200).json({ success: true }),
   respondToMobileShift: (_req: any, res: any) => res.status(200).json({ success: true }),
   getAppPresence: (_req: any, res: any) => res.status(200).json({ success: true }),
+  getCurrentDesktopPresence: (_req: any, res: any) => res.status(200).json({ success: true, data: { members: [], pagination: {}, permissions: {} } }),
+  getPublicClockPresence: (_req: any, res: any) => res.status(200).json({ success: true }),
   getDesktopPresencePolicy: (_req: any, res: any) => res.status(200).json({ success: true, data: { policy: { afkThresholdMinutes: 5 } } }),
   updateDesktopPresencePolicy: (_req: any, res: any) => res.status(200).json({ success: true }),
 }));

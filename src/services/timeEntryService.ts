@@ -650,6 +650,49 @@ class TimeEntryService {
   }
 
   /**
+   * The canonical clock-in signal for Attendance and profile surfaces.
+   * Members can read their own running entry; workspace admins/owners can
+   * read the team's current entries. This intentionally uses the same
+   * TimeEntry query as the admin time-tracking dashboard.
+   */
+  async getWorkspaceClockStatus(workspaceId: string, viewerId: string) {
+    const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: false });
+    if (!workspace) throw new AppError("Workspace not found", 404);
+
+    const isOwner = String(workspace.owner) === String(viewerId);
+    const member = (workspace.members || []).find(
+      (item: any) => String(item.user) === String(viewerId) && item.status !== "inactive"
+    );
+    if (!isOwner && !member) throw new AppError("Active workspace membership required", 403);
+
+    const canManageTeam = isOwner || member?.role === "admin" || member?.role === "owner";
+    const query: any = { workspace: workspace._id, isRunning: true, isDeleted: false };
+    if (!canManageTeam) query.user = viewerId;
+
+    const entries = await TimeEntry.find(query)
+      .select("user task project startTime description isRunning")
+      .populate("user", "name email avatar profilePicture")
+      .populate("task", "title")
+      .populate("project", "name color")
+      .sort("-startTime")
+      .lean();
+
+    const now = Date.now();
+    const activeTimers = entries.map((entry: any) => {
+      const currentDuration = Math.max(0, Math.floor((now - new Date(entry.startTime).getTime()) / 1000));
+      return { ...entry, currentDuration, currentDurationFormatted: this.formatDuration(currentDuration) };
+    });
+
+    return {
+      workspace: { _id: workspace._id, name: workspace.name },
+      scope: canManageTeam ? "workspace" : "self",
+      canManageTeam,
+      activeTimerCount: activeTimers.length,
+      activeTimers
+    };
+  }
+
+  /**
    * Get team timesheets with aggregated data (Admin only)
    * Supports filtering by date range, user, and project
    */

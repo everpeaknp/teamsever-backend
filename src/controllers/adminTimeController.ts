@@ -28,6 +28,18 @@ const getWorkspaceActiveTimers = asyncHandler(
   }
 );
 
+// @desc Get the viewer's canonical clock-in state (team scope for admins, self scope for members)
+// @route GET /api/time/workspace/:workspaceId/clock-status
+const getWorkspaceClockStatus = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const data = await timeEntryService.getWorkspaceClockStatus(
+      req.params.workspaceId,
+      req.user!.id
+    );
+    res.status(200).json({ success: true, data });
+  }
+);
+
 // @desc    Get team timesheets with filters
 // @route   GET /api/time/admin/workspace/:workspaceId/timesheets
 // @access  Private (Admin/Owner only)
@@ -140,6 +152,7 @@ const stopAllUserTimers = asyncHandler(
 
 module.exports = {
   getWorkspaceActiveTimers,
+  getWorkspaceClockStatus,
   getTeamTimesheets,
   adminStopTimer,
   getWorkspaceTimeStats,

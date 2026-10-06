@@ -73,6 +73,11 @@ router.get(
   leaveController.getMyLeaveQuota
 );
 
+// Personal history is private to the authenticated member. The review inbox
+// applies MANAGE_LEAVES and assigned-approver authorization in the service.
+router.get("/my-requests", leaveController.getMyRequests);
+router.get("/inbox", leaveController.getReviewInbox);
+
 /**
  * @swagger
  * /api/workspaces/{workspaceId}/leaves/today:

@@ -19,6 +19,8 @@ router.post("/desktop/companion/pair", companionPairingRateLimit, desktopDeviceA
 router.use(protect);
 router.get("/workspace/:workspaceId/desktop-presence-policy", desktopController.getDesktopPresencePolicy);
 router.put("/workspace/:workspaceId/desktop-presence-policy", desktopController.updateDesktopPresencePolicy);
+router.get("/workspace/:workspaceId/desktop-presence/current", desktopController.getCurrentDesktopPresence);
+router.get("/workspace/:workspaceId/members/:userId/public-presence", desktopController.getPublicClockPresence);
 router.post("/desktop-devices", desktopController.createDevice);
 router.get("/desktop-devices", desktopController.listDevices);
 router.delete("/desktop-devices/:deviceId", desktopController.revokeDevice);

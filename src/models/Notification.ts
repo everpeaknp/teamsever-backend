@@ -22,6 +22,7 @@ export interface INotification extends Document {
     | "ACCESS_REQUEST_RESOLVED"
     | "LEAVE_APPROVED"
     | "LEAVE_DENIED"
+    | "LEAVE_REQUEST"
     | "SYSTEM";
   title: string;
   body: string;
@@ -74,6 +75,7 @@ const notificationSchema = new Schema<INotification>(
         "ACCESS_REQUEST_RESOLVED",
         "LEAVE_APPROVED",
         "LEAVE_DENIED",
+        "LEAVE_REQUEST",
         "SYSTEM"
       ],
       required: true,

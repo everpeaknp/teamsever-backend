@@ -1,8 +1,11 @@
 jest.mock("../models/Workspace", () => ({ findById: jest.fn() }));
-jest.mock("../models/LeaveRequest", () => ({ find: jest.fn(), create: jest.fn() }));
+jest.mock("../models/LeaveRequest", () => ({ find: jest.fn(), findOne: jest.fn(), create: jest.fn() }));
 jest.mock("../models/Conversation", () => ({ findOne: jest.fn(), findByIdAndUpdate: jest.fn() }));
 jest.mock("../models/DirectMessage", () => ({ create: jest.fn() }));
 jest.mock("../permissions/permission.service", () => ({ can: jest.fn() }));
+jest.mock("../services/enhancedNotificationService", () => ({
+  default: { notifyLeaveRequested: jest.fn() },
+}));
 
 const Workspace = require("../models/Workspace");
 const LeaveRequest = require("../models/LeaveRequest");
@@ -12,6 +15,13 @@ const PermissionService = require("../permissions/permission.service");
 const LeaveService = require("../services/leaveService");
 
 describe("leave request workspace projection", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    LeaveRequest.findOne.mockReturnValue({
+      select: jest.fn().mockResolvedValue(null),
+    });
+  });
+
   it("selects private addresses without projecting both members and a nested member path", async () => {
     const requesterId = "requester-1";
     const managerId = "manager-1";
@@ -80,5 +90,39 @@ describe("leave request workspace projection", () => {
       requestType: "remote",
       proposedRemoteArea: { name: "Home", latitude: 28.2, longitude: 83.98, radiusMeters: 60 },
     })).resolves.toBe(leave);
+  });
+
+  it("rejects a leave request that overlaps an already approved leave day", async () => {
+    LeaveRequest.create.mockClear();
+    const requesterId = "requester-overlap";
+    const managerId = "manager-overlap";
+    Workspace.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        owner: managerId,
+        members: [
+          { user: requesterId, status: "active", attendanceMode: "onsite", privateRemoteAreas: [] },
+          { user: managerId, status: "active" },
+        ],
+      }),
+    });
+    PermissionService.can.mockResolvedValue(true);
+    LeaveRequest.findOne.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        _id: "approved-leave",
+        startDate: new Date("2026-10-06T00:00:00.000Z"),
+        endDate: new Date("2026-10-06T23:59:59.999Z"),
+      }),
+    });
+
+    await expect(LeaveService.requestLeave({
+      workspaceId: "workspace-overlap",
+      requesterId,
+      assignedManagerId: managerId,
+      startDate: "2026-10-06",
+      endDate: "2026-10-07",
+      reason: "Appointment",
+      requestType: "leave",
+    })).rejects.toThrow("You already have approved leave during the requested dates");
+    expect(LeaveRequest.create).not.toHaveBeenCalled();
   });
 });

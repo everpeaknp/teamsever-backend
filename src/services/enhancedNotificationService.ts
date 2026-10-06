@@ -34,6 +34,7 @@ type NotificationType =
   | "ACCESS_REQUEST_RESOLVED"
   | "LEAVE_APPROVED"
   | "LEAVE_DENIED"
+  | "LEAVE_REQUEST"
   | "SYSTEM";
 
 interface NotificationData {
@@ -107,6 +108,8 @@ class EnhancedNotificationService {
       case "ACCESS_REQUEST_RESOLVED":
       case "SYSTEM":
         return prefs.notices !== false;
+      case "LEAVE_REQUEST":
+        return true;
       default:
         return true;
     }
@@ -170,10 +173,13 @@ class EnhancedNotificationService {
         },
       });
 
-      // 4. Send push notification if user is offline (or as redundancy)
+      // Leave decisions need device-level delivery as well as the live socket:
+      // a user's web session must not suppress FCM for their phone (or vice versa).
+      // The clients deduplicate socket/push notifications by notification ID.
       const isOnline = socketService.isUserOnline(recipientId);
-      if (!isOnline) {
-        console.log(`[Notification] User ${recipientId} is offline, sending push`);
+      const isLeaveNotification = type === "LEAVE_REQUEST" || type === "LEAVE_APPROVED" || type === "LEAVE_DENIED";
+      if (!isOnline || isLeaveNotification) {
+        console.log(`[Notification] Sending push for ${type} to ${recipientId}`);
         await this.sendPushNotification(recipientId, {
           title,
           body,
@@ -1041,6 +1047,30 @@ class EnhancedNotificationService {
     }
   }
 
+  async notifyLeaveRequested(leave: any, workspace: any, managerUserIds: string[]): Promise<void> {
+    const requester = leave.requester?._id?.toString?.() || leave.requester?.toString?.();
+    const requesterName = leave.requester?.name || "A team member";
+    const remote = leave.requestType === "remote";
+    const dateRange = `${new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    const recipients = Array.from(new Set(managerUserIds.map(String))).filter((id) => id !== requester);
+
+    const results = await Promise.allSettled(recipients.map((recipientId) => this.createNotification({
+      recipientId,
+      type: "LEAVE_REQUEST",
+      title: remote ? `Remote work request: ${requesterName}` : `Leave request: ${requesterName}`,
+      body: `${requesterName} requested ${remote ? "remote work" : "leave"} for ${dateRange}. Open the request to review it.`,
+      data: {
+        resourceId: leave._id.toString(),
+        resourceType: "LeaveRequest",
+        workspaceId: workspace._id.toString(),
+        conversationId: leave.conversation ? leave.conversation.toString() : undefined,
+        requestType: remote ? "remote" : "leave",
+      },
+    })));
+    const failed = results.filter((result) => result.status === "rejected").length;
+    if (failed) console.error(`[Notification] Failed to notify ${failed} leave request reviewer(s)`);
+  }
+
   /**
    * Notify requester and all managers with MANAGE_LEAVES when a leave is approved
    */
@@ -1060,6 +1090,18 @@ class EnhancedNotificationService {
           body: `Your remote work request for ${dateRange} has been approved by ${approverName}.`,
           data: { resourceId: leave._id.toString(), resourceType: "LeaveRequest", workspaceId: workspace._id.toString(), conversationId: leave.conversation ? leave.conversation.toString() : undefined },
         });
+        const requesterId = leave.requester?._id?.toString?.() || leave.requester?.toString?.();
+        const approverId = approver?._id?.toString?.() || approver?.id?.toString?.();
+        for (const managerId of new Set(managerUserIds.map(String))) {
+          if (managerId === requesterId || managerId === approverId) continue;
+          await this.createNotification({
+            recipientId: managerId,
+            type: "LEAVE_APPROVED",
+            title: `Remote work approved: ${requesterName}`,
+            body: `${requesterName}'s remote work request for ${dateRange} was approved by ${approverName}.`,
+            data: { resourceId: leave._id.toString(), resourceType: "LeaveRequest", workspaceId: workspace._id.toString(), conversationId: leave.conversation ? leave.conversation.toString() : undefined },
+          });
+        }
         return;
       }
 
@@ -1078,8 +1120,10 @@ class EnhancedNotificationService {
       });
 
       // 2. Notify ALL managers with MANAGE_LEAVES (including User C, but excluding the approver if they already know)
-      const notifyManagerIds = managerUserIds.filter(
-        (id) => id !== approver._id?.toString() && id !== approver.id?.toString()
+      const requesterId = leave.requester?._id?.toString?.() || leave.requester?.toString?.();
+      const approverId = approver?._id?.toString?.() || approver?.id?.toString?.();
+      const notifyManagerIds = Array.from(new Set(managerUserIds.map(String))).filter(
+        (id) => id !== approverId && id !== requesterId
       );
 
       for (const managerId of notifyManagerIds) {
@@ -1102,9 +1146,9 @@ class EnhancedNotificationService {
   }
 
   /**
-   * Notify requester if their leave is denied
+   * Notify the requester and the other leave reviewers when a request is denied.
    */
-  async notifyLeaveDenied(leave: any, denier: any, workspace: any): Promise<void> {
+  async notifyLeaveDenied(leave: any, denier: any, workspace: any, managerUserIds: string[] = []): Promise<void> {
     try {
       const denierName = denier?.name || "Manager";
       const startStr = new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -1112,18 +1156,33 @@ class EnhancedNotificationService {
       const dateRange = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
       const reasonSuffix = leave.denialReason ? ` Reason: "${leave.denialReason}"` : "";
 
+      const requesterId = leave.requester._id ? leave.requester._id.toString() : leave.requester.toString();
+      const sharedData = {
+        resourceId: leave._id.toString(),
+        resourceType: "LeaveRequest",
+        workspaceId: workspace._id.toString(),
+        conversationId: leave.conversation ? leave.conversation.toString() : undefined,
+      };
       await this.createNotification({
-        recipientId: leave.requester._id ? leave.requester._id.toString() : leave.requester.toString(),
+        recipientId: requesterId,
         type: "LEAVE_DENIED",
         title: leave.requestType === "remote" ? "Remote Work Request Denied" : "Leave Request Denied",
         body: `Your ${leave.requestType === "remote" ? "remote work" : "leave"} request for ${dateRange} was denied by ${denierName}.${reasonSuffix}`,
-        data: {
-          resourceId: leave._id.toString(),
-          resourceType: "LeaveRequest",
-          workspaceId: workspace._id.toString(),
-          conversationId: leave.conversation ? leave.conversation.toString() : undefined,
-        },
+        data: sharedData,
       });
+
+      const denierId = denier?._id?.toString?.() || denier?.id?.toString?.();
+      const requesterName = leave.requester?.name || "Team Member";
+      for (const managerId of new Set(managerUserIds.map(String))) {
+        if (managerId === requesterId || managerId === denierId) continue;
+        await this.createNotification({
+          recipientId: managerId,
+          type: "LEAVE_DENIED",
+          title: `${leave.requestType === "remote" ? "Remote work" : "Leave"} denied: ${requesterName}`,
+          body: `${requesterName}'s request for ${dateRange} was denied by ${denierName}.${reasonSuffix}`,
+          data: sharedData,
+        });
+      }
     } catch (error) {
       console.error("[Notification] Failed to send leave denied notification:", error);
     }

@@ -41,6 +41,27 @@ interface CreateChannelData {
 }
 
 class ChatService {
+  async getChannelMembers(channelId: string, userId: string, workspaceId?: string) {
+    if (channelId === 'general') {
+      if (!workspaceId) throw new AppError("Workspace ID required to resolve 'general' channel", 400);
+      await this.validateWorkspaceMembership(workspaceId, userId);
+      const defaultChannel = await this.getOrCreateDefaultChannel(workspaceId, userId);
+      channelId = defaultChannel._id.toString();
+    }
+    const channel = await this.validateChannelAccess(channelId, userId);
+    const { workspace } = await this.validateWorkspaceMembership(channel.workspace.toString(), userId);
+    const memberships = (workspace.members || []).filter((membership: any) => {
+      if (channel.type !== 'private') return true;
+      const memberId = membership.user?.toString();
+      const role = membership.role;
+      return memberId === channel.createdBy?.toString() ||
+        channel.members?.some((id: any) => id.toString() === memberId) ||
+        ['admin', 'owner', 'operations_manager', 'project_manager'].includes(role);
+    });
+    const ids = memberships.map((membership: any) => membership.user).filter(Boolean);
+    return User.find({ _id: { $in: ids } }).select('name email avatar profilePicture').sort({ name: 1 }).lean();
+  }
+
   /**
    * Validate if user is a workspace member
    */
@@ -295,7 +316,7 @@ class ChatService {
     let targetChannelId = channelId;
 
     // Fallback to default channel if no channelId provided (migration support)
-    if (!targetChannelId) {
+    if (!targetChannelId || targetChannelId === 'general') {
       const defaultChannel = await this.getOrCreateDefaultChannel(workspaceId, senderId);
       targetChannelId = defaultChannel._id.toString();
     }
@@ -324,13 +345,19 @@ class ChatService {
     }
 
     // Create message
+    // A client cannot mention people outside this channel, even by forging IDs.
+    const candidateIds = [...new Set((mentions || []).filter((id) => mongoose.Types.ObjectId.isValid(id)))];
+    const allowedMembers = candidateIds.length ? await this.getChannelMembers(targetChannelId, senderId) : [];
+    const allowedIds = new Set(allowedMembers.map((member: any) => member._id.toString()));
+    const safeMentions = candidateIds.filter((id) => allowedIds.has(id) && id !== senderId);
+
     const message = await ChatMessage.create({
       workspace: workspaceId,
       channel: targetChannelId,
       sender: senderId,
       content: content.trim(),
       type,
-      mentions,
+      mentions: safeMentions,
     });
 
     // Update channel's lastMessageAt
@@ -354,13 +381,13 @@ class ChatService {
     }
 
     // Send push notifications...
-    if (mentions && mentions.length > 0) {
+    if (safeMentions.length > 0) {
       try {
         const sender = await User.findById(senderId).select("name").lean();
         const senderName = sender?.name || "Someone";
         const messagePreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
 
-        mentions.forEach((mentionedUserId) => {
+        safeMentions.forEach((mentionedUserId) => {
           notificationService.createNotification({
             recipientId: mentionedUserId,
             type: "MENTION",

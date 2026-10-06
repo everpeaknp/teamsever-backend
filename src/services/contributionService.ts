@@ -2,78 +2,70 @@ const WorkspaceActivity = require("../models/WorkspaceActivity");
 const Task = require("../models/Task");
 const Activity = require("../models/Activity");
 const mongoose = require("mongoose");
-const { startOfDay, subDays, format, isAfter, isBefore, eachDayOfInterval } = require("date-fns");
+const { subDays, format } = require("date-fns");
 
 class ContributionService {
   /**
    * Get daily contribution counts for a user over a period
    */
-  async getDailyContributions(userId, workspaceId, type = "all", days = 365) {
+  async getDailyContributions(userId, workspaceId, type = "all") {
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const endDate = new Date();
-    const startDate = subDays(endDate, days);
+    const workspaceFilter = workspaceId && mongoose.Types.ObjectId.isValid(workspaceId)
+      ? { workspace: new mongoose.Types.ObjectId(workspaceId) }
+      : {};
+
+    const aggregateDailyCounts = (model, match, dateField) => model.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: `$${dateField}`,
+              timezone: "UTC",
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const includeGithub = type === "all" || type === "github";
+    const includeTasks = type === "all" || type === "tasks";
+    const [commitDays, completedTaskDays, taskActivityDays] = await Promise.all([
+      includeGithub
+        ? aggregateDailyCounts(
+            WorkspaceActivity,
+            { user: userObjectId, type: "github_commit", ...workspaceFilter },
+            "createdAt",
+          )
+        : [],
+      includeTasks
+        ? aggregateDailyCounts(
+            Task,
+            { completedBy: userObjectId, status: "done", completedAt: { $type: "date" }, ...workspaceFilter },
+            "completedAt",
+          )
+        : [],
+      includeTasks
+        ? aggregateDailyCounts(
+            Activity,
+            { user: userObjectId, isDeleted: false, ...workspaceFilter },
+            "createdAt",
+          )
+        : [],
+    ]);
 
     const contributions = {};
-
-    // 1. Fetch GitHub commits from WorkspaceActivity
-    if (type === "all" || type === "github") {
-      const commitQuery: any = {
-        user: userObjectId,
-        type: "github_commit",
-        createdAt: { $gte: startDate }
-      };
-      if (workspaceId && mongoose.Types.ObjectId.isValid(workspaceId)) {
-        commitQuery.workspace = new mongoose.Types.ObjectId(workspaceId);
-      }
-
-      const commitActivities = await WorkspaceActivity.find(commitQuery).select("createdAt").lean();
-      commitActivities.forEach(act => {
-        const dateKey = format(act.createdAt, "yyyy-MM-dd");
-        contributions[dateKey] = (contributions[dateKey] || 0) + 1;
-      });
+    for (const day of [...commitDays, ...completedTaskDays, ...taskActivityDays]) {
+      if (!day._id) continue;
+      contributions[day._id] = (contributions[day._id] || 0) + day.count;
     }
 
-    // 2. Fetch Task completions & Activities
-    if (type === "all" || type === "tasks") {
-      // Task completions
-      const taskQuery: any = {
-        completedBy: userObjectId,
-        status: "done",
-        completedAt: { $gte: startDate }
-      };
-      if (workspaceId && mongoose.Types.ObjectId.isValid(workspaceId)) {
-        taskQuery.workspace = new mongoose.Types.ObjectId(workspaceId);
-      }
-
-      const taskCompletions = await Task.find(taskQuery).select("completedAt").lean();
-      taskCompletions.forEach(task => {
-        const dateKey = format(task.completedAt, "yyyy-MM-dd");
-        contributions[dateKey] = (contributions[dateKey] || 0) + 1;
-      });
-
-      // Task Updates & Comments
-      const activityQuery: any = {
-        user: userObjectId,
-        isDeleted: false,
-        createdAt: { $gte: startDate }
-      };
-      if (workspaceId && mongoose.Types.ObjectId.isValid(workspaceId)) {
-        activityQuery.workspace = new mongoose.Types.ObjectId(workspaceId);
-      }
-
-      const taskActivities = await Activity.find(activityQuery).select("createdAt").lean();
-      taskActivities.forEach(act => {
-        const dateKey = format(act.createdAt, "yyyy-MM-dd");
-        contributions[dateKey] = (contributions[dateKey] || 0) + 1;
-      });
-    }
-
-    // 4. Calculate Streaks
     const streakData = this.calculateStreaks(contributions);
-
     return {
       dailyCounts: contributions,
-      ...streakData
+      ...streakData,
     };
   }
 

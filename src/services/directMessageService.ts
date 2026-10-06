@@ -555,18 +555,16 @@ class DirectMessageService {
     await message.save();
     await message.populate("sender", "name email avatar profilePicture");
 
-    // Realtime broadcast via Socket.IO to conversation room
+    // DM clients use personal user rooms; the server does not require them to
+    // join a separate conversation room.
     try {
-      const io = socketService.getIO();
-      if (io) {
-        io.to(`conversation:${message.conversation.toString()}`).emit("dm:reaction", {
-          messageId: message._id,
-          conversationId: message.conversation,
-          reactions: message.reactions,
-          userId,
-          emoji,
-        });
-      }
+      socketService.emitToUsers?.(conversation.participants.map((p: any) => p.toString()), "dm:reaction", {
+        messageId: message._id,
+        conversationId: message.conversation,
+        reactions: message.reactions,
+        userId,
+        emoji,
+      });
     } catch (err) {
       console.error("[DirectMessageService] Failed to emit reaction socket event:", err);
     }

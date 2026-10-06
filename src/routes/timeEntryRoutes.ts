@@ -11,6 +11,7 @@ const {
 } = require("../controllers/timeEntryController");
 const {
   getWorkspaceActiveTimers,
+  getWorkspaceClockStatus,
   getTeamTimesheets,
   adminStopTimer,
   getWorkspaceTimeStats,
@@ -67,6 +68,25 @@ router.use(protect);
  *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/admin/workspace/:workspaceId/active", getWorkspaceActiveTimers);
+
+/**
+ * @swagger
+ * /api/time/workspace/{workspaceId}/clock-status:
+ *   get:
+ *     summary: Get current attendance clock-in status
+ *     description: Active members see their own running entry; workspace admins and owners see the current workspace roster. Uses the same running TimeEntry source as the live time-tracking dashboard.
+ *     tags: ["7.1 Time — Entries (Timesheets)"]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Current shift status }
+ *       403: { description: Active workspace membership required }
+ */
+router.get("/workspace/:workspaceId/clock-status", getWorkspaceClockStatus);
 
 /**
  * @swagger
