@@ -90,6 +90,11 @@ describe("leave request workspace projection", () => {
       requestType: "remote",
       proposedRemoteArea: { name: "Home", latitude: 28.2, longitude: 83.98, radiusMeters: 60 },
     })).resolves.toBe(leave);
+    expect(DirectMessage.create).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({
+        remoteLocation: { name: "Home", latitude: 28.2, longitude: 83.98 },
+      }),
+    }));
   });
 
   it("rejects a leave request that overlaps an already approved leave day", async () => {

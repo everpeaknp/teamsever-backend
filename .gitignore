@@ -65,6 +65,7 @@ test-*.ts
 src/__tests__/*
 !src/__tests__/leaveApprovalFlow.test.ts
 !src/__tests__/leaveRequestWorkspaceProjection.test.ts
+!src/__tests__/leaveNotificationDelivery.test.ts
 !src/__tests__/invitationCodeReuse.test.ts
 !src/__tests__/invitationLifecycle.test.ts
 !src/__tests__/apiRoutes.test.ts

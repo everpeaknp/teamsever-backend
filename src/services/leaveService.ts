@@ -201,13 +201,18 @@ class LeaveService {
     }
 
     let requestedRemoteAreaName: string | undefined;
+    let requestedRemoteLocation: { name: string; latitude: number; longitude: number } | undefined;
     if (requestType === "remote") {
       const requesterMember = workspace.members?.find((item: any) => item.user?.toString() === requesterId);
       if ((requesterMember?.attendanceMode || "onsite") !== "onsite") throw new AppError("Temporary remote requests are for on-site members; manage a permanent remote place in workspace location settings", 400);
       const existingArea = remoteAreaId && requesterMember?.privateRemoteAreas?.find((area: any) => String(area._id) === String(remoteAreaId) && area.isActive);
-      if (existingArea) requestedRemoteAreaName = existingArea.name;
+      if (existingArea) {
+        requestedRemoteAreaName = existingArea.name;
+        requestedRemoteLocation = { name: existingArea.name, latitude: existingArea.latitude, longitude: existingArea.longitude };
+      }
       if (!existingArea && !proposedRemoteArea) throw new AppError("Choose an approved private remote place or propose an address", 400);
       if (proposedRemoteArea && (typeof proposedRemoteArea.name !== "string" || !proposedRemoteArea.name.trim() || !Number.isFinite(proposedRemoteArea.latitude) || proposedRemoteArea.latitude < -90 || proposedRemoteArea.latitude > 90 || !Number.isFinite(proposedRemoteArea.longitude) || proposedRemoteArea.longitude < -180 || proposedRemoteArea.longitude > 180)) throw new AppError("A valid proposed remote address is required", 400);
+      if (proposedRemoteArea) requestedRemoteLocation = { name: proposedRemoteArea.name.trim(), latitude: proposedRemoteArea.latitude, longitude: proposedRemoteArea.longitude };
       // The requester proposes a private place, but it is not added to the
       // workspace member until this assigned approver approves the request.
       // MANAGE_LEAVES authorizes that decision; requiring the separate address
@@ -297,7 +302,7 @@ class LeaveService {
           endDate: end,
           daysCount,
           reason: reason.trim(),
-          ...(requestType === "remote" ? { remoteAreaId: leave.remoteAreaId?.toString?.(), remoteAreaName: leave.remoteAreaName, proposedRemoteArea: leave.proposedRemoteArea?.toObject?.() || leave.proposedRemoteArea } : {}),
+          ...(requestType === "remote" ? { remoteAreaId: leave.remoteAreaId?.toString?.(), remoteAreaName: leave.remoteAreaName, proposedRemoteArea: leave.proposedRemoteArea?.toObject?.() || leave.proposedRemoteArea, remoteLocation: requestedRemoteLocation } : {}),
           status: "pending",
           isExceedingMonthlyQuota,
           monthlyLeaveCountAtRequest: approvedDaysThisMonth,
