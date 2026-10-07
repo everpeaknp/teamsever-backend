@@ -670,7 +670,7 @@ class TimeEntryService {
     if (!canManageTeam) query.user = viewerId;
 
     const entries = await TimeEntry.find(query)
-      .select("user task project startTime description isRunning")
+      .select("user task project startTime description isRunning attendanceMode")
       .populate("user", "name email avatar profilePicture")
       .populate("task", "title")
       .populate("project", "name color")
