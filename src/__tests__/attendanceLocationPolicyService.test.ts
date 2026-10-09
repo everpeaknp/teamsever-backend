@@ -115,6 +115,26 @@ describe("attendance location policy storage and workspace scoping", () => {
       .rejects.toThrow("IP seen by the server does not match");
   });
 
+  it("lets remote members clock in at the shared office or any of their active private remote places", async () => {
+    const officeId = new mongoose.Types.ObjectId().toString();
+    const homeAId = new mongoose.Types.ObjectId().toString();
+    const homeBId = new mongoose.Types.ObjectId().toString();
+    const office = { _id: officeId, name: "HQ", kind: "office", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true };
+    const homeA = { _id: homeAId, name: "Home A", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true };
+    const homeB = { _id: homeBId, name: "Home B", latitude: 27.72, longitude: 85.33, radiusMeters: 60, isActive: true };
+    workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
+    workspace.members[0].attendanceMode = "remote";
+    workspace.members[0].privateRemoteAreas = [homeA, homeB];
+
+    expect(Service.eligibleAreasForMember(workspace, workspace.members[0]).map((area: any) => area.name)).toEqual(["HQ", "Home A", "Home B"]);
+    await expect(Service.validateClockInLocation(workspace, workspace.members[0], {
+      latitude: 40, longitude: -74, accuracyMeters: 10, capturedAt: new Date().toISOString()
+    })).resolves.toMatchObject({ areaId: officeId, areaName: "HQ", mode: "onsite" });
+    await expect(Service.validateClockInLocation(workspace, workspace.members[0], {
+      latitude: 27.72, longitude: 85.33, accuracyMeters: 10, capturedAt: new Date().toISOString()
+    })).resolves.toMatchObject({ areaId: homeBId, areaName: "Home B", mode: "remote" });
+  });
+
   it("allows office-network confirmation only when the GPS uncertainty overlaps the fixed office geofence", async () => {
     const office = { _id: remoteA, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" };
     workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };

@@ -47,4 +47,16 @@ describe("attendance location check event security and review state", () => {
     expect(Events.create).toHaveBeenCalledWith(expect.objectContaining({ status: "inside", activeReviewFlag: false, areaId: expect.anything() }));
     expect(Events.create.mock.calls[0][0]).not.toHaveProperty("latitude");
   });
+
+  it("records the location actually matched during a remote member's office shift", async () => {
+    const workspace = await Workspace.findOne();
+    workspace.members[0].attendanceMode = "remote";
+    TimeEntry.findOne.mockReturnValue({ select: jest.fn().mockResolvedValue({ _id: timeEntryId, attendanceMode: "onsite" }) });
+
+    await Service.recordLocationCheck(workspaceId, userId, timeEntryId, "location", {
+      latitude: 40, longitude: -74, accuracyMeters: 10, capturedAt: new Date().toISOString()
+    });
+
+    expect(Events.create).toHaveBeenCalledWith(expect.objectContaining({ areaId: officeId, mode: "onsite", status: "inside" }));
+  });
 });
