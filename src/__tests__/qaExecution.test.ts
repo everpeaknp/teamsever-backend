@@ -1,4 +1,5 @@
 const Workspace = require("../models/Workspace");
+const User = require("../models/User");
 const TestCase = require("../models/TestCase");
 const TestCaseRevision = require("../models/TestCaseRevision");
 const TestPlan = require("../models/TestPlan");
@@ -20,6 +21,16 @@ const attachmentId = "507f1f77bcf86cd799439018";
 
 describe("QA executions", () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it("lists only testers with execution permission, including clocked-out members", async () => {
+    const tester = "507f1f77bcf86cd799439019";
+    jest.spyOn(Workspace, "findOne").mockResolvedValue({ qualityEnabled: true, owner: actor, members: [{ user: tester, status: "inactive" }, { user: other, status: "active" }] });
+    jest.spyOn(PermissionService, "can").mockImplementation(async (userId: string) => userId !== other);
+    const users = jest.spyOn(User, "find").mockReturnValue({ select: () => ({ sort: () => ({ lean: async () => [{ _id: actor }, { _id: tester }] }) }) } as any);
+    const result = await service.listEligibleTesters(wid);
+    expect(users).toHaveBeenCalledWith({ _id: { $in: [actor, tester] } });
+    expect(result).toHaveLength(2);
+  });
 
   it("returns selected cases in plan order for assigning individual testers", async () => {
     const secondCaseId = "507f1f77bcf86cd799439020";

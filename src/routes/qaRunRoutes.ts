@@ -8,6 +8,7 @@ const evidenceUpload = multer({ storage: multer.memoryStorage(), limits: { fileS
 
 router.use(protect);
 router.get("/plans", requirePermission("VIEW_QUALITY"), runs.listPlans);
+router.get("/testers", requirePermission("MANAGE_PLAN"), runs.listEligibleTesters);
 router.post("/plans", requirePermission("MANAGE_PLAN"), runs.createPlan);
 router.get("/plans/:planId", requirePermission("VIEW_QUALITY"), runs.getPlan);
 router.post("/plans/:planId/runs", requirePermission("MANAGE_PLAN"), runs.startRun);

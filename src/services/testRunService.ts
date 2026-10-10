@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Workspace = require("../models/Workspace");
+const User = require("../models/User");
 const TestCase = require("../models/TestCase");
 const TestCaseRevision = require("../models/TestCaseRevision");
 const TestPlan = require("../models/TestPlan");
@@ -40,6 +41,21 @@ const enabledWorkspace = async (workspaceId: string) => {
 const isWorkspaceMember = (workspace: any, userId: string) =>
   workspace.owner?.toString() === userId ||
   workspace.members?.some((member: any) => member.user?.toString() === userId);
+
+export const listEligibleTesters = async (workspaceId: string) => {
+  const workspace = await enabledWorkspace(workspaceId);
+  const ids = [...new Set([
+    workspace.owner?.toString(),
+    ...(workspace.members || []).map((member: any) => member.user?.toString()),
+  ].filter(Boolean))] as string[];
+  const allowed = await Promise.all(ids.map(async userId => ({
+    userId,
+    canExecute: await PermissionService.can(userId, "EXECUTE_CASE", { workspaceId, userId }),
+  })));
+  const eligibleIds = allowed.filter(item => item.canExecute).map(item => item.userId);
+  if (!eligibleIds.length) return [];
+  return User.find({ _id: { $in: eligibleIds } }).select("_id name email").sort({ name: 1, _id: 1 }).lean();
+};
 
 export const createPlan = async (workspaceId: string, actorId: string, input: any) => {
   await enabledWorkspace(workspaceId);

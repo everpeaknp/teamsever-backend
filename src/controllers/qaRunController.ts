@@ -6,6 +6,10 @@ const service = require("../services/testRunService");
 const defects = require("../services/qaDefectService");
 const evidence = require("../services/qaEvidenceService");
 
+export const listEligibleTesters = asyncHandler(async (req: Request, res: Response) => {
+  res.json({ success: true, data: await service.listEligibleTesters(req.params.workspaceId) });
+});
+
 export const listEvidence = asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({ success: true, data: await evidence.listEvidence(req.params.workspaceId, req.params.executionId, req.user!.id) });
 });
