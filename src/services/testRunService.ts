@@ -37,6 +37,10 @@ const enabledWorkspace = async (workspaceId: string) => {
   return workspace;
 };
 
+const isWorkspaceMember = (workspace: any, userId: string) =>
+  workspace.owner?.toString() === userId ||
+  workspace.members?.some((member: any) => member.user?.toString() === userId);
+
 export const createPlan = async (workspaceId: string, actorId: string, input: any) => {
   await enabledWorkspace(workspaceId);
   const name = safeText(input?.name, 160, "Plan name", true);
@@ -61,7 +65,10 @@ export const listPlans = async (workspaceId: string, rawPage = 1, rawLimit = 30)
 export const getPlan = async (workspaceId: string, planId: string) => {
   const plan = await TestPlan.findOne({ _id: planId, workspace: workspaceId }).lean();
   if (!plan) throw new AppError("Test plan not found", 404);
-  return plan;
+  const cases = await TestCase.find({ _id: { $in: plan.caseIds }, workspace: workspaceId })
+    .select("_id key title owner state").lean();
+  const byId = new Map(cases.map((testCase: any) => [testCase._id.toString(), testCase]));
+  return { ...plan, cases: plan.caseIds.map((id: any) => byId.get(id.toString())).filter(Boolean) };
 };
 
 export const startRun = async (workspaceId: string, planId: string, actorId: string, input: any) => {
@@ -81,14 +88,14 @@ export const startRun = async (workspaceId: string, planId: string, actorId: str
   if (typeof assigned !== "object" || Array.isArray(assigned)) throw new AppError("Assignments must map case IDs to testers", 400);
   for (const [id, userId] of Object.entries(assigned)) {
     if (!caseIds.includes(id) || typeof userId !== "string" || !mongoose.isValidObjectId(userId)) throw new AppError("Assignment contains an invalid case or tester", 400);
-    if (workspace.members && !workspace.members.some((member: any) => member.user.toString() === userId && member.status !== "inactive")) {
-      throw new AppError("Assigned tester is not an active workspace member", 400);
+    if (!isWorkspaceMember(workspace, userId)) {
+      throw new AppError("Assigned tester is not a workspace member", 400);
     }
   }
   const resolvedTesters = cases.map((testCase: any) => assigned[testCase._id.toString()] || testCase.owner?.toString()).filter(Boolean);
   for (const userId of new Set(resolvedTesters as string[])) {
-    if (workspace.members && !workspace.members.some((member: any) => member.user.toString() === userId && member.status !== "inactive")) {
-      throw new AppError("Assigned tester is not an active workspace member", 400);
+    if (!isWorkspaceMember(workspace, userId)) {
+      throw new AppError("Assigned tester is not a workspace member", 400);
     }
     if (!await PermissionService.can(userId, "EXECUTE_CASE", { workspaceId, userId })) {
       throw new AppError("Assigned tester cannot execute cases in this workspace", 403);

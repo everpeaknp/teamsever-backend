@@ -21,6 +21,19 @@ const attachmentId = "507f1f77bcf86cd799439018";
 describe("QA executions", () => {
   afterEach(() => jest.restoreAllMocks());
 
+  it("returns selected cases in plan order for assigning individual testers", async () => {
+    const secondCaseId = "507f1f77bcf86cd799439020";
+    jest.spyOn(TestPlan, "findOne").mockReturnValue({ lean: async () => ({ _id: planId, workspace: wid, caseIds: [caseId, secondCaseId] }) } as any);
+    jest.spyOn(TestCase, "find").mockReturnValue({
+      select: () => ({ lean: async () => [
+        { _id: secondCaseId, key: "TC-020", title: "Second case" },
+        { _id: caseId, key: "TC-014", title: "First case" },
+      ] }),
+    } as any);
+    const plan = await service.getPlan(wid, planId);
+    expect(plan.cases.map((item: any) => item.key)).toEqual(["TC-014", "TC-020"]);
+  });
+
   it("rejects a plan containing a case from another workspace", async () => {
     jest.spyOn(Workspace, "findOne").mockResolvedValue({ qualityEnabled: true });
     jest.spyOn(TestCase, "countDocuments").mockResolvedValue(0);
@@ -54,6 +67,20 @@ describe("QA executions", () => {
     await service.startRun(wid, planId, actor, { build: "1.8.5", environment: "Android 16", assignments: { [caseId]: tester } });
     expect(send).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith(expect.objectContaining({ recipientId: tester, type: "QA_RUN_ASSIGNED", data: expect.objectContaining({ workspaceId: wid, runId }) }));
+  });
+
+  it("allows a clocked-out workspace member to be assigned a run", async () => {
+    const tester = "507f1f77bcf86cd799439019";
+    jest.spyOn(Workspace, "findOne").mockResolvedValue({ qualityEnabled: true, members: [{ user: tester, status: "inactive" }] });
+    jest.spyOn(TestPlan, "findOne").mockResolvedValue({ _id: planId, workspace: wid, caseIds: [caseId] });
+    jest.spyOn(TestCase, "find").mockResolvedValue([{ _id: caseId, key: "TC-014", workspace: wid, currentRevision: 1, state: "active" }]);
+    jest.spyOn(TestCaseRevision, "find").mockResolvedValue([{ _id: "revision-1", testCase: caseId, revision: 1, snapshot: { title: "Sign in", steps: [{ action: "Open", expectedResult: "Visible" }] } }]);
+    jest.spyOn(PermissionService, "can").mockResolvedValue(true);
+    jest.spyOn(TestRun, "create").mockResolvedValue({ _id: runId });
+    const insert = jest.spyOn(TestExecution, "insertMany").mockResolvedValue([]);
+    jest.spyOn(notifications, "createNotification").mockResolvedValue({});
+    await service.startRun(wid, planId, actor, { build: "1.8.5", environment: "staging", assignments: { [caseId]: tester } });
+    expect(insert).toHaveBeenCalledWith([expect.objectContaining({ assignedTo: tester })], { ordered: true });
   });
 
   it("does not assign a run to a member without execution permission", async () => {
