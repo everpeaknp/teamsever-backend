@@ -35,6 +35,7 @@ type NotificationType =
   | "LEAVE_APPROVED"
   | "LEAVE_DENIED"
   | "LEAVE_REQUEST"
+  | "QA_RUN_ASSIGNED"
   | "SYSTEM";
 
 interface NotificationData {
@@ -81,6 +82,7 @@ class EnhancedNotificationService {
       case "GITHUB_COMMIT":
         return prefs.githubCommits !== false;
       case "TASK_ASSIGNED":
+      case "QA_RUN_ASSIGNED":
         return prefs.taskAssigned !== false;
       case "TASK_STATUS_CHANGED":
         return prefs.taskStatusChange !== false;

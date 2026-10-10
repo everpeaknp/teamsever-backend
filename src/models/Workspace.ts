@@ -46,6 +46,8 @@ export interface IWorkspace extends Document {
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  qualityEnabled: boolean;
+  qualityCaseSequence?: number;
   attendanceLocationPolicy?: {
     enabled: boolean;
     maxAccuracyMeters: number;
@@ -64,6 +66,8 @@ const workspaceSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, "Workspace name cannot exceed 100 characters"]
     },
+    qualityEnabled: { type: Boolean, default: false },
+    qualityCaseSequence: { type: Number, default: 0, min: 0 },
     logo: {
       type: String,
       default: null

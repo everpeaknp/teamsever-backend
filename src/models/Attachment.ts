@@ -57,6 +57,10 @@ const attachmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task",
     },
+    execution: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TestExecution",
+    },
     comment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TaskComment",
@@ -96,6 +100,7 @@ const attachmentSchema = new mongoose.Schema(
 
 // Indexes for efficient queries
 attachmentSchema.index({ task: 1, isDeleted: 1 });
+attachmentSchema.index({ execution: 1, isDeleted: 1 });
 attachmentSchema.index({ comment: 1, isDeleted: 1 });
 attachmentSchema.index({ conversation: 1, isDeleted: 1 });
 attachmentSchema.index({ message: 1, isDeleted: 1 });
@@ -106,6 +111,7 @@ attachmentSchema.index({ createdAt: -1 });
 // Virtual for attachment type
 attachmentSchema.virtual("attachmentType").get(function (this: any) {
   if (this.task) return "task";
+  if (this.execution) return "execution";
   if (this.comment) return "comment";
   if (this.conversation || this.message) return "dm";
   return "unknown";

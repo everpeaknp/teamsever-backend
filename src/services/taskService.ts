@@ -16,9 +16,22 @@ const analyticsV2CacheService = require("./analyticsV2CacheService");
 
 interface CreateTaskData {
   title: string;
+  workItemType?: "task" | "bug";
+  moduleId?: string;
+  qaReviewer?: string;
+  qaSourceExecution?: string;
+  qaCreationKey?: string;
+  bugDetails?: {
+    reproductionSteps: string;
+    expectedResult: string;
+    actualResult: string;
+    severity: "low" | "medium" | "high" | "critical";
+    environment: string;
+    build?: string;
+  };
   description?: string;
   status?: "todo" | "to do" | "inprogress" | "in-progress" | "in progress" | "review" | "done" | "cancelled" | "blocked";
-  priority?: "low" | "medium" | "high";
+  priority?: "low" | "medium" | "high" | "urgent";
   startDate?: Date;
   dueDate?: Date;
   deadline?: Date;
@@ -112,6 +125,10 @@ class TaskService {
       throw new AppError("Space not found", 404);
     }
 
+    if (space.workspace.toString() !== list.workspace.toString()) {
+      throw new AppError("List does not belong to its space", 400);
+    }
+
     console.log('[TaskService] Space found:', space.name);
 
     // Verify user is workspace member
@@ -132,12 +149,53 @@ class TaskService {
     }
 
     const isMember = workspace.members.some(
-      (member: any) => member.user.toString() === createdBy
+      (member: any) => member.user.toString() === createdBy && member.status !== "inactive"
     );
 
     if (!isMember) {
       console.log('[TaskService] User not workspace member:', createdBy);
       throw new AppError("You must be a workspace member to create a task", 403);
+    }
+
+    if (data.workItemType === "bug") {
+      if (data.status && data.status !== "todo" && data.status !== "to do") {
+        throw new AppError("New bugs must start Open", 400);
+      }
+      if (!workspace.qualityEnabled) {
+        throw new AppError("Quality is not enabled in this workspace", 403);
+      }
+      if (!data.bugDetails) {
+        throw new AppError("Bug details are required", 400);
+      }
+      if (assignee && !workspace.members.some(
+        (member: any) => member.user.toString() === assignee && member.status !== "inactive"
+      )) {
+        throw new AppError("Bug assignee must be an active workspace member", 400);
+      }
+      if (data.qaReviewer && !workspace.members.some(
+        (member: any) => member.user.toString() === data.qaReviewer && member.status !== "inactive"
+      )) {
+        throw new AppError("QA reviewer must be an active workspace member", 400);
+      }
+      if (data.moduleId) {
+        const QaModule = require("../models/QaModule");
+        const module = await QaModule.findOne({
+          _id: data.moduleId,
+          workspace: list.workspace,
+          isArchived: false
+        });
+        if (!module) throw new AppError("QA module not found in this workspace", 400);
+      }
+      const recentBugCount = await Task.countDocuments({
+        workspace: list.workspace,
+        createdBy,
+        workItemType: "bug",
+        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+        isDeleted: false
+      });
+      if (recentBugCount >= 30) {
+        throw new AppError("Bug reporting limit reached; try again later", 429);
+      }
     }
 
     // Validate custom field values if provided
@@ -154,6 +212,12 @@ class TaskService {
     // Create task with denormalized fields
     const taskData: any = {
       title,
+      workItemType: data.workItemType || "task",
+      moduleId: data.workItemType === "bug" ? data.moduleId : undefined,
+      qaReviewer: data.workItemType === "bug" ? data.qaReviewer : undefined,
+      qaSourceExecution: data.workItemType === "bug" ? data.qaSourceExecution : undefined,
+      qaCreationKey: data.workItemType === "bug" ? data.qaCreationKey : undefined,
+      bugDetails: data.workItemType === "bug" ? data.bugDetails : undefined,
       description,
       status: (data.status === "in-progress" || data.status === "in progress") 
         ? "inprogress" 
@@ -248,14 +312,19 @@ class TaskService {
 
     // Send notification to assignee using enhanced notification service
     if (assignee && assignee !== createdBy) {
-      // Don't await - run asynchronously to not block task creation
-      enhancedNotificationService.notifyTaskUpdate(
-        task._id.toString(),
-        createdBy,
-        "assignee",
-        null,
-        assignee
-      ).catch((error: any) => {
+      // Notify the assigned person only; the new bug is not a workspace broadcast.
+      const notification = data.workItemType === "bug"
+        ? enhancedNotificationService.createNotification({
+            recipientId: assignee,
+            type: "TASK_ASSIGNED",
+            title: "Bug assigned",
+            body: task.title,
+            data: { resourceId: task._id.toString(), resourceType: "Task", taskId: task._id.toString(), workspaceId: task.workspace.toString() },
+          })
+        : enhancedNotificationService.notifyTaskUpdate(
+            task._id.toString(), createdBy, "assignee", null, assignee
+          );
+      notification.catch((error: any) => {
         console.error("Failed to send task assignment notification:", error);
       });
     }
@@ -407,6 +476,29 @@ class TaskService {
 
     if (!task) {
       throw new AppError("Task not found", 404);
+    }
+
+    if (task.workItemType === "bug" && updateData.status && updateData.status !== task.status) {
+      throw new AppError("Use the bug handoff action to change status", 403);
+    }
+    const requestedAssignee = updateData.assigneeId !== undefined ? updateData.assigneeId : updateData.assignee;
+    if (task.workItemType === "bug" && requestedAssignee !== undefined && requestedAssignee !== task.assignee?.toString()) {
+      const canTriage = await PermissionService.can(userId, "TRIAGE_BUG", {
+        workspaceId: task.workspace.toString(),
+        spaceId: task.space.toString(),
+        listId: task.list.toString(),
+        resourceType: "task",
+        resourceId: taskId,
+        userId,
+      });
+      if (!canTriage) throw new AppError("Bug reassignment requires triage permission", 403);
+      if (requestedAssignee) {
+        const workspaceForAssignee = await Workspace.findById(task.workspace).select("members.user members.status");
+        if (!workspaceForAssignee?.members?.some((member: any) =>
+          member.user.toString() === requestedAssignee && member.status !== "inactive")) {
+          throw new AppError("Bug assignee must be an active workspace member", 400);
+        }
+      }
     }
 
     // Permission check is handled by middleware (requirePermission("EDIT_TASK"))

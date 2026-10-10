@@ -2,6 +2,7 @@ export {};
 const express = require("express");
 const {
   createTask,
+  qualityTransition,
   getListTasks,
   getTask,
   updateTask,
@@ -17,9 +18,11 @@ const { protect } = require("../middlewares/authMiddleware");
 const { checkTaskLimit } = require("../middlewares/subscriptionMiddleware");
 const { requirePermission } = require("../permissions/permission.middleware");
 const validate = require("../utils/validation");
+const { authorizeTaskCreation } = require("../middlewares/taskCreationGuard");
 const { 
   createTaskSchema, 
   updateTaskSchema,
+  bugTransitionSchema,
   createSubtaskSchema,
   addDependencySchema
 } = require("../validators/taskValidators");
@@ -124,7 +127,7 @@ const listTaskRouter = express.Router({ mergeParams: true });
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
  */
-listTaskRouter.post("/", protect, checkTaskLimit, requirePermission("CREATE_TASK"), validate(createTaskSchema), createTask);
+listTaskRouter.post("/", protect, validate(createTaskSchema), authorizeTaskCreation, createTask);
 listTaskRouter.get("/", protect, requirePermission("VIEW_TASK"), getListTasks);
 
 // Standalone task router
@@ -258,6 +261,7 @@ const taskRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  * */
 taskRouter.get("/:id", protect, requirePermission("VIEW_TASK"), getTask);
+taskRouter.post("/:id/quality-transition", protect, requirePermission("VIEW_TASK"), validate(bugTransitionSchema), qualityTransition);
 taskRouter.patch("/:id", protect, requirePermission("EDIT_TASK"), validate(updateTaskSchema), updateTask);
 taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask);
 

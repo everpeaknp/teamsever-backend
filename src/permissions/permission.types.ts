@@ -91,6 +91,16 @@ export type PermissionAction =
   | "CHANGE_STATUS"
   | "MARK_TASK_DONE"
   | "COMMENT_TASK"
+  // Quality management
+  | "VIEW_QUALITY"
+  | "AUTHOR_CASE"
+  | "EXECUTE_CASE"
+  | "MANAGE_PLAN"
+  | "CREATE_BUG"
+  | "TRIAGE_BUG"
+  | "VERIFY_BUG"
+  | "VIEW_QA_REPORT"
+  | "SIGN_OFF_QA"
   
   // Settings and analytics
   | "MANAGE_SETTINGS"
