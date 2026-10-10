@@ -335,8 +335,10 @@ class SpaceService {
     const folderService = require("./folderService");
     const listService = require("./listService");
 
-    const folders = await folderService.getFolders(spaceId, userId);
-    const allLists = await listService.getSpaceLists(spaceId, userId);
+    const [folders, allLists] = await Promise.all([
+      folderService.getFolders(spaceId, userId),
+      listService.getSpaceLists(spaceId, userId),
+    ]);
 
     // Filter to only include lists that are NOT in a folder (top-level lists)
     const lists = allLists.filter((list: any) => !list.folderId);
