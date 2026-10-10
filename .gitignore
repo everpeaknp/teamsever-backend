@@ -70,6 +70,8 @@ src/__tests__/*
 !src/__tests__/invitationCodeReuse.test.ts
 !src/__tests__/invitationLifecycle.test.ts
 !src/__tests__/apiRoutes.test.ts
+!src/__tests__/jest.setup.ts
+!src/__tests__/qa*.test.ts
 
 # Seed files
 **/seeds/

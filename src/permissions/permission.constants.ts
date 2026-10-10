@@ -136,11 +136,17 @@ export const SPACE_PERMISSION_ACTIONS: Record<SpacePermissionLevel, PermissionAc
   ],
 };
 
+const QUALITY_MANAGER_PERMISSIONS: PermissionAction[] = [
+  "VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "MANAGE_PLAN",
+  "CREATE_BUG", "TRIAGE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT", "SIGN_OFF_QA"
+];
+
 /**
  * Permission matrix: defines which roles can perform which actions
  */
 export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   [WorkspaceRole.OWNER]: [
+    ...QUALITY_MANAGER_PERMISSIONS,
     // Workspace
     "DELETE_WORKSPACE",
     "UPDATE_WORKSPACE",
@@ -197,6 +203,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.ADMIN]: [
+    ...QUALITY_MANAGER_PERMISSIONS,
     // Workspace
     "UPDATE_WORKSPACE",
     "INVITE_MEMBER",
@@ -254,6 +261,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.OPERATIONS_MANAGER]: [
+    ...QUALITY_MANAGER_PERMISSIONS,
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -305,6 +313,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.PROJECT_MANAGER]: [
+    ...QUALITY_MANAGER_PERMISSIONS,
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -348,6 +357,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.DEVELOPER]: [
+    "VIEW_QUALITY", "CREATE_BUG",
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -375,6 +385,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.QA]: [
+    "VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "CREATE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT",
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",

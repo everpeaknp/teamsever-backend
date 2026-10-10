@@ -61,6 +61,10 @@ const startServer = async () => {
     const { spaceListRouter, listRouter } = require("./routes/listRoutes");
     const listMemberRoutes = require("./routes/listMemberRoutes");
     const { listTaskRouter, taskRouter } = require("./routes/taskRoutes");
+    const qaModuleRoutes = require("./routes/qaModuleRoutes");
+    const qaCaseRoutes = require("./routes/qaCaseRoutes");
+    const qaRunRoutes = require("./routes/qaRunRoutes");
+    const qaReportRoutes = require("./routes/qaReportRoutes");
     const { workspaceInvitationRouter, inviteRouter, publicInviteRouter } = require("./routes/invitationRoutes");
     const { workspaceChatRouter, channelRouter, chatRouter } = require("./routes/chatRoutes");
     const notificationRoutes = require("./routes/notificationRoutes");
@@ -210,6 +214,10 @@ const startServer = async () => {
     app.use("/api/auth", authRoutes);
     const customRoleRoutes = require("./routes/customRoleRoutes");
     app.use("/api/workspaces", workspaceRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaModuleRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaCaseRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaRunRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaReportRoutes);
     app.use("/api/v2/workspaces", workspaceV2Routes);
     app.use("/api/workspaces", customRoleRoutes);
     app.use("/api/workspaces/:workspaceId/spaces", workspaceSpaceRouter);
