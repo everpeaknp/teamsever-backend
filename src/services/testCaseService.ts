@@ -5,7 +5,9 @@ const TestSuite = require("../models/TestSuite");
 const TestCase = require("../models/TestCase");
 const TestCaseRevision = require("../models/TestCaseRevision");
 const Task = require("../models/Task");
+const List = require("../models/List");
 const AppError = require("../utils/AppError");
+const qaProjectService = require("./qaProjectService");
 
 const text = (value: unknown, max: number, label: string, required = false): string | undefined => {
   if (value === undefined || value === null || value === "") {
@@ -52,45 +54,55 @@ const normalizeSteps = (value: unknown) => {
   });
 };
 
-const normalizeCase = (input: any, current?: any) => {
+const normalizeCase = (input: any, current?: any, settings: any = qaProjectService.DEFAULTS) => {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new AppError("Case details are required", 400);
   const merged = { ...current, ...input };
   const linkedTaskIds = merged.linkedTaskIds === undefined ? [] : merged.linkedTaskIds;
   if (!Array.isArray(linkedTaskIds) || linkedTaskIds.length > 100) throw new AppError("Linked work items must be a list of at most 100 IDs", 400);
   const uniqueTaskIds = [...new Set(linkedTaskIds.map((id: unknown) => objectId(id, "Linked work item")))];
+  const enabledTypes = (settings.caseTypes || []).filter((item: any) => item.enabled !== false);
+  const statuses = settings.caseStatuses || [];
   return {
     title: text(merged.title, 240, "Title", true),
     moduleId: objectId(merged.moduleId, "Module"),
     suiteId: objectId(merged.suiteId, "Suite"),
     owner: objectId(merged.owner, "Owner"),
     priority: choices(merged.priority, ["low", "medium", "high", "urgent"], "Priority", "medium"),
-    type: choices(merged.type, ["manual", "automated"], "Type", "manual"),
-    state: choices(merged.state, ["draft", "active", "retired"], "State", "draft"),
+    type: choices(merged.type, [...enabledTypes.map((item: any) => item.key), ...(current?.type ? [current.type] : [])], "Type", enabledTypes[0]?.key || "manual"),
+    state: choices(merged.state, [...statuses.map((item: any) => item.key), ...(current?.state ? [current.state] : [])], "State", statuses[0]?.key || "draft"),
+    customFields: qaProjectService.validateCustomFields(settings, merged.customFields || {}, current?.customFields || {}),
     preconditions: text(merged.preconditions, 8000, "Preconditions"),
     steps: normalizeSteps(merged.steps),
     linkedTaskIds: uniqueTaskIds,
   };
 };
 
-export const validateCaseDraft = (input: any) => normalizeCase(input);
+export const validateCaseDraft = (input: any, settings?: any) => normalizeCase(input, undefined, settings || qaProjectService.DEFAULTS);
 
-const checkReferences = async (workspaceId: string, value: ReturnType<typeof normalizeCase>) => {
-  if (value.moduleId && !await QaModule.findOne({ _id: value.moduleId, workspace: workspaceId, isArchived: false })) {
-    throw new AppError("Module is not available in this workspace", 400);
+const checkReferences = async (workspaceId: string, value: ReturnType<typeof normalizeCase>, projectScope: any) => {
+  if (value.moduleId && !await QaModule.findOne({ _id: value.moduleId, workspace: workspaceId, ...projectScope.filter, isArchived: false })) {
+    throw new AppError("Module is not available in this QA project", 400);
   }
-  if (value.suiteId && !await TestSuite.findOne({ _id: value.suiteId, workspace: workspaceId, isArchived: false })) {
-    throw new AppError("Suite is not available in this workspace", 400);
+  if (value.suiteId && !await TestSuite.findOne({ _id: value.suiteId, workspace: workspaceId, ...projectScope.filter, isArchived: false })) {
+    throw new AppError("Suite is not available in this QA project", 400);
   }
   if (value.linkedTaskIds.length) {
-    const count = await Task.countDocuments({ _id: { $in: value.linkedTaskIds }, workspace: workspaceId, isDeleted: false });
+    const filter: any = { _id: { $in: value.linkedTaskIds }, workspace: workspaceId, isDeleted: false };
+    if (projectScope.project.scopeType === "folder") {
+      const projectLists = await List.find({ workspace: workspaceId, folderId: projectScope.project.folder, isDeleted: false }).distinct("_id");
+      filter.list = { $in: projectLists };
+    }
+    const count = await Task.countDocuments(filter);
     if (count !== value.linkedTaskIds.length) throw new AppError("Linked work item is not available in this workspace", 400);
   }
 };
 
 export const createCase = async (workspaceId: string, actorId: string, input: any) => {
   await checkEnabled(workspaceId);
-  const details = normalizeCase(input);
-  await checkReferences(workspaceId, details);
+  const scope = await qaProjectService.getProjectScope(workspaceId, input.projectId, actorId);
+  const settings = await qaProjectService.getEffectiveSettings(workspaceId, scope.project._id.toString(), actorId);
+  const details = normalizeCase(input, undefined, settings);
+  await checkReferences(workspaceId, details, scope);
   const workspace = await Workspace.findOneAndUpdate(
     { _id: workspaceId, isDeleted: false, qualityEnabled: true },
     { $inc: { qualityCaseSequence: 1 } },
@@ -98,34 +110,40 @@ export const createCase = async (workspaceId: string, actorId: string, input: an
   );
   if (!workspace) throw new AppError("Quality is not enabled in this workspace", 403);
   const key = `TC-${String(workspace.qualityCaseSequence).padStart(3, "0")}`;
-  const created = await TestCase.create({ ...details, workspace: workspaceId, key, currentRevision: 1, createdBy: actorId, updatedBy: actorId });
-  await TestCaseRevision.create({ workspace: workspaceId, testCase: created._id, revision: 1, snapshot: { key, ...details }, actor: actorId });
+  const created = await TestCase.create({ ...details, workspace: workspaceId, project: scope.project._id, key, currentRevision: 1, createdBy: actorId, updatedBy: actorId });
+  await TestCaseRevision.create({ workspace: workspaceId, project: scope.project._id, testCase: created._id, revision: 1, snapshot: { key, ...details }, actor: actorId });
   return created;
 };
 
-export const updateCase = async (workspaceId: string, caseId: string, actorId: string, expectedRevision: number, patch: any) => {
+export const updateCase = async (workspaceId: string, caseId: string, actorId: string, expectedRevision: number, patch: any, projectId?: string) => {
   await checkEnabled(workspaceId);
   if (!Number.isInteger(expectedRevision) || expectedRevision < 1) throw new AppError("expectedRevision must be a positive integer", 400);
-  const current = await TestCase.findOne({ _id: caseId, workspace: workspaceId });
+  const scope = await qaProjectService.getProjectScope(workspaceId, projectId, actorId);
+  const settings = await qaProjectService.getEffectiveSettings(workspaceId, scope.project._id.toString(), actorId);
+  const current = await TestCase.findOne({ _id: caseId, workspace: workspaceId, ...scope.filter });
   if (!current) throw new AppError("Test case not found", 404);
   if (current.currentRevision !== expectedRevision) throw new AppError("Test case changed; reload and review your edits", 409);
-  const details = normalizeCase(patch, current.toObject ? current.toObject() : current);
-  await checkReferences(workspaceId, details);
+  const currentData = current.toObject ? current.toObject() : current;
+  const details = normalizeCase(patch, currentData, settings);
+  if (details.state !== currentData.state && !(settings.caseTransitions?.[currentData.state] || []).includes(details.state)) throw new AppError(`Cannot move a case from ${currentData.state} to ${details.state}`, 409);
+  await checkReferences(workspaceId, details, scope);
   const updated = await TestCase.findOneAndUpdate(
-    { _id: caseId, workspace: workspaceId, currentRevision: expectedRevision },
+    { _id: caseId, workspace: workspaceId, ...scope.filter, currentRevision: expectedRevision },
     { $set: { ...details, updatedBy: actorId }, $inc: { currentRevision: 1 } },
     { new: true, runValidators: true },
   );
   if (!updated) throw new AppError("Test case changed; reload and review your edits", 409);
-  await TestCaseRevision.create({ workspace: workspaceId, testCase: caseId, revision: expectedRevision + 1, snapshot: { key: current.key, ...details }, actor: actorId });
+  await TestCaseRevision.create({ workspace: workspaceId, project: scope.project._id, testCase: caseId, revision: expectedRevision + 1, snapshot: { key: current.key, ...details }, actor: actorId });
   return updated;
 };
 
 export const listCases = async (workspaceId: string, raw: any = {}) => {
   const page = Math.max(1, Math.floor(Number(raw.page) || 1));
   const limit = Math.min(100, Math.max(1, Math.floor(Number(raw.limit) || 30)));
-  const filter: any = { workspace: workspaceId };
-  if (raw.state && ["draft", "active", "retired"].includes(raw.state)) filter.state = raw.state;
+  const scope = await qaProjectService.getProjectScope(workspaceId, raw.projectId);
+  const settings = await qaProjectService.getEffectiveSettings(workspaceId, scope.project._id.toString());
+  const filter: any = { workspace: workspaceId, ...scope.filter };
+  if (raw.state && (settings.caseStatuses || []).some((status: any) => status.key === raw.state)) filter.state = raw.state;
   if (raw.moduleId) filter.moduleId = objectId(raw.moduleId, "Module");
   if (raw.suiteId) filter.suiteId = objectId(raw.suiteId, "Suite");
   if (raw.search) {
@@ -139,22 +157,25 @@ export const listCases = async (workspaceId: string, raw: any = {}) => {
   return { data, pagination: { page, limit, total } };
 };
 
-export const getCase = async (workspaceId: string, caseId: string) => {
-  const found = await TestCase.findOne({ _id: caseId, workspace: workspaceId }).lean();
+export const getCase = async (workspaceId: string, caseId: string, projectId?: string) => {
+  const scope = await qaProjectService.getProjectScope(workspaceId, projectId);
+  const found = await TestCase.findOne({ _id: caseId, workspace: workspaceId, ...scope.filter }).lean();
   if (!found) throw new AppError("Test case not found", 404);
   return found;
 };
 
-export const getCaseRevision = async (workspaceId: string, caseId: string, revision: number) => {
+export const getCaseRevision = async (workspaceId: string, caseId: string, revision: number, projectId?: string) => {
   if (!Number.isInteger(revision) || revision < 1) throw new AppError("Revision must be a positive integer", 400);
-  const found = await TestCaseRevision.findOne({ workspace: workspaceId, testCase: caseId, revision });
+  const scope = await qaProjectService.getProjectScope(workspaceId, projectId);
+  const found = await TestCaseRevision.findOne({ workspace: workspaceId, testCase: caseId, ...scope.filter, revision });
   if (!found) throw new AppError("Test case revision not found", 404);
   return found;
 };
 
-export const listCaseRevisions = async (workspaceId: string, caseId: string) => {
-  const exists = await TestCase.exists({ _id: caseId, workspace: workspaceId });
+export const listCaseRevisions = async (workspaceId: string, caseId: string, projectId?: string) => {
+  const scope = await qaProjectService.getProjectScope(workspaceId, projectId);
+  const exists = await TestCase.exists({ _id: caseId, workspace: workspaceId, ...scope.filter });
   if (!exists) throw new AppError("Test case not found", 404);
-  return TestCaseRevision.find({ workspace: workspaceId, testCase: caseId })
+  return TestCaseRevision.find({ workspace: workspaceId, testCase: caseId, ...scope.filter })
     .select("revision actor createdAt").sort({ revision: -1 }).lean();
 };

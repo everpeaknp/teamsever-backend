@@ -18,6 +18,7 @@ interface CreateTaskData {
   title: string;
   workItemType?: "task" | "bug";
   moduleId?: string;
+  qaProject?: string;
   qaReviewer?: string;
   qaSourceExecution?: string;
   qaCreationKey?: string;
@@ -182,6 +183,7 @@ class TaskService {
         const module = await QaModule.findOne({
           _id: data.moduleId,
           workspace: list.workspace,
+          ...(data.qaProject ? { project: data.qaProject } : {}),
           isArchived: false
         });
         if (!module) throw new AppError("QA module not found in this workspace", 400);
@@ -214,6 +216,7 @@ class TaskService {
       title,
       workItemType: data.workItemType || "task",
       moduleId: data.workItemType === "bug" ? data.moduleId : undefined,
+      qaProject: data.workItemType === "bug" ? data.qaProject : undefined,
       qaReviewer: data.workItemType === "bug" ? data.qaReviewer : undefined,
       qaSourceExecution: data.workItemType === "bug" ? data.qaSourceExecution : undefined,
       qaCreationKey: data.workItemType === "bug" ? data.qaCreationKey : undefined,

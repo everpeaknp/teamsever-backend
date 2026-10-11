@@ -19,6 +19,7 @@ const historySchema = new mongoose.Schema({
 
 const testExecutionSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject" },
   run: { type: mongoose.Schema.Types.ObjectId, ref: "TestRun", required: true },
   testCase: { type: mongoose.Schema.Types.ObjectId, ref: "TestCase", required: true },
   caseKey: { type: String, required: true },
@@ -37,7 +38,7 @@ const testExecutionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 testExecutionSchema.index({ workspace: 1, run: 1, testCase: 1 }, { unique: true });
-testExecutionSchema.index({ workspace: 1, assignedTo: 1, result: 1, updatedAt: -1 });
-testExecutionSchema.index({ workspace: 1, run: 1, result: 1 });
+testExecutionSchema.index({ workspace: 1, project: 1, assignedTo: 1, result: 1, updatedAt: -1 });
+testExecutionSchema.index({ workspace: 1, project: 1, run: 1, result: 1 });
 module.exports = mongoose.models.TestExecution || mongoose.model("TestExecution", testExecutionSchema);
 export {};

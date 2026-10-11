@@ -6,6 +6,7 @@ export interface ITask extends Document {
   title: string;
   workItemType: "task" | "bug";
   moduleId?: Schema.Types.ObjectId;
+  qaProject?: Schema.Types.ObjectId;
   qaReviewer?: Schema.Types.ObjectId;
   qaSourceExecution?: Schema.Types.ObjectId;
   qaCreationKey?: string;
@@ -86,6 +87,7 @@ const taskSchema = new mongoose.Schema(
       required: true
     },
     moduleId: { type: mongoose.Schema.Types.ObjectId, ref: "QaModule" },
+    qaProject: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject", index: true },
     qaReviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     qaSourceExecution: { type: mongoose.Schema.Types.ObjectId, ref: "TestExecution" },
     qaCreationKey: { type: String, maxlength: 100 },

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const qaReportSnapshotSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, immutable: true },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject", immutable: true },
   plan: { type: mongoose.Schema.Types.ObjectId, ref: "TestPlan", required: true, immutable: true },
   report: { type: mongoose.Schema.Types.Mixed, required: true, immutable: true },
   signedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, immutable: true },

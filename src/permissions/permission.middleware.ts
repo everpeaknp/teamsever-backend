@@ -13,6 +13,7 @@ const Space = require("../models/Space");
 const List = require("../models/List");
 const Task = require("../models/Task");
 const Folder = require("../models/Folder");
+const QaProject = require("../models/QaProject");
 
 const PERMISSION_DEBUG = process.env.PERMISSION_DEBUG === "true";
 const dlog = (...args: any[]) => {
@@ -102,6 +103,12 @@ async function getSpaceId(req: AuthRequest): Promise<string | undefined> {
     return req.params.id;
   }
 
+  const selectedProjectId = req.query?.projectId;
+  if (typeof selectedProjectId === "string" && selectedProjectId !== "workspace" && selectedProjectId !== "all") {
+    const selectedProject = await QaProject.findOne({ _id: selectedProjectId }).select("space").lean();
+    if (selectedProject?.space) return selectedProject.space.toString();
+  }
+
   // Get from list
   const listId =
     req.params.listId ||
@@ -162,6 +169,12 @@ async function getFolderId(req: AuthRequest): Promise<string | undefined> {
   // For /api/folders/:id routes
   if (req.baseUrl === "/api/folders" && req.params.id && typeof req.params.id === 'string') {
     return req.params.id;
+  }
+
+  const selectedProjectId = req.query?.projectId;
+  if (typeof selectedProjectId === "string" && selectedProjectId !== "workspace" && selectedProjectId !== "all") {
+    const selectedProject = await QaProject.findOne({ _id: selectedProjectId }).select("folder").lean();
+    if (selectedProject?.folder) return selectedProject.folder.toString();
   }
 
   // Get from list
