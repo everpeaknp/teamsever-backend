@@ -68,6 +68,7 @@ const workspaceSchema = new mongoose.Schema(
     },
     qualityEnabled: { type: Boolean, default: false },
     qualityCaseSequence: { type: Number, default: 0, min: 0 },
+    qualityDefaults: { type: mongoose.Schema.Types.Mixed, default: null },
     logo: {
       type: String,
       default: null

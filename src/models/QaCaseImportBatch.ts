@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const schema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject" },
   actor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   rows: { type: [mongoose.Schema.Types.Mixed], required: true },
   status: { type: String, enum: ["preview", "committing", "complete"], default: "preview" },

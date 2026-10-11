@@ -2,8 +2,9 @@ const Workspace = require("../models/Workspace");
 const List = require("../models/List");
 const PermissionService = require("../permissions/permission.service");
 const AppError = require("../utils/AppError");
+const qaProjectService = require("./qaProjectService");
 
-export const getCapabilities = async (workspaceId: string, actorId: string, listId?: string) => {
+export const getCapabilities = async (workspaceId: string, actorId: string, listId?: string, projectId?: string) => {
   const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: false });
   if (!workspace) throw new AppError("Workspace not found", 404);
   let list: any;
@@ -11,7 +12,8 @@ export const getCapabilities = async (workspaceId: string, actorId: string, list
     list = await List.findOne({ _id: listId, workspace: workspaceId, isDeleted: false });
     if (!list) throw new AppError("List not found", 404);
   }
-  const context = { workspaceId, userId: actorId, ...(list && { listId, spaceId: list.space.toString() }) };
+  const scope = await qaProjectService.getProjectScope(workspaceId, projectId, actorId);
+  const context = { workspaceId, userId: actorId, ...(scope.project.space && { spaceId: scope.project.space.toString() }), ...(scope.project.folder && { folderId: scope.project.folder.toString() }), ...(list && { listId, spaceId: list.space.toString() }) };
   const actions = ["VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "MANAGE_PLAN", "CREATE_BUG", "TRIAGE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT", "SIGN_OFF_QA"];
   const [canViewList, ...values] = await Promise.all([
     list ? PermissionService.can(actorId, "VIEW_LIST", context) : Promise.resolve(true),

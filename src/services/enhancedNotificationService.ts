@@ -36,6 +36,8 @@ type NotificationType =
   | "LEAVE_DENIED"
   | "LEAVE_REQUEST"
   | "QA_RUN_ASSIGNED"
+  | "QA_FAILURE_RECORDED"
+  | "QA_RUN_CLOSED"
   | "SYSTEM";
 
 interface NotificationData {
@@ -84,6 +86,9 @@ class EnhancedNotificationService {
       case "TASK_ASSIGNED":
       case "QA_RUN_ASSIGNED":
         return prefs.taskAssigned !== false;
+      case "QA_FAILURE_RECORDED":
+      case "QA_RUN_CLOSED":
+        return prefs.notices !== false;
       case "TASK_STATUS_CHANGED":
         return prefs.taskStatusChange !== false;
       case "TASK_UPDATE":

@@ -5,27 +5,27 @@ const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 const reports = require("../services/qaReportService");
 
-export const getLive = asyncHandler(async (req: Request, res: Response) => {
+export const getLive = asyncHandler(async (req: AuthRequest, res: Response) => {
   if (typeof req.query.planId !== "string") throw new AppError("planId is required", 400);
-  res.json({ success: true, data: await reports.getLiveReport(req.params.workspaceId, req.query.planId) });
+  res.json({ success: true, data: await reports.getLiveReport(req.params.workspaceId, req.query.planId, String(req.query.projectId || "workspace"), req.user!.id) });
 });
 
 export const signOff = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const data = await reports.signOffPlan(req.params.workspaceId, req.params.planId, req.user!.id, req.body?.exceptionReason);
+  const data = await reports.signOffPlan(req.params.workspaceId, req.params.planId, req.user!.id, req.body?.exceptionReason, String(req.query.projectId || "workspace"));
   res.status(201).json({ success: true, data });
 });
 
-export const listSnapshots = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ success: true, ...await reports.listSnapshots(req.params.workspaceId, req.query) });
+export const listSnapshots = asyncHandler(async (req: AuthRequest, res: Response) => {
+  res.json({ success: true, ...await reports.listSnapshots(req.params.workspaceId, { ...req.query, actorId: req.user!.id }) });
 });
 
-export const getSnapshot = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ success: true, data: await reports.getSnapshot(req.params.workspaceId, req.params.snapshotId) });
+export const getSnapshot = asyncHandler(async (req: AuthRequest, res: Response) => {
+  res.json({ success: true, data: await reports.getSnapshot(req.params.workspaceId, req.params.snapshotId, String(req.query.projectId || "workspace"), req.user!.id) });
 });
 
 const csv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-export const exportSnapshot = asyncHandler(async (req: Request, res: Response) => {
-  const snapshot = await reports.getSnapshot(req.params.workspaceId, req.params.snapshotId);
+export const exportSnapshot = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const snapshot = await reports.getSnapshot(req.params.workspaceId, req.params.snapshotId, String(req.query.projectId || "workspace"), req.user!.id);
   const r = snapshot.report;
   const rows = [
     ["Plan", r.plan.name], ["Signed at", snapshot.signedAt], ["Signed by", snapshot.signedBy],

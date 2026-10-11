@@ -20,19 +20,19 @@ export const uploadEvidence = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 export const listPlans = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ success: true, ...await service.listPlans(req.params.workspaceId, req.query.page, req.query.limit) });
+  res.json({ success: true, ...await service.listPlans(req.params.workspaceId, req.query.page, req.query.limit, String(req.query.projectId || "workspace")) });
 });
 
 export const getPlan = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ success: true, data: await service.getPlan(req.params.workspaceId, req.params.planId) });
+  res.json({ success: true, data: await service.getPlan(req.params.workspaceId, req.params.planId, String(req.query.projectId || "workspace")) });
 });
 
 export const createPlan = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.status(201).json({ success: true, data: await service.createPlan(req.params.workspaceId, req.user!.id, req.body) });
+  res.status(201).json({ success: true, data: await service.createPlan(req.params.workspaceId, req.user!.id, { ...req.body, projectId: req.query.projectId || req.body?.projectId || "workspace" }) });
 });
 
 export const startRun = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.status(201).json({ success: true, data: await service.startRun(req.params.workspaceId, req.params.planId, req.user!.id, req.body) });
+  res.status(201).json({ success: true, data: await service.startRun(req.params.workspaceId, req.params.planId, req.user!.id, req.body, String(req.query.projectId || "workspace")) });
 });
 
 export const listRuns = asyncHandler(async (req: Request, res: Response) => {
@@ -48,18 +48,18 @@ export const listMyExecutions = asyncHandler(async (req: AuthRequest, res: Respo
 });
 
 export const getExecution = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.json({ success: true, data: await service.getExecution(req.params.workspaceId, req.params.executionId, req.user!.id) });
+  res.json({ success: true, data: await service.getExecution(req.params.workspaceId, req.params.executionId, req.user!.id, String(req.query.projectId || "workspace")) });
 });
 
 export const recordExecution = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.json({ success: true, data: await service.recordExecution(req.params.workspaceId, req.params.executionId, req.user!.id, req.body) });
+  res.json({ success: true, data: await service.recordExecution(req.params.workspaceId, req.params.executionId, req.user!.id, req.body, String(req.query.projectId || "workspace")) });
 });
 
 export const closeRun = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.json({ success: true, data: await service.closeRun(req.params.workspaceId, req.params.runId, req.user!.id) });
+  res.json({ success: true, data: await service.closeRun(req.params.workspaceId, req.params.runId, req.user!.id, String(req.query.projectId || "workspace")) });
 });
 
 export const createOrLinkBug = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const data = await defects.createOrLinkBug(req.params.workspaceId, req.params.executionId, req.user!.id, req.body);
+  const data = await defects.createOrLinkBug(req.params.workspaceId, req.params.executionId, req.user!.id, req.body, String(req.query.projectId || "workspace"));
   res.status(201).json({ success: true, data });
 });

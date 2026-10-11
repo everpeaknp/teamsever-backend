@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const testCaseRevisionSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, immutable: true },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject", immutable: true },
   testCase: { type: mongoose.Schema.Types.ObjectId, ref: "TestCase", required: true, immutable: true },
   revision: { type: Number, required: true, min: 1, immutable: true },
   snapshot: { type: mongoose.Schema.Types.Mixed, required: true, immutable: true },
