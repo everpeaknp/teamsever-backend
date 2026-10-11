@@ -1,5 +1,11 @@
 const { z } = require("zod");
 
+const MAX_TASK_DESCRIPTION_WORDS = 1000;
+const taskDescriptionSchema = z.string().refine(
+  (description) => description.trim().split(/\s+/u).filter(Boolean).length <= MAX_TASK_DESCRIPTION_WORDS,
+  `Description cannot exceed ${MAX_TASK_DESCRIPTION_WORDS} words`
+).optional();
+
 const createTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters"),
@@ -14,7 +20,7 @@ const createTaskSchema = z.object({
       environment: z.string().trim().min(1).max(500),
       build: z.string().trim().max(100).optional()
     }).optional(),
-    description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
+    description: taskDescriptionSchema,
     status: z.enum(["todo", "to do", "inprogress", "in-progress", "in progress", "review", "done", "cancelled", "blocked"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
     startDate: z.string().optional().nullable(),
@@ -61,7 +67,7 @@ const createTaskSchema = z.object({
 const updateTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters").optional(),
-    description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
+    description: taskDescriptionSchema,
     status: z.enum(["todo", "to do", "inprogress", "in-progress", "in progress", "review", "done", "cancelled", "blocked"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
     startDate: z.string().optional().nullable(),
@@ -98,7 +104,7 @@ const bugTransitionSchema = z.object({
 const createSubtaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Subtask title is required").max(200, "Subtask title cannot exceed 200 characters"),
-    description: z.string().max(1000, "Description cannot exceed 1000 characters").optional(),
+    description: taskDescriptionSchema,
     priority: z.enum(["low", "medium", "high"]).optional(),
     dueDate: z.string().optional(),
     assignee: z.string().optional()
