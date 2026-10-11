@@ -66,7 +66,10 @@ const taskSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      maxlength: [1000, "Description cannot exceed 1000 characters"]
+      validate: {
+        validator: (value: string) => !value || value.trim().split(/\s+/u).filter(Boolean).length <= 1000,
+        message: "Description cannot exceed 1000 words"
+      }
     },
     status: {
       type: String,
