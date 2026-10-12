@@ -29,7 +29,9 @@ export const exportSnapshot = asyncHandler(async (req: AuthRequest, res: Respons
   const r = snapshot.report;
   const rows = [
     ["Plan", r.plan.name], ["Signed at", snapshot.signedAt], ["Signed by", snapshot.signedBy],
-    ["Build", r.latestRun?.build], ["Environment", r.latestRun?.environment],
+    ["Signer name", snapshot.signedByName], ["Plan description", r.plan.description],
+    ["Run ID", r.latestRun?.id], ["Run status", r.latestRun?.status], ["Run started at", r.latestRun?.startedAt],
+    ["Build", r.latestRun?.build], ["Environment", r.latestRun?.environment], ["Platform", r.latestRun?.platform],
     ["Selected", r.counts.selected], ["Pass", r.counts.pass], ["Fail", r.counts.fail],
     ["Blocked", r.counts.blocked], ["Skipped", r.counts.skipped], ["Not run", r.counts.notRun],
     ["Completion numerator", r.completion.numerator], ["Completion denominator", r.completion.denominator],
@@ -37,7 +39,19 @@ export const exportSnapshot = asyncHandler(async (req: AuthRequest, res: Respons
     ["Release ready", r.gate.ready], ["Unresolved high bugs", r.gate.unresolvedHighBugs],
     ["Exception reason", snapshot.exceptionReason],
   ];
+  const caseRows = (r.cases || []).map((testCase: any) => [
+    testCase.key, testCase.title, testCase.revision, testCase.result, testCase.tester, testCase.assignee,
+    testCase.updatedAt, testCase.reason,
+    JSON.stringify(testCase.steps || []),
+    (testCase.evidence || []).map((file: any) => file.name).join("; "),
+    JSON.stringify(testCase.linkedBugs || []), testCase.hiddenLinkedBugCount || 0,
+  ]);
   res.type("text/csv; charset=utf-8");
   res.attachment(`qa-report-${req.params.snapshotId}.csv`);
-  res.send(`\uFEFF${["Metric,Value", ...rows.map(row => row.map(csv).join(","))].join("\r\n")}`);
+  const output = [
+    ["Metric", "Value"], ...rows, [],
+    ["Case ID", "Case title", "Revision", "Result", "Tester", "Assigned tester", "Result recorded at", "Run note", "Step details (JSON)", "Evidence files", "Linked bugs and verification (JSON)", "Hidden linked bug count"],
+    ...caseRows,
+  ];
+  res.send(`\uFEFF${output.map(row => row.map(csv).join(",")).join("\r\n")}`);
 });

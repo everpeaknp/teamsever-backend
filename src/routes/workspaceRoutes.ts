@@ -487,7 +487,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  * /api/workspaces/{id}/clock/toggle:
  *   post:
  *     summary: Toggle workspace clock
- *     description: Clock in or clock out. When location enforcement is enabled, clock-in requires a fresh browser locationFix; clock-out never does.
+ *     description: Clock in or clock out. When location enforcement is enabled, both actions require a fresh locationFix inside an area authorized for the member on that date.
  *     tags: ["7.3 Time — Attendance (Clock In/Out)"]
  *     security:
  *       - bearerAuth: []
@@ -509,7 +509,7 @@ router.delete("/:id/announcements/:announcementId", protect, requirePermission("
  *               status: { type: string, enum: [active, inactive] }
  *               locationFix:
  *                 type: object
- *                 description: Required on clock-in only when this workspace enforces location.
+ *                 description: Required on both clock-in and clock-out when this workspace enforces location.
  *                 properties:
  *                   latitude: { type: number }
  *                   longitude: { type: number }

@@ -51,7 +51,7 @@ export const listEligibleTesters = async (workspaceId: string) => {
   ].filter(Boolean))] as string[];
   const allowed = await Promise.all(ids.map(async userId => ({
     userId,
-    canExecute: await PermissionService.can(userId, "EXECUTE_CASE", { workspaceId, userId }),
+    canExecute: await PermissionService.can(userId, "QA_EXECUTE", { workspaceId, userId }),
   })));
   const eligibleIds = allowed.filter(item => item.canExecute).map(item => item.userId);
   if (!eligibleIds.length) return [];
@@ -110,7 +110,7 @@ export const startRun = async (workspaceId: string, planId: string, actorId: str
   const cases = await TestCase.find({ _id: { $in: caseIds }, workspace: workspaceId, ...scope.filter, state: { $nin: terminalStates } });
   if (cases.length !== caseIds.length) throw new AppError("A selected case is no longer available", 409);
   const revisionPairs = cases.map((testCase: any) => ({ testCase: testCase._id, revision: testCase.currentRevision }));
-  const revisions = await TestCaseRevision.find({ workspace: workspaceId, $or: revisionPairs });
+  const revisions = await TestCaseRevision.find({ workspace: workspaceId, ...scope.filter, $or: revisionPairs });
   if (revisions.length !== caseIds.length) throw new AppError("A selected case revision is unavailable", 409);
   const assigned = input?.assignments || {};
   if (typeof assigned !== "object" || Array.isArray(assigned)) throw new AppError("Assignments must map case IDs to testers", 400);
@@ -125,7 +125,7 @@ export const startRun = async (workspaceId: string, planId: string, actorId: str
     if (!isWorkspaceMember(workspace, userId)) {
       throw new AppError("Assigned tester is not a workspace member", 400);
     }
-    if (!await PermissionService.can(userId, "EXECUTE_CASE", { workspaceId, userId })) {
+    if (!await PermissionService.can(userId, "QA_EXECUTE", { workspaceId, userId })) {
       throw new AppError("Assigned tester cannot execute cases in this workspace", 403);
     }
   }
@@ -167,7 +167,7 @@ export const listRuns = async (workspaceId: string, raw: any = {}) => {
   return { data, pagination: { page, limit, total } };
 };
 
-export const listExecutions = async (workspaceId: string, runId: string, raw: any = {}) => {
+export const listExecutions = async (workspaceId: string, runId: string, raw: any = {}, actorId?: string) => {
   const scope = await qaProjectService.getProjectScope(workspaceId, raw.projectId);
   const run = await TestRun.findOne({ _id: runId, workspace: workspaceId, ...scope.filter });
   if (!run) throw new AppError("Test run not found", 404);
@@ -180,7 +180,22 @@ export const listExecutions = async (workspaceId: string, runId: string, raw: an
     TestExecution.find(filter).sort({ caseKey: 1, _id: 1 }).skip((page - 1) * limit).limit(limit).lean(),
     TestExecution.countDocuments(filter),
   ]);
-  return { data, pagination: { page, limit, total }, run };
+  const bugIds = [...new Set(data.flatMap((execution: any) => execution.bugIds || []).map((id: any) => id.toString()))];
+  const Task = require("../models/Task");
+  const bugs = bugIds.length ? await Task.find({ _id: { $in: bugIds }, workspace: workspaceId, qaProject: scope.project._id, workItemType: "bug", isDeleted: false })
+    .select("title status priority bugDetails list assignee dueDate")
+    .populate({ path: "list", select: "name space", populate: { path: "space", select: "name" } })
+    .populate("assignee", "name email")
+    .lean() : [];
+  const visibleBugs = await Promise.all(bugs.map(async (bug: any) => {
+    const listId = bug.list?._id?.toString() || bug.list?.toString();
+    const spaceId = bug.list?.space?._id?.toString() || bug.list?.space?.toString();
+    const allowed = !actorId || await PermissionService.can(actorId, "VIEW_TASK", { workspaceId, userId: actorId, listId, spaceId, resourceType: "task", resourceId: bug._id.toString() });
+    return allowed ? bug : null;
+  }));
+  const visibleById = new Map(visibleBugs.filter(Boolean).map((bug: any) => [bug._id.toString(), bug]));
+  const enriched = data.map((execution: any) => ({ ...execution, linkedBugs: (execution.bugIds || []).map((id: any) => visibleById.get(id.toString())).filter(Boolean) }));
+  return { data: enriched, pagination: { page, limit, total }, run };
 };
 
 export const listMyExecutions = async (workspaceId: string, actorId: string, raw: any = {}) => {
@@ -203,7 +218,7 @@ export const getExecution = async (workspaceId: string, executionId: string, act
   const execution = await TestExecution.findOne({ _id: executionId, workspace: workspaceId, ...scope.filter }).populate("run", "build environment status").lean();
   if (!execution) throw new AppError("Execution not found", 404);
   if (execution.assignedTo?.toString() !== actorId &&
-      !await PermissionService.can(actorId, "MANAGE_PLAN", { workspaceId, userId: actorId })) {
+      !await PermissionService.can(actorId, "QA_MANAGE_RELEASES", { workspaceId, userId: actorId })) {
     throw new AppError("This execution is assigned to another tester", 403);
   }
   return execution;
@@ -217,7 +232,7 @@ export const recordExecution = async (workspaceId: string, executionId: string, 
   if (!execution) throw new AppError("Execution not found", 404);
   if (execution.version !== input.expectedVersion) throw new AppError("Execution changed; reload before saving", 409);
   if (execution.assignedTo && execution.assignedTo.toString() !== actorId &&
-      !await PermissionService.can(actorId, "MANAGE_PLAN", { workspaceId, userId: actorId })) {
+      !await PermissionService.can(actorId, "QA_MANAGE_RELEASES", { workspaceId, userId: actorId })) {
     throw new AppError("This execution is assigned to another tester", 403);
   }
   if (execution.run) {

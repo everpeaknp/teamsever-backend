@@ -3,6 +3,8 @@ const express = require("express");
 const {
   createTask,
   qualityTransition,
+  qualityRetests,
+  linkQualityRetest,
   getListTasks,
   getTask,
   updateTask,
@@ -261,6 +263,8 @@ const taskRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  * */
 taskRouter.get("/:id", protect, requirePermission("VIEW_TASK"), getTask);
+taskRouter.get("/:id/quality-retests", protect, requirePermission("VIEW_TASK"), qualityRetests);
+taskRouter.post("/:id/quality-retests/:executionId", protect, requirePermission("VIEW_TASK"), linkQualityRetest);
 taskRouter.post("/:id/quality-transition", protect, requirePermission("VIEW_TASK"), validate(bugTransitionSchema), qualityTransition);
 taskRouter.patch("/:id", protect, requirePermission("EDIT_TASK"), validate(updateTaskSchema), updateTask);
 taskRouter.delete("/:id", protect, requirePermission("DELETE_TASK"), deleteTask);

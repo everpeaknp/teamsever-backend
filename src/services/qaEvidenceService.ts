@@ -5,8 +5,8 @@ const runs = require("./testRunService");
 const AppError = require("../utils/AppError");
 const { uploadConfig, getResourceType, isCloudinaryConfigured } = require("../config/cloudinary");
 
-export const listEvidence = async (workspaceId: string, executionId: string, actorId: string) => {
-  const execution = await runs.getExecution(workspaceId, executionId, actorId);
+export const listEvidence = async (workspaceId: string, executionId: string, actorId: string, projectId?: string) => {
+  const execution = await runs.getExecution(workspaceId, executionId, actorId, projectId);
   const ids = [...new Set([
     ...(execution.evidenceIds || []),
     ...(execution.stepResults || []).flatMap((step: any) => step.evidenceIds || []),
@@ -15,12 +15,12 @@ export const listEvidence = async (workspaceId: string, executionId: string, act
   return Attachment.find({ _id: { $in: ids }, workspace: workspaceId, execution: executionId, isDeleted: false }).lean();
 };
 
-export const uploadEvidence = async (workspaceId: string, executionId: string, actorId: string, file: Express.Multer.File) => {
+export const uploadEvidence = async (workspaceId: string, executionId: string, actorId: string, file: Express.Multer.File, projectId?: string) => {
   if (!file) throw new AppError("Choose a file", 400);
   if (!uploadConfig.allowedMimeTypes.includes(file.mimetype) || file.size > uploadConfig.maxFileSize) {
     throw new AppError("Evidence file type or size is not allowed", 400);
   }
-  const execution = await runs.getExecution(workspaceId, executionId, actorId);
+  const execution = await runs.getExecution(workspaceId, executionId, actorId, projectId);
   if (execution.run?.status !== "open") throw new AppError("This run is closed", 409);
   if (!isCloudinaryConfigured()) throw new AppError("File upload is not configured", 503);
   const uploaded: any = await new Promise((resolve, reject) => {

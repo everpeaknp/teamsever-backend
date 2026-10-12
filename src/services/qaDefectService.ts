@@ -16,14 +16,14 @@ export const createOrLinkBug = async (workspaceId: string, executionId: string, 
   const execution = await TestExecution.findOne({ _id: executionId, workspace: workspaceId, ...scope.filter });
   if (!execution) throw new AppError("Execution not found", 404);
   if (execution.assignedTo && execution.assignedTo.toString() !== actorId &&
-      !await PermissionService.can(actorId, "MANAGE_PLAN", { workspaceId, userId: actorId })) {
+      !await PermissionService.can(actorId, "QA_MANAGE_RELEASES", { workspaceId, userId: actorId })) {
     throw new AppError("This execution is assigned to another tester", 403);
   }
   if (input.existingBugId && input.targetListId) throw new AppError("Choose either an existing bug or a target list", 400);
 
   if (input.existingBugId) {
     if (!mongoose.isValidObjectId(input.existingBugId)) throw new AppError("Bug ID is invalid", 400);
-    const bug = await Task.findOne({ _id: input.existingBugId, workspace: workspaceId, workItemType: "bug", isDeleted: false });
+    const bug = await Task.findOne({ _id: input.existingBugId, workspace: workspaceId, qaProject: scope.project._id, workItemType: "bug", isDeleted: false });
     if (!bug) throw new AppError("Bug not found", 404);
     const canView = await PermissionService.can(actorId, "VIEW_TASK", { workspaceId, spaceId: bug.space.toString(), listId: bug.list.toString(), resourceType: "task", resourceId: bug._id.toString(), userId: actorId });
     if (!canView) throw new AppError("You cannot link this bug", 403);
@@ -38,8 +38,15 @@ export const createOrLinkBug = async (workspaceId: string, executionId: string, 
   if (!list) throw new AppError("Target list is not in this workspace", 400);
   if (scope.project.scopeType === "folder" && (!scope.project.folder || list.folderId?.toString() !== scope.project.folder.toString())) throw new AppError("Choose a list inside this QA project's folder", 400);
   const context = { workspaceId, spaceId: list.space.toString(), listId: input.targetListId, userId: actorId };
-  if (!await PermissionService.can(actorId, "VIEW_LIST", context) || !await PermissionService.can(actorId, "CREATE_BUG", context)) {
+  if (!await PermissionService.can(actorId, "VIEW_LIST", context) || !await PermissionService.can(actorId, "QA_CREATE_BUG", context)) {
     throw new AppError("You cannot report a bug in this list", 403);
+  }
+  if (input.assigneeId && !mongoose.isValidObjectId(input.assigneeId)) throw new AppError("Choose a valid bug assignee", 400);
+  let dueDate: Date | undefined;
+  if (input.dueDate) {
+    if (typeof input.dueDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) throw new AppError("Target fix date must be a valid date", 400);
+    dueDate = new Date(`${input.dueDate}T00:00:00.000Z`);
+    if (Number.isNaN(dueDate.getTime()) || dueDate.toISOString().slice(0, 10) !== input.dueDate) throw new AppError("Target fix date must be a valid date", 400);
   }
 
   let bug = await Task.findOne({ workspace: workspaceId, qaProject: scope.project._id, qaCreationKey: key, workItemType: "bug", isDeleted: false });
@@ -58,10 +65,10 @@ export const createOrLinkBug = async (workspaceId: string, executionId: string, 
       const description = settings.bugHandoff.copyRunContext ? `QA project: ${scope.project.name}\nBuild: ${run.build}\nEnvironment: ${run.environment}\nCase: ${execution.caseKey}` : undefined;
       bug = await taskService.createTask({
         list: targetListId, title: `${frozen.title} failed`.slice(0, 200), workItemType: "bug", description,
-        qaProject: scope.project._id,
+        qaProject: scope.project._id, qaProjectName: scope.project.name, qaSourceRun: run._id, qaSourceCaseKey: execution.caseKey,
         moduleId: frozen.moduleId, qaReviewer: actorId, qaSourceExecution: executionId, qaCreationKey: key,
         bugDetails: { reproductionSteps, expectedResult, actualResult, severity, environment: run.environment, build: run.build },
-        status: "todo", priority, assignee: input.assigneeId, createdBy: actorId,
+        status: "todo", priority, assignee: input.assigneeId, dueDate, createdBy: actorId,
       });
     } catch (error: any) {
       if (error?.code !== 11000) throw error;

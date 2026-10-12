@@ -13,8 +13,9 @@ describe("attendance report clock endpoint locations", () => {
     startTime: new Date("2026-09-28T08:00:00.000Z"), endTime: new Date("2026-09-28T16:00:00.000Z"),
     isRunning: false, duration: 28800, attendanceMode: "remote", description: "Shift", clockInSource: "desktop", clockOutSource: "desktop",
     clockInLocation: { areaName: "Home", latitude: 27.7, longitude: 85.3, accuracyMeters: 12, capturedAt: new Date("2026-09-28T08:00:00.000Z") },
-    clockOutLocation: { latitude: 27.7001, longitude: 85.3001, accuracyMeters: 10, capturedAt: new Date("2026-09-28T16:00:00.000Z"), distanceFromClockInMeters: 15, withinRange: true },
+    clockOutLocation: { areaId: "area-1", areaName: "Home", verificationMethod: "gps", latitude: 27.7001, longitude: 85.3001, accuracyMeters: 10, capturedAt: new Date("2026-09-28T16:00:00.000Z"), distanceFromClockInMeters: 15, withinRange: true },
     locationReviewReason: null,
+    adminClockOutReason: "Left the approved site before clocking out",
   };
   let query: any;
 
@@ -32,9 +33,10 @@ describe("attendance report clock endpoint locations", () => {
     expect(query.select).toHaveBeenCalledWith(expect.stringContaining("+clockInLocation +clockOutLocation"));
     expect(query.select.mock.calls[0][0]).toContain("startTime endTime duration");
     expect(row.clockInLocation).toMatchObject({ areaName: "Home", latitude: 27.7, longitude: 85.3 });
-    expect(row.clockOutLocation).toMatchObject({ latitude: 27.7001, longitude: 85.3001, distanceFromClockInMeters: 15, withinRange: true });
+    expect(row.clockOutLocation).toMatchObject({ areaId: "area-1", areaName: "Home", verificationMethod: "gps", latitude: 27.7001, longitude: 85.3001, distanceFromClockInMeters: 15, withinRange: true });
     expect(row.clockInSource).toBe("desktop");
     expect(row.clockOutSource).toBe("desktop");
+    expect(row.adminClockOutReason).toBe("Left the approved site before clocking out");
   });
 
   it("hides exact endpoint coordinates from an admin without address permission", async () => {
@@ -49,8 +51,11 @@ describe("attendance report clock endpoint locations", () => {
     const csv = await AttendanceService.exportAttendanceCSV("workspace-1", "worker-1", {});
     expect(csv).toContain("Clock-in Latitude");
     expect(csv).toContain("Clock-in Source");
+    expect(csv).toContain("Clock-out Area");
+    expect(csv).toContain("Clock-out Verification");
     expect(csv).toContain("desktop,desktop");
-    expect(csv).toContain("Clock-out Distance (m)");
+    expect(csv).toContain("Legacy Distance from Clock-in (m)");
+    expect(csv).toContain("Left the approved site before clocking out");
     expect(csv).toContain("27.7");
   });
 

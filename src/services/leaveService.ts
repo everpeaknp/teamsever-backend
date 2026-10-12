@@ -204,7 +204,6 @@ class LeaveService {
     let requestedRemoteLocation: { name: string; latitude: number; longitude: number } | undefined;
     if (requestType === "remote") {
       const requesterMember = workspace.members?.find((item: any) => item.user?.toString() === requesterId);
-      if ((requesterMember?.attendanceMode || "onsite") !== "onsite") throw new AppError("Temporary remote requests are for on-site members; manage a permanent remote place in workspace location settings", 400);
       const existingArea = remoteAreaId && requesterMember?.privateRemoteAreas?.find((area: any) => String(area._id) === String(remoteAreaId) && area.isActive);
       if (existingArea) {
         requestedRemoteAreaName = existingArea.name;
@@ -379,7 +378,7 @@ class LeaveService {
           let area = currentRequest.remoteAreaId && member.privateRemoteAreas?.find((item: any) => String(item._id) === String(currentRequest.remoteAreaId) && item.isActive);
           if (!area && currentRequest.proposedRemoteArea) {
             member.privateRemoteAreas ||= [];
-            member.privateRemoteAreas.push({ _id: new Types.ObjectId(), name: currentRequest.proposedRemoteArea.name, latitude: currentRequest.proposedRemoteArea.latitude, longitude: currentRequest.proposedRemoteArea.longitude, radiusMeters: currentRequest.proposedRemoteArea.radiusMeters || 60, isActive: true });
+            member.privateRemoteAreas.push({ _id: new Types.ObjectId(), name: currentRequest.proposedRemoteArea.name, latitude: currentRequest.proposedRemoteArea.latitude, longitude: currentRequest.proposedRemoteArea.longitude, radiusMeters: currentRequest.proposedRemoteArea.radiusMeters || 60, isActive: true, temporaryOnly: true });
             area = member.privateRemoteAreas[member.privateRemoteAreas.length - 1];
           }
           if (!area) throw new AppError("The requested private remote place is no longer active", 409);

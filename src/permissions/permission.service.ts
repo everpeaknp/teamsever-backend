@@ -23,7 +23,8 @@ const {
   roleHasPermission, 
   spacePermissionHasAction,
   folderPermissionHasAction,
-  listPermissionHasAction
+  listPermissionHasAction,
+  canonicalPermissionAction,
 } = require("./permission.constants");
 
 const Workspace = require("../models/Workspace");
@@ -59,7 +60,8 @@ class PermissionService {
   }
 
   private customRoleIncludesAction(customRolePermissions: string[], action: PermissionAction): boolean {
-    if (customRolePermissions.includes(action)) {
+    const canonicalAction = canonicalPermissionAction(action);
+    if (customRolePermissions.some((permission) => canonicalPermissionAction(permission) === canonicalAction)) {
       return true;
     }
 
@@ -101,6 +103,7 @@ class PermissionService {
     context: PermissionContext
   ): Promise<boolean> {
     try {
+      action = canonicalPermissionAction(action);
       dlog('\n========================================');
       dlog('🔍 PERMISSION CHECK STARTED');
       dlog('========================================');
@@ -145,7 +148,7 @@ class PermissionService {
 
       // Member-level restrictions are the strongest non-owner override.
       // They explicitly remove inherited role/custom/additive access for this workspace.
-      if (memberRestrictedPermissions.includes(action)) {
+      if (memberRestrictedPermissions.some((permission) => canonicalPermissionAction(permission) === action)) {
         return false;
       }
       
@@ -243,8 +246,8 @@ class PermissionService {
       dlog('\n🔎 Step 6: Checking workspace role permissions...');
       const hasWorkspacePermission =
         roleHasPermission(workspaceRole, action) ||
-        rolePermissionAdditions.includes(action) ||
-        memberAdditionalPermissions.includes(action);
+        rolePermissionAdditions.some((permission) => canonicalPermissionAction(permission) === action) ||
+        memberAdditionalPermissions.some((permission) => canonicalPermissionAction(permission) === action);
       dlog('  ➜ Has workspace permission?', hasWorkspacePermission);
       
       if (!hasWorkspacePermission) {

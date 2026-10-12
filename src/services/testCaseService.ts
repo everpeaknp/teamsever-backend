@@ -4,6 +4,7 @@ const QaModule = require("../models/QaModule");
 const TestSuite = require("../models/TestSuite");
 const TestCase = require("../models/TestCase");
 const TestCaseRevision = require("../models/TestCaseRevision");
+const QaProject = require("../models/QaProject");
 const Task = require("../models/Task");
 const List = require("../models/List");
 const AppError = require("../utils/AppError");
@@ -103,13 +104,13 @@ export const createCase = async (workspaceId: string, actorId: string, input: an
   const settings = await qaProjectService.getEffectiveSettings(workspaceId, scope.project._id.toString(), actorId);
   const details = normalizeCase(input, undefined, settings);
   await checkReferences(workspaceId, details, scope);
-  const workspace = await Workspace.findOneAndUpdate(
-    { _id: workspaceId, isDeleted: false, qualityEnabled: true },
-    { $inc: { qualityCaseSequence: 1 } },
-    { new: true, projection: "qualityCaseSequence" },
+  const project = await QaProject.findOneAndUpdate(
+    { _id: scope.project._id, workspace: workspaceId, isArchived: false },
+    { $inc: { caseSequence: 1 } },
+    { new: true, projection: "caseSequence" },
   );
-  if (!workspace) throw new AppError("Quality is not enabled in this workspace", 403);
-  const key = `TC-${String(workspace.qualityCaseSequence).padStart(3, "0")}`;
+  if (!project) throw new AppError("QA project not found", 404);
+  const key = `TC-${String(project.caseSequence).padStart(3, "0")}`;
   const created = await TestCase.create({ ...details, workspace: workspaceId, project: scope.project._id, key, currentRevision: 1, createdBy: actorId, updatedBy: actorId });
   await TestCaseRevision.create({ workspace: workspaceId, project: scope.project._id, testCase: created._id, revision: 1, snapshot: { key, ...details }, actor: actorId });
   return created;

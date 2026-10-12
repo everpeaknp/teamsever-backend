@@ -107,7 +107,12 @@ const startServer = async () => {
     const recurringService = require("./services/recurringService");
     const attendanceLocationService = require("./services/attendanceLocationService");
     const AttendanceLocationEvent = require("./models/AttendanceLocationEvent");
-    await AttendanceLocationEvent.createIndexes();
+    // Index creation can take a while on a populated database. Keep it off the
+    // HTTP startup path so a slow index build does not leave every API route
+    // unavailable while MongoDB itself is already connected.
+    void AttendanceLocationEvent.createIndexes()
+      .then(() => console.log("[Server] Attendance location indexes ready"))
+      .catch((error) => console.error("[Server] Failed to ensure attendance location indexes:", error));
 
     // 2. Initialize Firebase Admin SDK
     initializeFirebase();

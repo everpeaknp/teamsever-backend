@@ -27,17 +27,18 @@ app.use(express.json());
 app.use("/api/workspaces/:workspaceId/quality", qaModuleRoutes);
 
 describe("QA module routes", () => {
-  it("returns only the requested workspace's paginated modules", async () => {
-    const response = await request(app).get("/api/workspaces/w1/quality/modules?page=1&limit=30");
+  it("returns modules for the selected QA project", async () => {
+    const response = await request(app).get("/api/workspaces/w1/quality/modules?page=1&limit=30&projectId=p1");
     expect(response.status).toBe(200);
     expect(response.body.pagination.total).toBe(1);
-    expect(service.listModules).toHaveBeenCalledWith("w1", 1, 30);
+    expect(service.listModules).toHaveBeenCalledWith("w1", 1, 30, "p1");
   });
 
-  it("creates with authenticated actor and path workspace", async () => {
-    const response = await request(app).post("/api/workspaces/w1/quality/modules").send({ name: "Login" });
+  it("creates with authenticated actor, path workspace, and selected QA project", async () => {
+    const response = await request(app).post("/api/workspaces/w1/quality/modules?projectId=p1").send({ name: "Login" });
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({ workspace: "w1", createdBy: "qa-user", name: "Login" });
+    expect(service.createModule).toHaveBeenCalledWith("w1", "qa-user", { name: "Login", space: undefined, projectId: "p1" });
   });
 
   it("does not allow a view-only member to create a module", async () => {

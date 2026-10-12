@@ -7,7 +7,7 @@ export const authorizeTaskCreation = (req: Request, res: Response, next: NextFun
   if (req.body?.workItemType === "bug") {
     return requirePermission("VIEW_LIST")(req, res, (error: any) => {
       if (error) return next(error);
-      return requirePermission("CREATE_BUG")(req, res, next);
+      return requirePermission("QA_CREATE_BUG")(req, res, next);
     });
   }
 

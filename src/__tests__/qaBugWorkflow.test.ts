@@ -9,7 +9,7 @@ const actorId = "507f1f77bcf86cd799439012";
 
 describe("bug handoff", () => {
   beforeEach(() => {
-    jest.spyOn(Workspace, "findById").mockImplementation(() => { throw new Error("Generic done path reached"); });
+    jest.spyOn(Workspace, "findById").mockReturnValue({ select: jest.fn().mockResolvedValue({ qualityEnabled: true }) } as any);
     jest.spyOn(taskDependencyService, "canTransitionToStatus").mockImplementation(() => { throw new Error("Generic status path reached"); });
   });
   afterEach(() => jest.restoreAllMocks());

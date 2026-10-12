@@ -74,10 +74,27 @@ const toggleWorkspaceClock = asyncHandler(
             const entrySource = runningEntry.clockInSource || "web";
             if (!canClockOutFromClient(entrySource, runningEntry.clockInDevice ? String(runningEntry.clockInDevice) : null, requestSource, desktopDevice ? String(desktopDevice._id) : null)) throw new AppError("This shift must be clocked out from the same client and trusted device that clocked it in", 403);
             if (workspace.attendanceLocationPolicy?.enabled) {
-              const locationResult = AttendanceLocationService.validateClockOutLocation(locationFix, runningEntry.clockInLocation, new Date(), workspace.attendanceLocationPolicy.maxAccuracyMeters || 100);
-              const fixIsStructurallyValid = locationFix && Number.isFinite(locationFix.latitude) && Number.isFinite(locationFix.longitude) && typeof locationFix.accuracyMeters === "number" && Number.isFinite(Date.parse(locationFix.capturedAt));
-              if (fixIsStructurallyValid) runningEntry.clockOutLocation = { latitude: locationFix.latitude, longitude: locationFix.longitude, accuracyMeters: locationFix.accuracyMeters, capturedAt: new Date(locationFix.capturedAt), distanceFromClockInMeters: locationResult.distanceMeters ?? undefined, withinRange: locationResult.withinRange };
-              if (!locationResult.withinRange) runningEntry.locationReviewReason = locationResult.reason || "Clock-out location needs review";
+              const observedClientIp = await resolveAttendanceClientIp(req.ip);
+              const checkedAt = new Date();
+              let locationResult: any;
+              try {
+                locationResult = await AttendanceLocationService.validateClockOutLocation(workspace, member, locationFix, checkedAt, observedClientIp);
+              } catch (error: any) {
+                const statusCode = Number(error?.statusCode) || 403;
+                throw new AppError(`Clock-out blocked: ${error?.message || "Your location could not be verified."} Your shift is still running. Ask a workspace admin to stop it if this is an exception.`, statusCode);
+              }
+              const matchedArea = AttendanceLocationService.eligibleAreasForMember(workspace, member, checkedAt).find((area: any) => String(area._id) === String(locationResult.areaId));
+              runningEntry.clockOutLocation = {
+                latitude: locationFix.latitude,
+                longitude: locationFix.longitude,
+                accuracyMeters: locationFix.accuracyMeters,
+                capturedAt: locationResult.observedAt,
+                areaId: locationResult.areaId,
+                areaName: matchedArea?.name,
+                verificationMethod: locationResult.verificationMethod,
+                withinRange: true
+              };
+              runningEntry.locationReviewReason = undefined;
             }
             runningEntry.endTime = new Date();
             runningEntry.isRunning = false;

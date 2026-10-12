@@ -936,6 +936,8 @@ class TimeEntryService {
     // Stop timer
     timeEntry.endTime = new Date();
     timeEntry.isRunning = false;
+    const normalizedReason = typeof reason === "string" ? reason.trim().slice(0, 500) : "";
+    timeEntry.adminClockOutReason = normalizedReason || undefined;
     
     // Duration will be calculated by pre-save hook
     await timeEntry.save();
@@ -959,7 +961,7 @@ class TimeEntryService {
           action: "admin_stopped_timer",
           stoppedUserId: timeEntry.user.toString(),
           duration: timeEntry.duration,
-          reason: reason || "Admin intervention"
+          reason: normalizedReason || "Admin intervention"
         }
       });
     } catch (error) {

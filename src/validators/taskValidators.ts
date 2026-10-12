@@ -96,7 +96,7 @@ const bugTransitionSchema = z.object({
     action: z.enum(["start", "ready_for_qa", "verify", "reopen", "close_without_fix"]),
     idempotencyKey: z.string().trim().min(1).max(100),
     reason: z.string().trim().max(2000).optional(),
-    executionId: z.string().optional(),
+    executionId: z.string().regex(/^[a-f\d]{24}$/i, "Retest ID is invalid").optional(),
   }),
   params: z.object({ id: z.string().min(1) }).passthrough(),
 }).passthrough();

@@ -3,7 +3,7 @@ import { AuthRequest } from "../types/express";
 
 const asyncHandler = require("../utils/asyncHandler");
 const taskService = require("../services/taskService");
-const { transitionBug } = require("../services/bugWorkflowService");
+const { transitionBug, listVerificationRetests, linkPassingRetest } = require("../services/bugWorkflowService");
 const AppError = require("../utils/AppError");
 
 // @desc    Create new task
@@ -104,6 +104,16 @@ const qualityTransition = asyncHandler(async (req: AuthRequest, res: Response) =
     reason: req.body.reason,
     executionId: req.body.executionId,
   });
+  res.status(200).json({ success: true, data });
+});
+
+const qualityRetests = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await listVerificationRetests(req.params.id, req.user!.id);
+  res.status(200).json({ success: true, data });
+});
+
+const linkQualityRetest = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await linkPassingRetest(req.params.id, req.params.executionId, req.user!.id);
   res.status(200).json({ success: true, data });
 });
 
@@ -216,6 +226,8 @@ const getDependents = asyncHandler(async (req: AuthRequest, res: Response, next:
 module.exports = {
   createTask,
   qualityTransition,
+  qualityRetests,
+  linkQualityRetest,
   getListTasks,
   getTask,
   updateTask,

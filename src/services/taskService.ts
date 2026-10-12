@@ -21,6 +21,9 @@ interface CreateTaskData {
   qaProject?: string;
   qaReviewer?: string;
   qaSourceExecution?: string;
+  qaSourceRun?: string;
+  qaProjectName?: string;
+  qaSourceCaseKey?: string;
   qaCreationKey?: string;
   bugDetails?: {
     reproductionSteps: string;
@@ -219,6 +222,9 @@ class TaskService {
       qaProject: data.workItemType === "bug" ? data.qaProject : undefined,
       qaReviewer: data.workItemType === "bug" ? data.qaReviewer : undefined,
       qaSourceExecution: data.workItemType === "bug" ? data.qaSourceExecution : undefined,
+      qaSourceRun: data.workItemType === "bug" ? data.qaSourceRun : undefined,
+      qaProjectName: data.workItemType === "bug" ? data.qaProjectName : undefined,
+      qaSourceCaseKey: data.workItemType === "bug" ? data.qaSourceCaseKey : undefined,
       qaCreationKey: data.workItemType === "bug" ? data.qaCreationKey : undefined,
       bugDetails: data.workItemType === "bug" ? data.bugDetails : undefined,
       description,
@@ -442,6 +448,21 @@ class TaskService {
       throw new AppError("You do not have access to this task", 403);
     }
 
+    let qaSourceContext: Record<string, unknown> = {};
+    if (task.workItemType === "bug" && task.qaSourceExecution && (!task.qaSourceRun || !task.qaProjectName || !task.qaSourceCaseKey)) {
+      const TestExecution = require("../models/TestExecution");
+      const QaProject = require("../models/QaProject");
+      const [execution, qaProject] = await Promise.all([
+        TestExecution.findOne({ _id: task.qaSourceExecution, workspace: task.workspace }).select("run caseKey").lean(),
+        task.qaProject ? QaProject.findById(task.qaProject).select("name").lean() : null,
+      ]);
+      qaSourceContext = {
+        qaSourceRun: task.qaSourceRun || execution?.run?.toString(),
+        qaProjectName: task.qaProjectName || qaProject?.name,
+        qaSourceCaseKey: task.qaSourceCaseKey || execution?.caseKey,
+      };
+    }
+
     // Fetch comments and activity separately for better control
     const [comments, activity, attachments, subtasks] = await Promise.all([
       require("../models/TaskComment").find({ task: taskId, isDeleted: false })
@@ -464,6 +485,7 @@ class TaskService {
 
     return {
       ...task,
+      ...qaSourceContext,
       comments,
       activity,
       attachments,
@@ -481,12 +503,18 @@ class TaskService {
       throw new AppError("Task not found", 404);
     }
 
-    if (task.workItemType === "bug" && updateData.status && updateData.status !== task.status) {
+    const workspaceDoc = await Workspace.findById(task.workspace).select("qualityEnabled owner members.user members.canMarkTaskDone");
+    const isQualityEnabled = Boolean(workspaceDoc?.qualityEnabled);
+
+    // Keep bug lifecycle transitions on the dedicated handoff actions so
+    // generic task updates cannot bypass their reason, retest, and audit rules.
+    if (isQualityEnabled && task.workItemType === "bug" && updateData.status && updateData.status !== task.status) {
       throw new AppError("Use the bug handoff action to change status", 403);
     }
+
     const requestedAssignee = updateData.assigneeId !== undefined ? updateData.assigneeId : updateData.assignee;
     if (task.workItemType === "bug" && requestedAssignee !== undefined && requestedAssignee !== task.assignee?.toString()) {
-      const canTriage = await PermissionService.can(userId, "TRIAGE_BUG", {
+      const canTriage = await PermissionService.can(userId, "QA_TRIAGE_BUG", {
         workspaceId: task.workspace.toString(),
         spaceId: task.space.toString(),
         listId: task.list.toString(),

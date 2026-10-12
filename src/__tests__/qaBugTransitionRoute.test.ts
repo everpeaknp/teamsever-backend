@@ -6,6 +6,7 @@ jest.mock("../permissions/permission.middleware", () => ({
 }));
 jest.mock("../services/bugWorkflowService", () => ({
   transitionBug: jest.fn().mockResolvedValue({ _id: "bug-1", status: "done" }),
+  listVerificationRetests: jest.fn().mockResolvedValue({ retests: [{ _id: "run-1" }], canVerify: true }),
 }));
 
 const express = require("express");
@@ -31,6 +32,22 @@ describe("bug transition endpoint", () => {
   it("rejects an unknown action before changing a bug", async () => {
     workflow.transitionBug.mockClear();
     const response = await request(app).post("/api/tasks/bug-1/quality-transition").send({ action: "approve", idempotencyKey: "bad-1" });
+    expect(response.status).toBe(400);
+    expect(workflow.transitionBug).not.toHaveBeenCalled();
+  });
+
+  it("returns linked passing retests for the authenticated verifier", async () => {
+    const response = await request(app).get("/api/tasks/bug-1/quality-retests");
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ retests: [{ _id: "run-1" }], canVerify: true });
+    expect(workflow.listVerificationRetests).toHaveBeenCalledWith("bug-1", "qa-1");
+  });
+
+  it("rejects malformed retest IDs at the route boundary", async () => {
+    workflow.transitionBug.mockClear();
+    const response = await request(app).post("/api/tasks/bug-1/quality-transition").send({
+      action: "verify", idempotencyKey: "verify-bad-run", reason: "Passed", executionId: "not-an-id",
+    });
     expect(response.status).toBe(400);
     expect(workflow.transitionBug).not.toHaveBeenCalled();
   });

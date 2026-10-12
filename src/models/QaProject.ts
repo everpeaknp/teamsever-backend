@@ -7,6 +7,7 @@ const qaProjectSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
   scopeType: { type: String, enum: ["workspace", "folder"], required: true },
   settingsOverrides: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+  caseSequence: { type: Number, default: 0, min: 0 },
   isArchived: { type: Boolean, default: false },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });

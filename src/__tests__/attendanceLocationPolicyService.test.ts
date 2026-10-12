@@ -135,6 +135,19 @@ describe("attendance location policy storage and workspace scoping", () => {
     })).resolves.toMatchObject({ areaId: homeBId, areaName: "Home B", mode: "remote" });
   });
 
+  it("limits a temporary-only place for a remote-mode member to its approved dates", () => {
+    const office = { _id: remoteB, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true };
+    const permanentHome = { _id: remoteA, name: "Home", latitude: 27.7, longitude: 85.3, radiusMeters: 60, isActive: true };
+    const temporaryPlace = { _id: new mongoose.Types.ObjectId(), name: "Temporary stay", latitude: 28.2, longitude: 83.98, radiusMeters: 60, isActive: true, temporaryOnly: true };
+    workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
+    workspace.members[0].attendanceMode = "remote";
+    workspace.members[0].privateRemoteAreas = [permanentHome, temporaryPlace];
+    workspace.members[0].temporaryRemoteApprovals = [{ areaId: temporaryPlace._id, startDate: new Date("2026-10-12T00:00:00Z"), endDate: new Date("2026-10-12T23:59:59Z"), requestId: new mongoose.Types.ObjectId() }];
+
+    expect(Service.eligibleAreasForMember(workspace, workspace.members[0], new Date("2026-10-12T12:00:00Z")).map((area: any) => area.name)).toEqual(["HQ", "Home", "Temporary stay"]);
+    expect(Service.eligibleAreasForMember(workspace, workspace.members[0], new Date("2026-10-13T12:00:00Z")).map((area: any) => area.name)).toEqual(["HQ", "Home"]);
+  });
+
   it("allows office-network confirmation only when the GPS uncertainty overlaps the fixed office geofence", async () => {
     const office = { _id: remoteA, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true, networkIp: "203.0.113.10" };
     workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
@@ -196,13 +209,30 @@ describe("attendance location policy storage and workspace scoping", () => {
     expect(Service.eligibleAreasForMember(workspace, workspace.members[0], new Date("2026-09-30T00:00:00Z")).map((item: any) => item.name)).toEqual(["HQ"]);
   });
 
-  it("compares clock-out with the saved clock-in point using the 60 meter rule", () => {
-    const start = { latitude: 27.7172, longitude: 85.324 };
-    const capturedAt = new Date().toISOString();
-    expect(Service.validateClockOutLocation({ latitude: 27.7173, longitude: 85.324, accuracyMeters: 10, capturedAt }, start).withinRange).toBe(true);
-    expect(Service.validateClockOutLocation({ latitude: 27.717741, longitude: 85.324, accuracyMeters: 10, capturedAt }, start).withinRange).toBe(false);
-    expect(Service.validateClockOutLocation({ latitude: 27.72, longitude: 85.324, accuracyMeters: 10, capturedAt }, start).withinRange).toBe(false);
-    expect(Service.validateClockOutLocation({ latitude: 27.7173, longitude: 85.324, accuracyMeters: 150, capturedAt }, start).reason).toBe("Clock-out location accuracy is too low");
-    expect(Service.validateClockOutLocation(null, start).withinRange).toBe(false);
+  it("allows clock-out from a different area approved for the current date", async () => {
+    const now = new Date("2026-10-12T08:00:00.000Z");
+    const office = { _id: remoteB, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true };
+    const home = { _id: remoteA, name: "Home", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true };
+    workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
+    workspace.members[0].privateRemoteAreas = [home];
+    workspace.members[0].temporaryRemoteApprovals = [{ areaId: remoteA, startDate: new Date("2026-10-12T00:00:00.000Z"), endDate: new Date("2026-10-12T00:00:00.000Z"), requestId: new mongoose.Types.ObjectId() }];
+
+    await expect(Service.validateClockOutLocation(workspace, workspace.members[0], {
+      latitude: 27.7172, longitude: 85.324, accuracyMeters: 10, capturedAt: now.toISOString()
+    }, now)).resolves.toMatchObject({ areaId: remoteA, areaName: "Home", mode: "remote", verificationMethod: "gps" });
+  });
+
+  it("rejects clock-out outside currently approved areas and when the location fix is missing", async () => {
+    const now = new Date("2026-10-13T08:00:00.000Z");
+    const office = { _id: remoteB, kind: "office", name: "HQ", latitude: 40, longitude: -74, radiusMeters: 60, isActive: true };
+    const home = { _id: remoteA, name: "Home", latitude: 27.7172, longitude: 85.324, radiusMeters: 60, isActive: true };
+    workspace.attendanceLocationPolicy = { enabled: true, maxAccuracyMeters: 100, areas: [office] };
+    workspace.members[0].privateRemoteAreas = [home];
+    workspace.members[0].temporaryRemoteApprovals = [{ areaId: remoteA, startDate: new Date("2026-10-12T00:00:00.000Z"), endDate: new Date("2026-10-12T00:00:00.000Z"), requestId: new mongoose.Types.ObjectId() }];
+
+    await expect(Service.validateClockOutLocation(workspace, workspace.members[0], {
+      latitude: 27.7172, longitude: 85.324, accuracyMeters: 10, capturedAt: now.toISOString()
+    }, now)).rejects.toThrow("outside your allowed attendance area");
+    await expect(Service.validateClockOutLocation(workspace, workspace.members[0], null, now)).rejects.toThrow("valid location reading is required");
   });
 });

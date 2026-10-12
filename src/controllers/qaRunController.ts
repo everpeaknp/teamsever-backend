@@ -11,11 +11,11 @@ export const listEligibleTesters = asyncHandler(async (req: Request, res: Respon
 });
 
 export const listEvidence = asyncHandler(async (req: AuthRequest, res: Response) => {
-  res.json({ success: true, data: await evidence.listEvidence(req.params.workspaceId, req.params.executionId, req.user!.id) });
+  res.json({ success: true, data: await evidence.listEvidence(req.params.workspaceId, req.params.executionId, req.user!.id, String(req.query.projectId || "workspace")) });
 });
 
 export const uploadEvidence = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const data = await evidence.uploadEvidence(req.params.workspaceId, req.params.executionId, req.user!.id, req.file);
+  const data = await evidence.uploadEvidence(req.params.workspaceId, req.params.executionId, req.user!.id, req.file, String(req.query.projectId || "workspace"));
   res.status(201).json({ success: true, data });
 });
 
@@ -40,7 +40,7 @@ export const listRuns = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const listExecutions = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ success: true, ...await service.listExecutions(req.params.workspaceId, req.params.runId, req.query) });
+  res.json({ success: true, ...await service.listExecutions(req.params.workspaceId, req.params.runId, req.query, (req as AuthRequest).user?.id) });
 });
 
 export const listMyExecutions = asyncHandler(async (req: AuthRequest, res: Response) => {

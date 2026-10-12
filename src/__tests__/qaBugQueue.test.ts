@@ -3,6 +3,10 @@ const Task = require("../models/Task");
 const PermissionService = require("../permissions/permission.service");
 const { listBugs } = require("../services/qaBugQueueService");
 
+jest.mock("../services/qaProjectService", () => ({
+  getProjectScope: jest.fn(async () => ({ project: { _id: "507f1f77bcf86cd799439099", scopeType: "workspace", space: null, folder: null }, filter: {} })),
+}));
+
 const workspaceId = "507f1f77bcf86cd799439011";
 const actorId = "507f1f77bcf86cd799439012";
 const allowedList = "507f1f77bcf86cd799439013";

@@ -22,7 +22,13 @@ export const createModule = async (workspaceId: string, actorId: string, input: 
   try {
     return await QaModule.create({ workspace: workspaceId, project: project._id, name, space: input.space, createdBy: actorId });
   } catch (error: any) {
-    if (error?.code === 11000) throw new AppError("Module name already exists in this workspace", 409);
+    if (error?.code === 11000) {
+      const keyPattern = error.keyPattern || {};
+      if (keyPattern.workspace === 1 && keyPattern.name === 1 && keyPattern.project === undefined) {
+        throw new AppError("QA storage still uses workspace-wide module names. Run `npm run migrate:qa-projects` to enable separate modules per project.", 503);
+      }
+      throw new AppError("A module with this name already exists in this QA project", 409);
+    }
     throw error;
   }
 };

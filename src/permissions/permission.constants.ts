@@ -137,9 +137,24 @@ export const SPACE_PERMISSION_ACTIONS: Record<SpacePermissionLevel, PermissionAc
 };
 
 const QUALITY_MANAGER_PERMISSIONS: PermissionAction[] = [
-  "VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "MANAGE_PLAN",
-  "CREATE_BUG", "TRIAGE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT", "SIGN_OFF_QA"
+  "QA_VIEW", "QA_MANAGE_CASES", "QA_EXECUTE",
+  "QA_CREATE_BUG", "QA_TRIAGE_BUG", "QA_VERIFY_BUG", "QA_MANAGE_RELEASES", "QA_SIGN_OFF"
 ];
+
+const LEGACY_QUALITY_PERMISSION_MAP: Partial<Record<PermissionAction, PermissionAction>> = {
+  VIEW_QUALITY: "QA_VIEW",
+  AUTHOR_CASE: "QA_MANAGE_CASES",
+  EXECUTE_CASE: "QA_EXECUTE",
+  MANAGE_PLAN: "QA_MANAGE_RELEASES",
+  CREATE_BUG: "QA_CREATE_BUG",
+  TRIAGE_BUG: "QA_TRIAGE_BUG",
+  VERIFY_BUG: "QA_VERIFY_BUG",
+  VIEW_QA_REPORT: "QA_MANAGE_RELEASES",
+  SIGN_OFF_QA: "QA_SIGN_OFF",
+};
+
+export const canonicalPermissionAction = (action: PermissionAction): PermissionAction =>
+  LEGACY_QUALITY_PERMISSION_MAP[action] || action;
 
 /**
  * Permission matrix: defines which roles can perform which actions
@@ -357,7 +372,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.DEVELOPER]: [
-    "VIEW_QUALITY", "CREATE_BUG",
+    "QA_VIEW", "QA_CREATE_BUG",
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -385,7 +400,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.QA]: [
-    "VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "CREATE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT",
+    "QA_VIEW", "QA_MANAGE_CASES", "QA_EXECUTE", "QA_CREATE_BUG", "QA_VERIFY_BUG", "QA_MANAGE_RELEASES",
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -460,7 +475,7 @@ export function roleHasPermission(
   role: WorkspaceRole,
   action: PermissionAction
 ): boolean {
-  return ROLE_PERMISSIONS[role].includes(action);
+  return ROLE_PERMISSIONS[role].includes(canonicalPermissionAction(action));
 }
 
 /**

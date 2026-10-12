@@ -16,7 +16,7 @@ describe("task and bug creation gates", () => {
     const next = jest.fn();
     await authorizeTaskCreation({ body: { workItemType: "bug" } }, {}, next);
     expect(requirePermission).toHaveBeenCalledWith("VIEW_LIST");
-    expect(requirePermission).toHaveBeenCalledWith("CREATE_BUG");
+    expect(requirePermission).toHaveBeenCalledWith("QA_CREATE_BUG");
     expect(checkTaskLimit).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
   });

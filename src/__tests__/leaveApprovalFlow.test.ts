@@ -1,8 +1,8 @@
 jest.mock("../models/Workspace", () => ({ findById: jest.fn() }));
-jest.mock("../models/LeaveRequest", () => ({ findOne: jest.fn(), find: jest.fn(), countDocuments: jest.fn() }));
+jest.mock("../models/LeaveRequest", () => ({ findOne: jest.fn(), find: jest.fn(), countDocuments: jest.fn(), create: jest.fn() }));
 jest.mock("../models/User", () => ({ findById: jest.fn(), find: jest.fn() }));
-jest.mock("../models/DirectMessage", () => ({ findById: jest.fn() }));
-jest.mock("../models/Conversation", () => ({ findById: jest.fn() }));
+jest.mock("../models/DirectMessage", () => ({ findById: jest.fn(), create: jest.fn() }));
+jest.mock("../models/Conversation", () => ({ findById: jest.fn(), findOne: jest.fn(), findByIdAndUpdate: jest.fn() }));
 jest.mock("../permissions/permission.service", () => ({ can: jest.fn().mockResolvedValue(false) }));
 jest.mock("../services/enhancedNotificationService", () => ({
   default: { notifyLeaveApproved: jest.fn(), notifyLeaveDenied: jest.fn() },
@@ -38,6 +38,36 @@ describe("leave and remote approval decisions", () => {
     jest.clearAllMocks();
     PermissionService.can.mockImplementation(async (_userId: string, permission: string) => permission === "MANAGE_LEAVES");
     User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ _id: "manager-1", name: "Manager" }) });
+  });
+
+  it("allows a remote-mode member to request temporary approval for a new private address", async () => {
+    const requesterId = "requester-1";
+    const managerId = "manager-1";
+    const workspace: any = {
+      owner: "owner-1",
+      members: [
+        { user: requesterId, role: "member", status: "active", attendanceMode: "remote", privateRemoteAreas: [] },
+        { user: managerId, role: "manager", status: "active" },
+      ],
+    };
+    Workspace.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(workspace) });
+    PermissionService.can.mockResolvedValue(true);
+    Conversation.findOne.mockReturnValue(queryFor({ _id: "conversation-1", participants: [requesterId, managerId] }));
+    const leave: any = { _id: "leave-1", populate: jest.fn().mockResolvedValue(undefined), save: jest.fn().mockResolvedValue(undefined) };
+    LeaveRequest.find.mockResolvedValue([]);
+    LeaveRequest.create.mockResolvedValue(leave);
+    DirectMessage.create.mockResolvedValue({ _id: "dm-1", populate: jest.fn().mockResolvedValue(undefined) });
+
+    const result = await LeaveService.requestLeave({
+      workspaceId: "workspace-1", requesterId, assignedManagerId: managerId, conversationId: "conversation-1",
+      startDate: "2026-10-13", endDate: "2026-10-13", reason: "Need to work from a temporary address",
+      requestType: "remote", proposedRemoteArea: { name: "Temporary place", latitude: 28.2, longitude: 83.98 },
+    });
+
+    expect(result).toBe(leave);
+    expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({
+      requestType: "remote", proposedRemoteArea: expect.objectContaining({ name: "Temporary place" }),
+    }));
   });
 
   it("returns paginated requester history with an accurate total", async () => {
@@ -129,7 +159,7 @@ describe("leave and remote approval decisions", () => {
       populate: jest.fn().mockResolvedValue(undefined),
       save: jest.fn().mockResolvedValue(undefined),
     };
-    const member = { user: requesterId, privateRemoteAreas: [], temporaryRemoteApprovals: [] };
+    const member = { user: requesterId, attendanceMode: "remote", privateRemoteAreas: [], temporaryRemoteApprovals: [] };
     const workspaceDoc = { owner: "owner-1", members: [member], markModified: jest.fn(), save: jest.fn().mockResolvedValue(undefined) };
     let workspaceReads = 0;
     Workspace.findById.mockImplementation(() => {
@@ -150,6 +180,7 @@ describe("leave and remote approval decisions", () => {
 
     expect(result.status).toBe("approved");
     expect(member.privateRemoteAreas).toHaveLength(1);
+    expect(member.privateRemoteAreas[0]).toMatchObject({ name: "Home", temporaryOnly: true });
     expect(member.temporaryRemoteApprovals).toHaveLength(1);
     expect(member.temporaryRemoteApprovals[0]).toMatchObject({ startDate: request.startDate, endDate: request.endDate });
     expect(workspaceDoc.save).toHaveBeenCalled();

@@ -109,13 +109,14 @@ const validateSettings = (input: any) => {
   }
   if (settings.caseFields !== undefined) {
     settings.caseFields = validList(settings.caseFields, "Case fields", 30).map((item: any) => {
-      if (item.key === "priority" && (item.type !== "select" || item.required || JSON.stringify(item.options || []) !== JSON.stringify(["low", "medium", "high", "urgent"]))) throw new AppError("Priority is a built-in field and its choices cannot be changed", 400);
+      const isPriority = item.key === "priority";
       if (item.key !== "priority" && ["title", "state", "type", "steps", "moduleId", "suiteId", "priority"].includes(item.key)) throw new AppError(`${item.key} is reserved for a built-in case field`, 400);
-      if (!["text", "number", "select", "multiselect", "checkbox", "date"].includes(item.type)) throw new AppError(`Field ${item.label} has an unsupported type`, 400);
-      const options = item.options === undefined ? [] : item.options;
+      if (!isPriority && !["text", "number", "select", "multiselect", "checkbox", "date"].includes(item.type)) throw new AppError(`Field ${item.label} has an unsupported type`, 400);
+      const options = isPriority ? ["low", "medium", "high", "urgent"] : item.options === undefined ? [] : item.options;
       if (!Array.isArray(options) || options.length > 50 || options.some((option: any) => typeof option !== "string" || !option.trim() || option.length > 80)) throw new AppError(`Field ${item.label} has invalid options`, 400);
-      if (["select", "multiselect"].includes(item.type) && options.length === 0) throw new AppError(`Field ${item.label} needs at least one option`, 400);
-      return { key: item.key, label: item.label, type: item.type, required: Boolean(item.required), enabled: item.enabled !== false, options: options.map((option: string) => option.trim()) };
+      const type = isPriority ? "select" : item.type;
+      if (["select", "multiselect"].includes(type) && options.length === 0) throw new AppError(`Field ${item.label} needs at least one option`, 400);
+      return { key: item.key, label: item.label, type, required: isPriority ? false : Boolean(item.required), enabled: item.enabled !== false, options: options.map((option: string) => option.trim()) };
     });
   }
   for (const section of ["run", "bugHandoff", "notifications"]) {
@@ -242,4 +243,4 @@ export const updateWorkspaceDefaults = async (workspaceId: string, actorId: stri
 };
 
 export const DEFAULTS = DEFAULT_SETTINGS;
-export { resolveProject, getProjectScope };
+export { resolveProject, getProjectScope, validateSettings };

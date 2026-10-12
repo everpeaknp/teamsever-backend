@@ -115,7 +115,7 @@ describe("QA bug foundation", () => {
       status: () => ({ json: (value: any) => { payload = value; } }),
     });
     const keys = payload.data.map((entry: any) => entry.key);
-    for (const key of ["VIEW_QUALITY", "AUTHOR_CASE", "EXECUTE_CASE", "MANAGE_PLAN", "CREATE_BUG", "TRIAGE_BUG", "VERIFY_BUG", "VIEW_QA_REPORT", "SIGN_OFF_QA"]) {
+    for (const key of ["QA_VIEW", "QA_MANAGE_CASES", "QA_EXECUTE", "QA_MANAGE_RELEASES", "QA_CREATE_BUG", "QA_TRIAGE_BUG", "QA_VERIFY_BUG", "QA_SIGN_OFF"]) {
       expect(keys).toContain(key);
     }
   });

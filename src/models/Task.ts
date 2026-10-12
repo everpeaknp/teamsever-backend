@@ -9,6 +9,9 @@ export interface ITask extends Document {
   qaProject?: Schema.Types.ObjectId;
   qaReviewer?: Schema.Types.ObjectId;
   qaSourceExecution?: Schema.Types.ObjectId;
+  qaSourceRun?: Schema.Types.ObjectId;
+  qaProjectName?: string;
+  qaSourceCaseKey?: string;
   qaCreationKey?: string;
   qualityTransitionKeys: string[];
   bugHistory: Array<Record<string, unknown>>;
@@ -90,6 +93,9 @@ const taskSchema = new mongoose.Schema(
     qaProject: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject", index: true },
     qaReviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     qaSourceExecution: { type: mongoose.Schema.Types.ObjectId, ref: "TestExecution" },
+    qaSourceRun: { type: mongoose.Schema.Types.ObjectId, ref: "TestRun" },
+    qaProjectName: { type: String, trim: true, maxlength: 160 },
+    qaSourceCaseKey: { type: String, trim: true, maxlength: 80 },
     qaCreationKey: { type: String, maxlength: 100 },
     qualityTransitionKeys: { type: [String], default: [] },
     bugHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },

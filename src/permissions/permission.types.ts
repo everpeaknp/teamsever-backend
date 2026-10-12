@@ -92,6 +92,15 @@ export type PermissionAction =
   | "MARK_TASK_DONE"
   | "COMMENT_TASK"
   // Quality management
+  | "QA_VIEW"
+  | "QA_MANAGE_CASES"
+  | "QA_EXECUTE"
+  | "QA_CREATE_BUG"
+  | "QA_TRIAGE_BUG"
+  | "QA_VERIFY_BUG"
+  | "QA_MANAGE_RELEASES"
+  | "QA_SIGN_OFF"
+  // Legacy names retained for older role documents and API clients.
   | "VIEW_QUALITY"
   | "AUTHOR_CASE"
   | "EXECUTE_CASE"

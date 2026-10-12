@@ -36,17 +36,11 @@ function normalizeIp(value: unknown): string | null {
   return net.isIP(ip) ? ip : null;
 }
 
-export function validateClockOutLocation(fix: any, clockInPoint: any, now = new Date(), maxAccuracyMeters = 100) {
-  if (!fix || !validateCoordinate(fix.latitude, -90, 90) || !validateCoordinate(fix.longitude, -180, 180) || typeof fix.accuracyMeters !== "number" || !Number.isFinite(fix.accuracyMeters) || fix.accuracyMeters < 0 || typeof fix.capturedAt !== "string" || !Number.isFinite(Date.parse(fix.capturedAt))) {
-    return { withinRange: false, distanceMeters: null, reason: "Clock-out location unavailable" };
-  }
-  const captured = Date.parse(fix.capturedAt);
-  if (now.getTime() - captured > 120000 || captured - now.getTime() > 15000) return { withinRange: false, distanceMeters: null, reason: "Clock-out location is stale" };
-  if (!clockInPoint || !validateCoordinate(clockInPoint.latitude, -90, 90) || !validateCoordinate(clockInPoint.longitude, -180, 180)) return { withinRange: false, distanceMeters: null, reason: "Clock-in location was not recorded" };
-  const measuredDistance = distanceMeters(fix, clockInPoint);
-  const distance = Math.round(measuredDistance);
-  if (fix.accuracyMeters > maxAccuracyMeters) return { withinRange: false, distanceMeters: distance, reason: "Clock-out location accuracy is too low" };
-  return { withinRange: measuredDistance <= 60, distanceMeters: distance, reason: measuredDistance <= 60 ? null : "Clock-out is more than 60 m from clock-in location" };
+export async function validateClockOutLocation(workspace: any, member: any, fix: any, now = new Date(), clientIp?: string) {
+  // Clock-out must meet the same date-aware location policy as clock-in. This
+  // allows an approved remote area on its approved dates while rejecting an
+  // unapproved location instead of comparing against the shift's start point.
+  return validateClockInLocation(workspace, member, fix, now, clientIp);
 }
 
 export function matchAttendanceArea(fix: any, areas: any[], policy: any, now = new Date()) {
@@ -141,9 +135,10 @@ export async function updateMemberRemoteAreas(workspaceId: string, actorId: stri
   if (!member) throw new AppError("Workspace member not found", 404);
   if (!input || !Array.isArray(input.areas) || input.areas.length > 30) throw new AppError("Invalid private remote areas", 400);
   const areas = input.areas.map((area: any) => {
+    const existingArea = area?._id && member.privateRemoteAreas?.find((current: any) => String(current._id) === String(area._id));
     const networkIp = area?.networkIp == null || area.networkIp === "" ? undefined : normalizeIp(area.networkIp);
     if (!area || typeof area.name !== "string" || !area.name.trim() || area.name.trim().length > 80 || !validateCoordinate(area.latitude, -90, 90) || !validateCoordinate(area.longitude, -180, 180) || !Number.isFinite(area.radiusMeters) || area.radiusMeters < 25 || area.radiusMeters > 50000 || typeof area.isActive !== "boolean" || (area.networkIp && !networkIp)) throw new AppError("Invalid private remote area or public IP address", 400);
-    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), latitude: area.latitude, longitude: area.longitude, radiusMeters: area.radiusMeters, isActive: area.isActive, ...(networkIp ? { networkIp } : {}) };
+    return { _id: area._id && mongoose.Types.ObjectId.isValid(area._id) ? area._id : new mongoose.Types.ObjectId(), name: area.name.trim(), latitude: area.latitude, longitude: area.longitude, radiusMeters: area.radiusMeters, isActive: area.isActive, ...(existingArea?.temporaryOnly ? { temporaryOnly: true } : {}), ...(networkIp ? { networkIp } : {}) };
   });
   const ids = areas.map((area: any) => String(area._id));
   if (new Set(ids).size !== ids.length) throw new AppError("Remote area IDs must be unique", 400);
@@ -158,7 +153,9 @@ export function eligibleAreasForMember(workspace: any, member: any, at = new Dat
   const areas = workspace.attendanceLocationPolicy?.areas || [];
   const officeAreas = areas.filter((area: any) => area.kind === "office" && area.isActive).map((area: any) => ({ ...(area.toObject?.() ?? area), radiusMeters: 60 }));
   if (member.attendanceMode === "remote") {
-    const own = (member.privateRemoteAreas || []).filter((area: any) => area.isActive).map((area: any) => ({ ...(area.toObject?.() ?? area), kind: "remote" }));
+    const today = at.toISOString().slice(0, 10);
+    const approvedIds = new Set((member.temporaryRemoteApprovals || []).filter((approval: any) => today >= new Date(approval.startDate).toISOString().slice(0, 10) && today <= new Date(approval.endDate).toISOString().slice(0, 10)).map((approval: any) => String(approval.areaId)));
+    const own = (member.privateRemoteAreas || []).filter((area: any) => area.isActive && (!area.temporaryOnly || approvedIds.has(String(area._id)))).map((area: any) => ({ ...(area.toObject?.() ?? area), kind: "remote" }));
     return [...officeAreas, ...own];
   }
   const today = at.toISOString().slice(0, 10);

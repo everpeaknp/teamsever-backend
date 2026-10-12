@@ -10,6 +10,15 @@ const PermissionService = require("../permissions/permission.service");
 const notifications = require("../services/enhancedNotificationService");
 const service = require("../services/testRunService");
 
+jest.mock("../services/qaProjectService", () => ({
+  getProjectScope: jest.fn(async () => ({ project: { _id: "507f1f77bcf86cd799439099", scopeType: "workspace", space: null, folder: null }, filter: {} })),
+  getEffectiveSettings: jest.fn(async () => ({
+    caseStatuses: [{ key: "retired", terminal: true }],
+    run: { environments: [], platforms: [], requireFailureReason: true, requireFailureEvidence: false },
+    notifications: { runAssigned: true, failureRecorded: true, runClosed: true },
+  })),
+}));
+
 const wid = "507f1f77bcf86cd799439011";
 const other = "507f1f77bcf86cd799439012";
 const actor = "507f1f77bcf86cd799439013";
@@ -50,7 +59,7 @@ describe("QA executions", () => {
     jest.spyOn(TestCase, "countDocuments").mockResolvedValue(0);
     const create = jest.spyOn(TestPlan, "create");
     await expect(service.createPlan(wid, actor, { name: "Release 1", caseIds: [caseId] })).rejects.toMatchObject({ statusCode: 400 });
-    expect(TestCase.countDocuments).toHaveBeenCalledWith({ _id: { $in: [caseId] }, workspace: wid, state: { $ne: "retired" } });
+    expect(TestCase.countDocuments).toHaveBeenCalledWith({ _id: { $in: [caseId] }, workspace: wid, state: { $nin: ["retired"] } });
     expect(create).not.toHaveBeenCalled();
   });
 

@@ -110,3 +110,4 @@ tmp/
 # Cache
 .cache/
 .eslintcache
+!src/__tests__/workspaceClockOutLocation.test.ts

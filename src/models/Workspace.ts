@@ -26,7 +26,7 @@ export interface IWorkspaceMember {
   restrictedPermissions?: string[];
   attendanceMode?: "onsite" | "remote";
   assignedRemoteLocationIds?: Schema.Types.ObjectId[];
-  privateRemoteAreas?: Array<{ _id?: Schema.Types.ObjectId; name: string; latitude: number; longitude: number; radiusMeters: number; isActive: boolean; networkIp?: string }>;
+  privateRemoteAreas?: Array<{ _id?: Schema.Types.ObjectId; name: string; latitude: number; longitude: number; radiusMeters: number; isActive: boolean; temporaryOnly?: boolean; networkIp?: string }>;
   temporaryRemoteApprovals?: Array<{ areaId: Schema.Types.ObjectId; startDate: Date; endDate: Date; requestId: Schema.Types.ObjectId }>;
 }
 
@@ -132,6 +132,7 @@ const workspaceSchema = new mongoose.Schema(
           longitude: { type: Number, required: true, min: -180, max: 180 },
           radiusMeters: { type: Number, required: true, min: 25, max: 50000 },
           isActive: { type: Boolean, default: true },
+          temporaryOnly: { type: Boolean, default: false },
           networkIp: { type: String, trim: true, maxlength: 45, default: undefined }
         }], select: false },
         temporaryRemoteApprovals: { type: [{ areaId: mongoose.Schema.Types.ObjectId, startDate: Date, endDate: Date, requestId: mongoose.Schema.Types.ObjectId }], select: false }

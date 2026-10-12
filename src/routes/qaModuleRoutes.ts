@@ -6,15 +6,15 @@ const { getCapabilities, getSettings, updateSettings, listModules, createModule,
 
 router.use(protect);
 router.get("/capabilities", getCapabilities);
-router.get("/settings", requirePermission("VIEW_QUALITY"), getSettings);
+router.get("/settings", requirePermission("QA_VIEW"), getSettings);
 router.patch("/settings", requirePermission("MANAGE_SETTINGS"), updateSettings);
-router.get("/projects", requirePermission("VIEW_QUALITY"), listProjects);
+router.get("/projects", requirePermission("QA_VIEW"), listProjects);
 router.post("/projects", requirePermission("MANAGE_SETTINGS"), createProject);
-router.get("/project-settings", requirePermission("VIEW_QUALITY"), getProjectSettings);
+router.get("/project-settings", requirePermission("QA_VIEW"), getProjectSettings);
 router.patch("/project-settings", requirePermission("MANAGE_SETTINGS"), updateProjectSettings);
 router.patch("/settings/defaults", requirePermission("MANAGE_SETTINGS"), updateWorkspaceDefaults);
-router.get("/modules", requirePermission("VIEW_QUALITY"), listModules);
-router.post("/modules", requirePermission("AUTHOR_CASE"), createModule);
-router.delete("/modules/:moduleId", requirePermission("AUTHOR_CASE"), archiveModule);
+router.get("/modules", requirePermission("QA_VIEW"), listModules);
+router.post("/modules", requirePermission("QA_MANAGE_CASES"), createModule);
+router.delete("/modules/:moduleId", requirePermission("QA_MANAGE_CASES"), archiveModule);
 module.exports = router;
 export {};
