@@ -9,6 +9,17 @@ const taskDescriptionSchema = z.string().refine(
 const createTaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Task title is required").max(200, "Task title cannot exceed 200 characters"),
+    workItemType: z.enum(["task", "bug"]).optional(),
+    moduleId: z.string().optional(),
+    qaReviewer: z.string().optional(),
+    bugDetails: z.object({
+      reproductionSteps: z.string().trim().min(1).max(5000),
+      expectedResult: z.string().trim().min(1).max(3000),
+      actualResult: z.string().trim().min(1).max(3000),
+      severity: z.enum(["low", "medium", "high", "critical"]),
+      environment: z.string().trim().min(1).max(500),
+      build: z.string().trim().max(100).optional()
+    }).optional(),
     description: taskDescriptionSchema,
     status: z.enum(["todo", "to do", "inprogress", "in-progress", "in progress", "review", "done", "cancelled", "blocked"]).optional(),
     priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
@@ -37,7 +48,17 @@ const createTaskSchema = z.object({
       message: "Recurring tasks must have frequency and nextOccurrence",
       path: ["isRecurring"]
     }
-  ),
+  ).superRefine((data: any, ctx: any) => {
+    if (data.workItemType === "bug" && !data.bugDetails) {
+      ctx.addIssue({ code: "custom", path: ["bugDetails"], message: "Bug details are required" });
+    }
+    if (data.workItemType !== "bug" && data.bugDetails) {
+      ctx.addIssue({ code: "custom", path: ["bugDetails"], message: "Bug details require workItemType bug" });
+    }
+    if (data.workItemType === "bug" && data.status && !["todo", "to do"].includes(data.status)) {
+      ctx.addIssue({ code: "custom", path: ["status"], message: "New bugs must start Open" });
+    }
+  }),
   params: z.object({
     listId: z.string()
   }).passthrough()
@@ -70,6 +91,16 @@ const updateTaskSchema = z.object({
   }).passthrough()
 }).passthrough();
 
+const bugTransitionSchema = z.object({
+  body: z.object({
+    action: z.enum(["start", "ready_for_qa", "verify", "reopen", "close_without_fix"]),
+    idempotencyKey: z.string().trim().min(1).max(100),
+    reason: z.string().trim().max(2000).optional(),
+    executionId: z.string().regex(/^[a-f\d]{24}$/i, "Retest ID is invalid").optional(),
+  }),
+  params: z.object({ id: z.string().min(1) }).passthrough(),
+}).passthrough();
+
 const createSubtaskSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Subtask title is required").max(200, "Subtask title cannot exceed 200 characters"),
@@ -95,6 +126,7 @@ const addDependencySchema = z.object({
 module.exports = {
   createTaskSchema,
   updateTaskSchema,
+  bugTransitionSchema,
   createSubtaskSchema,
   addDependencySchema
 };

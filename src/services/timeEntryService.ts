@@ -650,54 +650,37 @@ class TimeEntryService {
   }
 
   /**
-   * Returns the authoritative running attendance timers for the viewer.
-   * Regular members are limited to their own timer; workspace admins and
-   * owners can see all currently running timers in the workspace.
+   * The canonical clock-in signal for Attendance and profile surfaces.
+   * Members can read their own running entry; workspace admins/owners can
+   * read the team's current entries. This intentionally uses the same
+   * TimeEntry query as the admin time-tracking dashboard.
    */
   async getWorkspaceClockStatus(workspaceId: string, viewerId: string) {
-    const workspace = await Workspace.findOne({
-      _id: workspaceId,
-      isDeleted: false,
-    });
+    const workspace = await Workspace.findOne({ _id: workspaceId, isDeleted: false });
+    if (!workspace) throw new AppError("Workspace not found", 404);
 
-    if (!workspace) {
-      throw new AppError("Workspace not found", 404);
-    }
-
-    const isOwner = workspace.owner.toString() === viewerId;
-    const member = workspace.members.find(
-      (item: any) => item.user.toString() === viewerId && item.status !== "inactive"
+    const isOwner = String(workspace.owner) === String(viewerId);
+    const member = (workspace.members || []).find(
+      (item: any) => String(item.user) === String(viewerId) && item.status !== "inactive"
     );
-    if (!isOwner && !member) {
-      throw new AppError("Active workspace membership required", 403);
-    }
+    if (!isOwner && !member) throw new AppError("Active workspace membership required", 403);
 
     const canManageTeam = isOwner || member?.role === "admin" || member?.role === "owner";
-    const query: any = {
-      workspace: workspace._id,
-      isRunning: true,
-      isDeleted: false,
-    };
+    const query: any = { workspace: workspace._id, isRunning: true, isDeleted: false };
     if (!canManageTeam) query.user = viewerId;
 
     const entries = await TimeEntry.find(query)
-      .select("user task project startTime description isRunning")
+      .select("user task project startTime description isRunning attendanceMode")
       .populate("user", "name email avatar profilePicture")
       .populate("task", "title")
       .populate("project", "name color")
       .sort("-startTime")
       .lean();
 
+    const now = Date.now();
     const activeTimers = entries.map((entry: any) => {
-      const currentDuration = Math.max(
-        0,
-        Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000)
-      );
-      return {
-        ...entry,
-        currentDuration,
-        currentDurationFormatted: this.formatDuration(currentDuration),
-      };
+      const currentDuration = Math.max(0, Math.floor((now - new Date(entry.startTime).getTime()) / 1000));
+      return { ...entry, currentDuration, currentDurationFormatted: this.formatDuration(currentDuration) };
     });
 
     return {
@@ -705,7 +688,7 @@ class TimeEntryService {
       scope: canManageTeam ? "workspace" : "self",
       canManageTeam,
       activeTimerCount: activeTimers.length,
-      activeTimers,
+      activeTimers
     };
   }
 
@@ -953,6 +936,8 @@ class TimeEntryService {
     // Stop timer
     timeEntry.endTime = new Date();
     timeEntry.isRunning = false;
+    const normalizedReason = typeof reason === "string" ? reason.trim().slice(0, 500) : "";
+    timeEntry.adminClockOutReason = normalizedReason || undefined;
     
     // Duration will be calculated by pre-save hook
     await timeEntry.save();
@@ -976,7 +961,7 @@ class TimeEntryService {
           action: "admin_stopped_timer",
           stoppedUserId: timeEntry.user.toString(),
           duration: timeEntry.duration,
-          reason: reason || "Admin intervention"
+          reason: normalizedReason || "Admin intervention"
         }
       });
     } catch (error) {

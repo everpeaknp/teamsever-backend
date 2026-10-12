@@ -87,11 +87,12 @@ export const denyLeave = asyncHandler(async (req: AuthRequest, res: Response, ne
  */
 export const getWorkspaceLeaves = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { workspaceId } = req.params;
-  const leaves = await leaveService.getWorkspaceLeaves(workspaceId, req.query);
+  const result = await leaveService.getWorkspaceLeaves(workspaceId, req.query);
 
   res.status(200).json({
     success: true,
-    data: leaves,
+    data: result.requests,
+    pagination: result.pagination,
   });
 });
 
@@ -102,13 +103,17 @@ export const getRemoteRequests = asyncHandler(async (req: AuthRequest, res: Resp
 });
 
 export const getMyRequests = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const requests = await leaveService.getMyRequests(req.params.workspaceId, req.user!.id);
-  res.status(200).json({ success: true, data: requests });
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.pageSize ?? req.query.limit) || 10;
+  const result = await leaveService.getMyRequests(req.params.workspaceId, req.user!.id, page, limit, req.query);
+  res.status(200).json({ success: true, data: result.requests, pagination: result.pagination });
 });
 
-export const getAssignedInbox = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const requests = await leaveService.getAssignedInbox(req.params.workspaceId, req.user!.id);
-  res.status(200).json({ success: true, data: requests });
+export const getReviewInbox = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Math.min(50, Math.max(1, Number(req.query.pageSize ?? req.query.limit) || 10));
+  const result = await leaveService.getReviewInbox(req.params.workspaceId, req.user!.id, page, limit, req.query);
+  res.status(200).json({ success: true, data: result.requests, pagination: result.pagination });
 });
 
 /**

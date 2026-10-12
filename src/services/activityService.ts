@@ -500,7 +500,7 @@ class ActivityService {
     // Get activities from Activity model
     const primaryActivities = await Activity.find(query)
       .populate("user", "name email avatar profilePicture")
-      .populate("task", "title status")
+      .populate("task", "title status workItemType priority")
       .sort("-createdAt")
       .limit(limit)
       .skip(skip)

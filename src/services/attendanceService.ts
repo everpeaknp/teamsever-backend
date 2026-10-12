@@ -81,7 +81,7 @@ class AttendanceService {
     // Select only fields used by the report, including the normally-hidden
     // location fields. This avoids hydrating unrelated TimeEntry data.
     let entriesQuery = TimeEntry.find(matchQuery)
-      .select("user project task startTime endTime duration isRunning isDeleted description attendanceMode clockInSource clockOutSource clockInVerificationMethod clockInLocation clockOutLocation locationReviewReason +clockInLocation +clockOutLocation")
+      .select("user project task startTime endTime duration isRunning isDeleted description attendanceMode clockInSource clockOutSource clockInVerificationMethod clockInLocation clockOutLocation adminClockOutReason locationReviewReason +clockInLocation +clockOutLocation")
       .populate("user", "name email avatar profilePicture")
       .populate("project", "name")
       .populate("task", "title")
@@ -124,8 +124,9 @@ class AttendanceService {
         ,clockOutSource: entry.clockOutSource || null
         ,clockInVerificationMethod: entry.clockInVerificationMethod || (entry.clockInLocation ? "gps" : null)
         ,clockInLocation: entry.clockInLocation ? { areaName: entry.clockInLocation.areaName || "Allowed area", latitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockInLocation.latitude : undefined, longitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockInLocation.longitude : undefined, accuracyMeters: entry.clockInLocation.accuracyMeters, capturedAt: entry.clockInLocation.capturedAt } : null
-        ,clockOutLocation: entry.clockOutLocation ? { latitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.latitude : undefined, longitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.longitude : undefined, accuracyMeters: entry.clockOutLocation.accuracyMeters, capturedAt: entry.clockOutLocation.capturedAt, distanceFromClockInMeters: entry.clockOutLocation.distanceFromClockInMeters, withinRange: entry.clockOutLocation.withinRange } : null
+        ,clockOutLocation: entry.clockOutLocation ? { areaId: entry.clockOutLocation.areaId, areaName: entry.clockOutLocation.areaName || null, verificationMethod: entry.clockOutLocation.verificationMethod || null, latitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.latitude : undefined, longitude: (String(entry.user?._id || entry.user) === String(adminId) || canSeePreciseLocations) ? entry.clockOutLocation.longitude : undefined, accuracyMeters: entry.clockOutLocation.accuracyMeters, capturedAt: entry.clockOutLocation.capturedAt, distanceFromClockInMeters: entry.clockOutLocation.distanceFromClockInMeters, withinRange: entry.clockOutLocation.withinRange } : null
         ,locationReviewReason: entry.locationReviewReason || null
+        ,adminClockOutReason: entry.adminClockOutReason || null
       };
     });
 
@@ -153,7 +154,7 @@ class AttendanceService {
       return "No data found for the selected filters.";
     }
 
-    const headers = ["Name", "Email", "Date", "Clock In", "Clock Out", "Total Hours", "Mode", "Clock-in Source", "Clock-out Source", "Clock-in Area", "Clock-in Verification", "Clock-in Latitude", "Clock-in Longitude", "Clock-out Latitude", "Clock-out Longitude", "Clock-out Distance (m)", "Location Review", "Description"];
+    const headers = ["Name", "Email", "Date", "Clock In", "Clock Out", "Total Hours", "Mode", "Clock-in Source", "Clock-out Source", "Clock-in Area", "Clock-in Verification", "Clock-in Latitude", "Clock-in Longitude", "Clock-out Area", "Clock-out Verification", "Clock-out Latitude", "Clock-out Longitude", "Legacy Distance from Clock-in (m)", "Location Review", "Admin Clock-out Reason", "Description"];
     const rows = data.map((item) => [
       item.userName,
       item.userEmail,
@@ -168,10 +169,13 @@ class AttendanceService {
       item.clockInVerificationMethod || "not recorded",
       item.clockInLocation?.latitude ?? "",
       item.clockInLocation?.longitude ?? "",
+      item.clockOutLocation?.areaName || "Location not recorded",
+      item.clockOutLocation?.verificationMethod || "not recorded",
       item.clockOutLocation?.latitude ?? "",
       item.clockOutLocation?.longitude ?? "",
       item.clockOutLocation?.distanceFromClockInMeters ?? "",
       item.locationReviewReason || "",
+      item.adminClockOutReason || "",
       item.description.replace(/,/g, ";") // Basic CSV escaping for descriptions
     ]);
 
@@ -208,15 +212,18 @@ class AttendanceService {
       { header: 'Clock-in Verification', key: 'clockInVerificationMethod', width: 24 },
       { header: 'Clock-in Latitude', key: 'clockInLatitude', width: 18 },
       { header: 'Clock-in Longitude', key: 'clockInLongitude', width: 18 },
+      { header: 'Clock-out Area', key: 'clockOutArea', width: 24 },
+      { header: 'Clock-out Verification', key: 'clockOutVerificationMethod', width: 24 },
       { header: 'Clock-out Latitude', key: 'clockOutLatitude', width: 18 },
       { header: 'Clock-out Longitude', key: 'clockOutLongitude', width: 18 },
-      { header: 'Clock-out Distance (m)', key: 'clockOutDistance', width: 22 },
+      { header: 'Legacy Distance from Clock-in (m)', key: 'clockOutDistance', width: 30 },
       { header: 'Location Review', key: 'locationReviewReason', width: 36 },
+      { header: 'Admin Clock-out Reason', key: 'adminClockOutReason', width: 40 },
       { header: 'Description', key: 'description', width: 40 }
     ];
 
     // Add rows
-    worksheet.addRows(data.map((row) => ({ ...row, clockInArea: row.clockInLocation?.areaName || "Location not recorded", clockInLatitude: row.clockInLocation?.latitude, clockInLongitude: row.clockInLocation?.longitude, clockOutLatitude: row.clockOutLocation?.latitude, clockOutLongitude: row.clockOutLocation?.longitude, clockOutDistance: row.clockOutLocation?.distanceFromClockInMeters })));
+    worksheet.addRows(data.map((row) => ({ ...row, clockInArea: row.clockInLocation?.areaName || "Location not recorded", clockInLatitude: row.clockInLocation?.latitude, clockInLongitude: row.clockInLocation?.longitude, clockOutArea: row.clockOutLocation?.areaName || "Location not recorded", clockOutVerificationMethod: row.clockOutLocation?.verificationMethod || "not recorded", clockOutLatitude: row.clockOutLocation?.latitude, clockOutLongitude: row.clockOutLocation?.longitude, clockOutDistance: row.clockOutLocation?.distanceFromClockInMeters })));
 
     // Style headers
     worksheet.getRow(1).font = { bold: true };

@@ -1,5 +1,5 @@
 jest.mock("../models/Notification", () => ({ create: jest.fn() }));
-jest.mock("../models/DeviceToken", () => ({ find: jest.fn(), deleteMany: jest.fn() }));
+jest.mock("../models/DeviceToken", () => ({ deleteMany: jest.fn() }));
 jest.mock("../models/User", () => ({ findById: jest.fn() }));
 jest.mock("../models/Task", () => ({}));
 jest.mock("../models/Workspace", () => ({}));
@@ -34,7 +34,7 @@ describe("leave notification delivery", () => {
     });
   });
 
-  it("sends FCM for leave decisions even while another client session is online", async () => {
+  it("sends FCM for leave decisions even when another client session is online", async () => {
     const push = jest.spyOn(notifications, "sendPushNotification").mockResolvedValue(true);
 
     await notifications.createNotification({
@@ -53,7 +53,7 @@ describe("leave notification delivery", () => {
     push.mockRestore();
   });
 
-  it("notifies other authorized reviewers after denial", async () => {
+  it("notifies only the requester when a request is denied", async () => {
     const create = jest.spyOn(notifications, "createNotification").mockResolvedValue({});
     await notifications.notifyLeaveDenied({
       _id: "leave-1",
@@ -65,7 +65,40 @@ describe("leave notification delivery", () => {
       conversation: "conversation-1",
     }, { _id: "manager-1", name: "Manager" }, { _id: "workspace-1" }, ["requester-1", "manager-1", "manager-2"]);
 
+    expect(create.mock.calls.map(([notification]: any[]) => notification.recipientId)).toEqual(["requester-1"]);
+    create.mockRestore();
+  });
+
+  it("routes a private DM request only to its assigned manager", async () => {
+    const create = jest.spyOn(notifications, "createNotification").mockResolvedValue({});
+    await notifications.notifyLeaveRequested({
+      _id: "leave-2",
+      requester: { _id: "requester-1", name: "Requester" },
+      assignedManager: { _id: "manager-1" },
+      conversation: "conversation-2",
+      requestType: "remote",
+      startDate: new Date("2026-10-06T00:00:00Z"),
+      endDate: new Date("2026-10-06T00:00:00Z"),
+    }, { _id: "workspace-1" }, ["manager-1", "manager-2"]);
+
+    expect(create.mock.calls.map(([notification]: any[]) => notification.recipientId)).toEqual(["manager-1"]);
+    expect(create.mock.calls[0][0].data.conversationId).toBe("conversation-2");
+    create.mockRestore();
+  });
+
+  it("includes the reason in manager notifications after remote approval", async () => {
+    const create = jest.spyOn(notifications, "createNotification").mockResolvedValue({});
+    await notifications.notifyLeaveApproved({
+      _id: "leave-3",
+      requester: { _id: "requester-1", name: "Requester" },
+      requestType: "remote",
+      reason: "Plumbing repair",
+      startDate: new Date("2026-10-06T00:00:00Z"),
+      endDate: new Date("2026-10-06T00:00:00Z"),
+    }, { _id: "manager-1", name: "Manager" }, { _id: "workspace-1" }, ["requester-1", "manager-1", "manager-2"]);
+
     expect(create.mock.calls.map(([notification]: any[]) => notification.recipientId)).toEqual(["requester-1", "manager-2"]);
+    expect(create.mock.calls[1][0].body).toContain("Reason: \"Plumbing repair\"");
     create.mockRestore();
   });
 });

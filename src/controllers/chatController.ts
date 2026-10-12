@@ -73,6 +73,15 @@ const getChannelMessages = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+const getChannelMembers = asyncHandler(async (req: any, res: any) => {
+  const members = await chatService.getChannelMembers(
+    req.params.channelId,
+    req.user.id,
+    req.query.workspaceId,
+  );
+  res.status(200).json({ success: true, data: members });
+});
+
 /**
  * @desc    Send a message to a specific channel
  * @route   POST /api/workspaces/:workspaceId/chat
@@ -294,6 +303,7 @@ module.exports = {
   createChannel,
   getChannels,
   getChannelMessages,
+  getChannelMembers,
   sendMessage,
   deleteMessage,
   getUnreadCount,

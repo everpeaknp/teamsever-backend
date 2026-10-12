@@ -402,6 +402,74 @@ const canManageDesktopPresence = async (workspace: any, userId: string, workspac
 
 const normalizeRosterName = (name: string) => name.normalize("NFKC").trim().toLocaleLowerCase("en");
 
+const getPublicClockPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const workspaceId = String(req.params.workspaceId);
+  const targetUserId = String(req.params.userId);
+  const viewerId = String(req.user.id);
+  if (!mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(targetUserId)) {
+    return next(new AppError("Workspace or member not found", 404));
+  }
+
+  const workspace = await Workspace.findById(workspaceId).select("owner members");
+  if (!workspace) return next(new AppError("Workspace not found", 404));
+  const isWorkspaceOwner = String(workspace.owner) === viewerId;
+  const isActiveViewer = (workspace.members || []).some((member: any) =>
+    String(member.user?._id || member.user) === viewerId && member.status !== "inactive",
+  );
+  if (!isWorkspaceOwner && !isActiveViewer) return next(new AppError("Active workspace membership required", 403));
+
+  const isTargetOwner = String(workspace.owner) === targetUserId;
+  const isActiveTarget = (workspace.members || []).some((member: any) =>
+    String(member.user?._id || member.user) === targetUserId && member.status !== "inactive",
+  );
+  if (!isTargetOwner && !isActiveTarget) return next(new AppError("Active workspace member not found", 404));
+
+  const entry = await TimeEntry.findOne({ workspace: workspaceId, user: targetUserId, isRunning: true, isDeleted: false })
+    .select("_id startTime clockInSource clockInDevice desktopPresenceDevice presenceCompanionDevice")
+    .sort({ startTime: -1 });
+  if (!entry) return res.json({ success: true, data: { clockedIn: false, clockedInAt: null, foregroundApp: null } });
+
+  const deviceId = String(entry.clockInSource === "mobile"
+    ? entry.presenceCompanionDevice || ""
+    : entry.clockInSource === "desktop"
+      ? entry.clockInDevice || ""
+      : entry.desktopPresenceDevice || "");
+  let foregroundApp = null;
+  if (deviceId) {
+    const device = await TrustedAttendanceDevice.findOne({
+      _id: deviceId,
+      user: targetUserId,
+      revokedAt: null,
+      activityMonitoringEnabled: true,
+    }).select("activityMonitoringEnabledAt");
+    if (device) {
+      const now = Date.now();
+      const report = await DesktopAppPresence.findOne({
+        workspace: workspaceId,
+        user: targetUserId,
+        timeEntry: entry._id,
+        device: deviceId,
+        endedAt: { $gte: new Date(now - 90_000), $lte: new Date(now + 30_000) },
+      }).sort({ endedAt: -1 }).select("appId presenceStatus startedAt endedAt");
+      const enabledAt = device.activityMonitoringEnabledAt ? new Date(device.activityMonitoringEnabledAt).getTime() : null;
+      if (report && (report.presenceStatus === "active" || report.presenceStatus === "afk") && (!enabledAt || new Date(report.endedAt).getTime() >= enabledAt)) {
+        foregroundApp = {
+          appId: report.appId || null,
+          presenceStatus: report.presenceStatus,
+          startedAt: report.startedAt,
+          reportedAt: report.endedAt,
+        };
+      }
+    }
+  }
+
+  return res.json({
+    success: true,
+    data: { clockedIn: true, clockedInAt: entry.startTime, foregroundApp },
+  });
+});
+
+
 const getWorkspaceCurrentPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
   const workspaceId = String(req.params.workspaceId);
   if (!mongoose.Types.ObjectId.isValid(workspaceId)) return next(new AppError("Workspace not found", 404));
@@ -571,4 +639,4 @@ const updateDesktopPresencePolicy = asyncHandler(async (req: any, res: Response,
   await workspace.save();
   return res.json({ success: true, data: { policy: { afkThresholdMinutes }, canManage: true } });
 });
-module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getWorkspaceCurrentPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };
+module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getWorkspaceCurrentPresence, getPublicClockPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };

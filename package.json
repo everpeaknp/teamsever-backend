@@ -8,6 +8,7 @@
     "dev:compiled": "tsc && node dist/server.js",
     "dev:watch": "tsc --watch",
     "build": "tsc",
+    "migrate:qa-projects": "ts-node src/scripts/migrateQaProjects.ts",
     "start": "node dist/server.js",
     "migrate:task-status": "ts-node src/scripts/migrateTaskStatus.ts",
     "test": "jest",

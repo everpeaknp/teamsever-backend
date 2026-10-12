@@ -65,9 +65,13 @@ test-*.ts
 src/__tests__/*
 !src/__tests__/leaveApprovalFlow.test.ts
 !src/__tests__/leaveRequestWorkspaceProjection.test.ts
+!src/__tests__/leaveNotificationDelivery.test.ts
+!src/__tests__/timeEntryClockMode.test.ts
 !src/__tests__/invitationCodeReuse.test.ts
 !src/__tests__/invitationLifecycle.test.ts
 !src/__tests__/apiRoutes.test.ts
+!src/__tests__/jest.setup.ts
+!src/__tests__/qa*.test.ts
 
 # Seed files
 **/seeds/
@@ -106,3 +110,4 @@ tmp/
 # Cache
 .cache/
 .eslintcache
+!src/__tests__/workspaceClockOutLocation.test.ts

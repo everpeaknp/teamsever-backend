@@ -28,7 +28,7 @@ const getWorkspaceActiveTimers = asyncHandler(
   }
 );
 
-// @desc Get the viewer's current attendance clock-in state
+// @desc Get the viewer's canonical clock-in state (team scope for admins, self scope for members)
 // @route GET /api/time/workspace/:workspaceId/clock-status
 const getWorkspaceClockStatus = asyncHandler(
   async (req: AuthRequest, res: Response) => {
@@ -36,7 +36,6 @@ const getWorkspaceClockStatus = asyncHandler(
       req.params.workspaceId,
       req.user!.id
     );
-
     res.status(200).json({ success: true, data });
   }
 );

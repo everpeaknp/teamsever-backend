@@ -4,6 +4,25 @@ const mongoose = require("mongoose");
 
 export interface ITask extends Document {
   title: string;
+  workItemType: "task" | "bug";
+  moduleId?: Schema.Types.ObjectId;
+  qaProject?: Schema.Types.ObjectId;
+  qaReviewer?: Schema.Types.ObjectId;
+  qaSourceExecution?: Schema.Types.ObjectId;
+  qaSourceRun?: Schema.Types.ObjectId;
+  qaProjectName?: string;
+  qaSourceCaseKey?: string;
+  qaCreationKey?: string;
+  qualityTransitionKeys: string[];
+  bugHistory: Array<Record<string, unknown>>;
+  bugDetails?: {
+    reproductionSteps: string;
+    expectedResult: string;
+    actualResult: string;
+    severity: "low" | "medium" | "high" | "critical";
+    environment: string;
+    build?: string;
+  };
   description?: string;
   status: "todo" | "inprogress" | "review" | "done" | "cancelled" | "blocked";
   priority?: "low" | "medium" | "high" | "urgent";
@@ -63,6 +82,54 @@ const taskSchema = new mongoose.Schema(
       required: [true, "Please provide task title"],
       trim: true,
       maxlength: [200, "Task title cannot exceed 200 characters"]
+    },
+    workItemType: {
+      type: String,
+      enum: ["task", "bug"],
+      default: "task",
+      required: true
+    },
+    moduleId: { type: mongoose.Schema.Types.ObjectId, ref: "QaModule" },
+    qaProject: { type: mongoose.Schema.Types.ObjectId, ref: "QaProject", index: true },
+    qaReviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    qaSourceExecution: { type: mongoose.Schema.Types.ObjectId, ref: "TestExecution" },
+    qaSourceRun: { type: mongoose.Schema.Types.ObjectId, ref: "TestRun" },
+    qaProjectName: { type: String, trim: true, maxlength: 160 },
+    qaSourceCaseKey: { type: String, trim: true, maxlength: 80 },
+    qaCreationKey: { type: String, maxlength: 100 },
+    qualityTransitionKeys: { type: [String], default: [] },
+    bugHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    bugDetails: {
+      reproductionSteps: {
+        type: String,
+        trim: true,
+        maxlength: 5000,
+        required: function(this: ITask) { return this.workItemType === "bug"; }
+      },
+      expectedResult: {
+        type: String,
+        trim: true,
+        maxlength: 3000,
+        required: function(this: ITask) { return this.workItemType === "bug"; }
+      },
+      actualResult: {
+        type: String,
+        trim: true,
+        maxlength: 3000,
+        required: function(this: ITask) { return this.workItemType === "bug"; }
+      },
+      severity: {
+        type: String,
+        enum: ["low", "medium", "high", "critical"],
+        required: function(this: ITask) { return this.workItemType === "bug"; }
+      },
+      environment: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+        required: function(this: ITask) { return this.workItemType === "bug"; }
+      },
+      build: { type: String, trim: true, maxlength: 100 }
     },
     description: {
       type: String,
@@ -234,6 +301,9 @@ const taskSchema = new mongoose.Schema(
 taskSchema.index({ list: 1, isDeleted: 1 });
 taskSchema.index({ space: 1, isDeleted: 1 });
 taskSchema.index({ workspace: 1, isDeleted: 1 });
+taskSchema.index({ workspace: 1, workItemType: 1, isDeleted: 1, createdAt: -1 });
+taskSchema.index({ workspace: 1, qaCreationKey: 1 }, { unique: true, partialFilterExpression: { qaCreationKey: { $type: "string" } } });
+taskSchema.index({ workspace: 1, createdBy: 1, workItemType: 1, isDeleted: 1, createdAt: -1 });
 taskSchema.index({ status: 1, isDeleted: 1 });
 taskSchema.index({ assignee: 1, isDeleted: 1 });
 taskSchema.index({ dueDate: 1, isDeleted: 1 });

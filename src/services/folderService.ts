@@ -7,6 +7,7 @@ const List = require("../models/List");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
+const { getTaskCountsByList } = require("../utils/taskCounts");
 
 interface CreateFolderData {
   name: string;
@@ -154,25 +155,11 @@ class FolderService {
       .lean();
     
     // Add task counts to each list
-    const allLists = await Promise.all(
-      allListsRaw.map(async (list: any) => {
-        const taskCount = await Task.countDocuments({ 
-          list: list._id, 
-          isDeleted: false 
-        });
-        const completedCount = await Task.countDocuments({ 
-          list: list._id, 
-          status: 'done',
-          isDeleted: false 
-        });
-        
-        return {
-          ...list,
-          taskCount,
-          completedCount
-        };
-      })
-    );
+    const taskCounts = await getTaskCountsByList(Task, allListsRaw);
+    const allLists = allListsRaw.map((list: any) => ({
+      ...list,
+      ...(taskCounts.get(String(list._id)) || { taskCount: 0, completedCount: 0 }),
+    }));
 
     // Determine explicit space-level override
     const spaceOverride = await SpaceMember.findOne({
@@ -301,25 +288,11 @@ class FolderService {
       .sort("createdAt")
       .lean();
 
-    const lists = await Promise.all(
-      listsRaw.map(async (list: any) => {
-        const taskCount = await Task.countDocuments({
-          list: list._id,
-          isDeleted: false
-        });
-        const completedCount = await Task.countDocuments({
-          list: list._id,
-          status: "done",
-          isDeleted: false
-        });
-
-        return {
-          ...list,
-          taskCount,
-          completedCount
-        };
-      })
-    );
+    const taskCounts = await getTaskCountsByList(Task, listsRaw);
+    const lists = listsRaw.map((list: any) => ({
+      ...list,
+      ...(taskCounts.get(String(list._id)) || { taskCount: 0, completedCount: 0 }),
+    }));
 
     const folderPlain = folder.toObject();
     return {

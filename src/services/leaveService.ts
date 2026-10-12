@@ -10,60 +10,84 @@ const AppError = require("../utils/AppError");
 const permissionService = require("../permissions/permission.service");
 const enhancedNotificationService = require("./enhancedNotificationService").default || require("./enhancedNotificationService");
 const socketService = require("./socketService").default || require("./socketService");
-const { getWorkspaceTimezone, workspaceCalendarDateKey, isRequestExpired } = require("./workspaceCalendar");
 
 class LeaveService {
+  private async applyRequestFilters(
+    filter: any,
+    query: any,
+    options: { allowStatus?: boolean; allowUser?: boolean } = {},
+  ) {
+    const allowStatus = options.allowStatus !== false;
+    const allowUser = options.allowUser !== false;
+    if (allowStatus && query.status && !["pending", "approved", "denied", "expired"].includes(String(query.status))) {
+      throw new AppError("Invalid leave request status filter", 400);
+    }
+    if (allowStatus && ["pending", "approved", "denied", "expired"].includes(String(query.status))) {
+      filter.status = query.status;
+    }
+    if (query.requestType && !["leave", "remote"].includes(String(query.requestType))) {
+      throw new AppError("Invalid request type filter", 400);
+    }
+    if (["leave", "remote"].includes(String(query.requestType))) {
+      filter.requestType = query.requestType;
+    }
+    const userId = query.userId || query.requesterId;
+    if (allowUser && userId) {
+      if (!Types.ObjectId.isValid(String(userId))) throw new AppError("Invalid member filter", 400);
+      filter.requester = userId;
+    }
+
+    const fromValue = query.from || query.startDate;
+    const toValue = query.to || query.endDate;
+    const fromDate = fromValue ? new Date(`${String(fromValue).slice(0, 10)}T00:00:00.000Z`) : null;
+    const toDate = toValue ? new Date(`${String(toValue).slice(0, 10)}T23:59:59.999Z`) : null;
+    if (fromValue && (!fromDate || Number.isNaN(fromDate.getTime()))) {
+      throw new AppError("Invalid start date filter", 400);
+    }
+    if (toValue && (!toDate || Number.isNaN(toDate.getTime()))) {
+      throw new AppError("Invalid end date filter", 400);
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+      throw new AppError("Start date filter must not be after end date", 400);
+    }
+    if (fromDate) {
+      filter.endDate = { ...(filter.endDate || {}), $gte: fromDate };
+    }
+    if (toDate) {
+      filter.startDate = { ...(filter.startDate || {}), $lte: toDate };
+    }
+
+    const search = String(query.search || query.q || "").trim();
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const expression = new RegExp(escaped, "i");
+      const matchingUsers = await User.find({ $or: [{ name: expression }, { email: expression }] }).select("_id");
+      filter.$or = [
+        { reason: expression },
+        { requester: { $in: matchingUsers.map((user: any) => user._id) } },
+      ];
+    }
+    return filter;
+  }
+
   private async emitDirectMessageEvent(event: string, leave: any, dm: any) {
     if (!leave.conversation || !dm) return;
-    let participants: any[] = [];
+    let conversationParticipants: any[] = [];
     try {
       const conversation = await Conversation.findById(leave.conversation).select("participants").lean();
-      participants = conversation?.participants || [];
+      conversationParticipants = conversation?.participants || [];
     } catch (error) {
-      console.error("[LeaveService] Failed to read DM participants for socket event:", error);
+      console.error("[LeaveService] Failed to read DM participants for status event:", error);
     }
-    const userIds = [leave.requester, leave.assignedManager, ...participants]
+    const participantIds = [leave.requester, leave.assignedManager, ...conversationParticipants]
       .map((value: any) => value?._id?.toString?.() || value?.toString?.())
       .filter((value: string | undefined): value is string => Boolean(value));
+    const uniqueParticipants = Array.from(new Set(participantIds));
     const message = typeof dm.toObject === "function" ? dm.toObject() : dm;
-    socketService.emitToUsers?.(Array.from(new Set(userIds)), event, {
+    socketService.emitToUsers?.(uniqueParticipants, event, {
       conversationId: leave.conversation.toString(),
       message: { ...message, conversation: leave.conversation.toString() },
     });
-  }
-
-  async expireWorkspaceRequests(workspaceId: string, now = new Date()): Promise<number> {
-    // A few older unit-test doubles expose only findOne. Production Mongoose
-    // always provides find; missing test-double capabilities mean no sweep.
-    if (typeof LeaveRequest.find !== "function" || typeof LeaveRequest.findOneAndUpdate !== "function") return 0;
-    const timezone = await getWorkspaceTimezone(workspaceId);
-    const today = workspaceCalendarDateKey(now, timezone);
-    const cutoff = new Date(`${today}T00:00:00.000Z`);
-    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
-    const candidates = await LeaveRequest.find({ workspace: workspaceId, status: "pending", endDate: { $lt: cutoff } });
-    let expired = 0;
-    for (const candidate of candidates) {
-      const updated = await LeaveRequest.findOneAndUpdate(
-        { _id: candidate._id, status: "pending", endDate: { $lt: cutoff } },
-        { $set: { status: "expired", expiredAt: now } },
-        { new: true }
-      );
-      if (!updated) continue;
-      expired += 1;
-      if (updated.directMessageId) {
-        const dm = await DirectMessage.findById(updated.directMessageId);
-        if (dm) {
-          dm.metadata = { ...dm.metadata, status: "expired", expiredAt: now };
-          await dm.save();
-          if (updated.conversation) {
-            try {
-              await this.emitDirectMessageEvent("dm:updated", updated, dm);
-            } catch (err) { console.error("[LeaveService] Failed to emit expired DM update:", err); }
-          }
-        }
-      }
-    }
-    return expired;
   }
 
   /**
@@ -147,8 +171,6 @@ class LeaveService {
       throw new AppError("Leave reason is compulsory and cannot be empty", 400);
     }
 
-    await this.expireWorkspaceRequests(workspaceId);
-
     // members.privateRemoteAreas is select:false. Selecting it with the
     // members.* inclusion list creates a Mongo projection path collision on
     // the nested members array, so request the hidden field as an override and
@@ -179,13 +201,17 @@ class LeaveService {
     }
 
     let requestedRemoteAreaName: string | undefined;
+    let requestedRemoteLocation: { name: string; latitude: number; longitude: number } | undefined;
     if (requestType === "remote") {
       const requesterMember = workspace.members?.find((item: any) => item.user?.toString() === requesterId);
-      if ((requesterMember?.attendanceMode || "onsite") !== "onsite") throw new AppError("Temporary remote requests are for on-site members; manage a permanent remote place in workspace location settings", 400);
       const existingArea = remoteAreaId && requesterMember?.privateRemoteAreas?.find((area: any) => String(area._id) === String(remoteAreaId) && area.isActive);
-      if (existingArea) requestedRemoteAreaName = existingArea.name;
+      if (existingArea) {
+        requestedRemoteAreaName = existingArea.name;
+        requestedRemoteLocation = { name: existingArea.name, latitude: existingArea.latitude, longitude: existingArea.longitude };
+      }
       if (!existingArea && !proposedRemoteArea) throw new AppError("Choose an approved private remote place or propose an address", 400);
       if (proposedRemoteArea && (typeof proposedRemoteArea.name !== "string" || !proposedRemoteArea.name.trim() || !Number.isFinite(proposedRemoteArea.latitude) || proposedRemoteArea.latitude < -90 || proposedRemoteArea.latitude > 90 || !Number.isFinite(proposedRemoteArea.longitude) || proposedRemoteArea.longitude < -180 || proposedRemoteArea.longitude > 180)) throw new AppError("A valid proposed remote address is required", 400);
+      if (proposedRemoteArea) requestedRemoteLocation = { name: proposedRemoteArea.name.trim(), latitude: proposedRemoteArea.latitude, longitude: proposedRemoteArea.longitude };
       // The requester proposes a private place, but it is not added to the
       // workspace member until this assigned approver approves the request.
       // MANAGE_LEAVES authorizes that decision; requiring the separate address
@@ -213,6 +239,25 @@ class LeaveService {
 
     if (end < start) {
       throw new AppError("End date cannot be earlier than start date", 400);
+    }
+
+    if (requestType === "leave") {
+      const requestedStart = new Date(start);
+      requestedStart.setUTCHours(0, 0, 0, 0);
+      const requestedEnd = new Date(end);
+      requestedEnd.setUTCHours(23, 59, 59, 999);
+      const overlappingApprovedLeave = await LeaveRequest.findOne({
+        workspace: workspaceId,
+        requester: requesterId,
+        requestType: { $ne: "remote" },
+        status: "approved",
+        startDate: { $lte: requestedEnd },
+        endDate: { $gte: requestedStart },
+      }).select("_id startDate endDate");
+
+      if (overlappingApprovedLeave) {
+        throw new AppError("You already have approved leave during the requested dates", 409);
+      }
     }
 
     // Calculate days inclusive (1 day if same date)
@@ -256,7 +301,7 @@ class LeaveService {
           endDate: end,
           daysCount,
           reason: reason.trim(),
-          ...(requestType === "remote" ? { remoteAreaId: leave.remoteAreaId?.toString?.(), remoteAreaName: leave.remoteAreaName, proposedRemoteArea: leave.proposedRemoteArea?.toObject?.() || leave.proposedRemoteArea } : {}),
+          ...(requestType === "remote" ? { remoteAreaId: leave.remoteAreaId?.toString?.(), remoteAreaName: leave.remoteAreaName, proposedRemoteArea: leave.proposedRemoteArea?.toObject?.() || leave.proposedRemoteArea, remoteLocation: requestedRemoteLocation } : {}),
           status: "pending",
           isExceedingMonthlyQuota,
           monthlyLeaveCountAtRequest: approvedDaysThisMonth,
@@ -275,7 +320,8 @@ class LeaveService {
 
       await dm.populate("sender", "name email avatar profilePicture");
 
-      // Emit to participant user rooms so every client session gets the DM card.
+      // DM clients subscribe to their personal socket rooms; conversation rooms
+      // are not joined by every client, so deliver to both participants.
       try {
         await this.emitDirectMessageEvent("dm:new", leave, dm);
       } catch (err) {
@@ -289,8 +335,8 @@ class LeaveService {
     try {
       const managerIds = await this.getLeaveManagersForWorkspace(workspaceId);
       await enhancedNotificationService.notifyLeaveRequested(leave, workspace, managerIds);
-    } catch (error) {
-      console.error("[LeaveService] Failed to notify request reviewers:", error);
+    } catch (err) {
+      console.error("[LeaveService] Failed to notify request reviewers:", err);
     }
 
     return leave;
@@ -300,7 +346,6 @@ class LeaveService {
    * Approve Leave
    */
   async approveLeave(leaveId: string, approverId: string, workspaceId: string) {
-    await this.expireWorkspaceRequests(workspaceId);
     let leave: any = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture");
@@ -315,12 +360,6 @@ class LeaveService {
       throw new AppError(`Leave request has already been ${leave.status}`, 409);
     }
 
-    const timezone = await getWorkspaceTimezone(workspaceId);
-    if (isRequestExpired(leave.endDate, new Date(), timezone)) {
-      await this.expireWorkspaceRequests(workspaceId);
-      throw new AppError("This request has expired and can no longer be approved", 409);
-    }
-
     const approver = await User.findById(approverId).select("name email avatar profilePicture");
     if (!approver) {
       throw new AppError("Approver user not found", 404);
@@ -331,7 +370,7 @@ class LeaveService {
       try {
         await session.withTransaction(async () => {
           const currentRequest = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId }).session(session);
-          if (!currentRequest || currentRequest.status !== "pending" || isRequestExpired(currentRequest.endDate, new Date(), timezone)) throw new AppError("Remote request is no longer pending or has expired", 409);
+          if (!currentRequest || currentRequest.status !== "pending") throw new AppError("Remote request is no longer pending", 409);
           const workspaceDoc = await Workspace.findById(workspaceId).select("+members.privateRemoteAreas +members.temporaryRemoteApprovals").session(session);
           const requesterId = currentRequest.requester.toString();
           const member = workspaceDoc?.members?.find((item: any) => item.user?.toString() === requesterId);
@@ -339,7 +378,7 @@ class LeaveService {
           let area = currentRequest.remoteAreaId && member.privateRemoteAreas?.find((item: any) => String(item._id) === String(currentRequest.remoteAreaId) && item.isActive);
           if (!area && currentRequest.proposedRemoteArea) {
             member.privateRemoteAreas ||= [];
-            member.privateRemoteAreas.push({ _id: new Types.ObjectId(), name: currentRequest.proposedRemoteArea.name, latitude: currentRequest.proposedRemoteArea.latitude, longitude: currentRequest.proposedRemoteArea.longitude, radiusMeters: currentRequest.proposedRemoteArea.radiusMeters || 60, isActive: true });
+            member.privateRemoteAreas.push({ _id: new Types.ObjectId(), name: currentRequest.proposedRemoteArea.name, latitude: currentRequest.proposedRemoteArea.latitude, longitude: currentRequest.proposedRemoteArea.longitude, radiusMeters: currentRequest.proposedRemoteArea.radiusMeters || 60, isActive: true, temporaryOnly: true });
             area = member.privateRemoteAreas[member.privateRemoteAreas.length - 1];
           }
           if (!area) throw new AppError("The requested private remote place is no longer active", 409);
@@ -358,22 +397,10 @@ class LeaveService {
       await leave.populate("requester", "name email avatar profilePicture");
       await leave.populate("assignedManager", "name email avatar profilePicture");
     } else {
-      const approvedAt = new Date();
-      const date = workspaceCalendarDateKey(approvedAt, timezone);
-      const cutoff = new Date(`${date}T00:00:00.000Z`);
-      cutoff.setUTCDate(cutoff.getUTCDate() + 1);
-      const updated = await LeaveRequest.findOneAndUpdate(
-        { _id: leaveId, workspace: workspaceId, status: "pending", endDate: { $gte: cutoff } },
-        { $set: { status: "approved", approvedBy: approverId, approvedAt } },
-        { new: true }
-      );
-      if (!updated) {
-        await this.expireWorkspaceRequests(workspaceId);
-        throw new AppError("This request is no longer pending or has expired", 409);
-      }
-      leave = updated;
-      await leave.populate("requester", "name email avatar profilePicture");
-      await leave.populate("assignedManager", "name email avatar profilePicture");
+      leave.status = "approved";
+      leave.approvedBy = approverId as any;
+      leave.approvedAt = new Date();
+      await leave.save();
     }
 
     // If attached to a DM, update the DM card metadata live
@@ -391,13 +418,11 @@ class LeaveService {
         };
         await dm.save();
 
-        if (leave.conversation) {
-          try {
-            await dm.populate("sender", "name email avatar profilePicture");
-            await this.emitDirectMessageEvent("dm:updated", leave, dm);
-          } catch (err) {
-            console.error("[LeaveService] Failed to emit DM update socket:", err);
-          }
+        try {
+          await dm.populate("sender", "name email avatar profilePicture");
+          await this.emitDirectMessageEvent("dm:updated", leave, dm);
+        } catch (err) {
+          console.error("[LeaveService] Failed to emit DM update socket:", err);
         }
       }
     }
@@ -416,7 +441,6 @@ class LeaveService {
    * Deny Leave (denialReason is optional)
    */
   async denyLeave(leaveId: string, denierId: string, workspaceId: string, denialReason?: string) {
-    await this.expireWorkspaceRequests(workspaceId);
     const leave = await LeaveRequest.findOne({ _id: leaveId, workspace: workspaceId })
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture");
@@ -431,31 +455,16 @@ class LeaveService {
       throw new AppError(`Leave request has already been ${leave.status}`, 409);
     }
 
-    const timezone = await getWorkspaceTimezone(workspaceId);
-    if (isRequestExpired(leave.endDate, new Date(), timezone)) {
-      await this.expireWorkspaceRequests(workspaceId);
-      throw new AppError("This request has expired and can no longer be denied", 409);
-    }
-
     const denier = await User.findById(denierId).select("name email avatar profilePicture");
     if (!denier) {
       throw new AppError("Denier user not found", 404);
     }
 
-    const deniedAt = new Date();
-    const date = workspaceCalendarDateKey(deniedAt, timezone);
-    const cutoff = new Date(`${date}T00:00:00.000Z`);
-    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
-    const updated = await LeaveRequest.findOneAndUpdate(
-      { _id: leaveId, workspace: workspaceId, status: "pending", endDate: { $gte: cutoff } },
-      { $set: { status: "denied", deniedBy: denierId, deniedAt, denialReason: denialReason ? denialReason.trim() : null } },
-      { new: true }
-    );
-    if (!updated) {
-      await this.expireWorkspaceRequests(workspaceId);
-      throw new AppError("This request is no longer pending or has expired", 409);
-    }
-    Object.assign(leave, updated.toObject());
+    leave.status = "denied";
+    leave.deniedBy = denierId as any;
+    leave.deniedAt = new Date();
+    leave.denialReason = denialReason ? denialReason.trim() : null;
+    await leave.save();
 
     // Update DM card metadata
     if (leave.directMessageId) {
@@ -473,18 +482,16 @@ class LeaveService {
         };
         await dm.save();
 
-        if (leave.conversation) {
-          try {
-            await dm.populate("sender", "name email avatar profilePicture");
-            await this.emitDirectMessageEvent("dm:updated", leave, dm);
-          } catch (err) {
-            console.error("[LeaveService] Failed to emit DM update socket:", err);
-          }
+        try {
+          await dm.populate("sender", "name email avatar profilePicture");
+          await this.emitDirectMessageEvent("dm:updated", leave, dm);
+        } catch (err) {
+          console.error("[LeaveService] Failed to emit DM update socket:", err);
         }
       }
     }
 
-    // Notify the requester and other reviewers so workspace admins see the outcome.
+    // Notify the requester and authorized reviewers so every manager sees the resolution.
     const workspace = await Workspace.findById(leave.workspace);
     if (workspace) {
       const managerIds = await this.getLeaveManagersForWorkspace(workspace._id.toString());
@@ -520,37 +527,43 @@ class LeaveService {
     }
   }
 
-  /**
-   * Get workspace leaves with filters (status, month, user)
-   */
+  /** Get workspace leave and remote history with server-side filters and paging. */
   async getWorkspaceLeaves(workspaceId: string, query: any = {}) {
-    await this.expireWorkspaceRequests(workspaceId);
-    const filter: any = { workspace: workspaceId, requestType: { $ne: "remote" } };
-
-    if (query.status) {
-      filter.status = query.status;
-    }
-
-    if (query.userId) {
-      filter.requester = query.userId;
-    }
+    const filter: any = { workspace: workspaceId };
 
     if (query.month && query.year) {
       const month = parseInt(query.month, 10) - 1;
       const year = parseInt(query.year, 10);
       const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
       const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-      filter.startDate = { $gte: startOfMonth, $lte: endOfMonth };
+      filter.startDate = { $lte: endOfMonth };
+      filter.endDate = { $gte: startOfMonth };
     }
+    await this.applyRequestFilters(filter, query);
 
-    const leaves = await LeaveRequest.find(filter)
+    const page = Math.max(1, Math.floor(Number(query.page) || 1));
+    const pageSize = Math.min(50, Math.max(1, Math.floor(Number(query.pageSize ?? query.limit) || 10)));
+    const total = await LeaveRequest.countDocuments(filter);
+    const requests = await LeaveRequest.find(filter)
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture")
       .populate("approvedBy", "name email avatar profilePicture")
       .populate("deniedBy", "name email avatar profilePicture")
-      .sort({ startDate: -1 });
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize);
 
-    return leaves;
+    const totalPages = Math.ceil(total / pageSize);
+    return {
+      requests,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasMore: page < totalPages,
+      },
+    };
   }
 
   /**
@@ -573,7 +586,6 @@ class LeaveService {
   }
 
   async getRemoteRequests(workspaceId: string, actorId: string) {
-    await this.expireWorkspaceRequests(workspaceId);
     const workspace = await Workspace.findById(workspaceId).select("owner");
     if (!workspace) throw new AppError("Workspace not found", 404);
     const isOwner = workspace.owner?.toString() === actorId;
@@ -585,32 +597,71 @@ class LeaveService {
       .sort({ createdAt: -1 });
   }
 
-  async getMyRequests(workspaceId: string, requesterId: string) {
-    await this.expireWorkspaceRequests(workspaceId);
-    return LeaveRequest.find({ workspace: workspaceId, requester: requesterId })
+  async getMyRequests(workspaceId: string, actorId: string, page = 1, limit = 10, query: any = {}) {
+    const normalizedPage = Math.max(1, Math.floor(Number(page) || 1));
+    const normalizedLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    const filter = await this.applyRequestFilters(
+      { workspace: workspaceId, requester: actorId },
+      query,
+      { allowStatus: true, allowUser: false },
+    );
+    const total = await LeaveRequest.countDocuments(filter);
+    const requests = await LeaveRequest.find(filter)
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture")
-      .sort({ createdAt: -1 });
+      .populate("approvedBy", "name email avatar profilePicture")
+      .populate("deniedBy", "name email avatar profilePicture")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((normalizedPage - 1) * normalizedLimit)
+      .limit(normalizedLimit);
+
+    const totalPages = Math.ceil(total / normalizedLimit);
+    return {
+      requests,
+      pagination: {
+        page: normalizedPage,
+        pageSize: normalizedLimit,
+        total,
+        totalPages,
+        hasMore: normalizedPage < totalPages,
+      },
+    };
   }
 
-  async getAssignedInbox(workspaceId: string, actorId: string) {
-    await this.expireWorkspaceRequests(workspaceId);
+  async getReviewInbox(workspaceId: string, actorId: string, page = 1, limit = 10, query: any = {}) {
     const workspace = await Workspace.findById(workspaceId).select("owner");
     if (!workspace) throw new AppError("Workspace not found", 404);
-    const isOwner = workspace.owner?.toString() === actorId;
-    const canManage = (await permissionService.can(actorId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: actorId })) || (await permissionService.can(actorId, "MANAGE_LEAVES", { workspaceId, userId: actorId }));
+    const isOwner = workspace.owner?.toString() === actorId.toString();
+    const canManage = (await permissionService.can(actorId, "MANAGE_LEAVES_AND_REMOTE", { workspaceId, userId: actorId })) ||
+      (await permissionService.can(actorId, "MANAGE_LEAVES", { workspaceId, userId: actorId }));
     if (!isOwner && !canManage) throw new AppError("You do not have permission to review leave and remote requests", 403);
-    return LeaveRequest.find({ workspace: workspaceId, status: "pending", ...(isOwner ? {} : { assignedManager: actorId }) })
+
+    const normalizedPage = Math.max(1, Math.floor(Number(page) || 1));
+    const normalizedLimit = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
+    const filter = await this.applyRequestFilters({
+      workspace: workspaceId,
+      status: "pending",
+      ...(isOwner ? {} : { assignedManager: actorId }),
+    }, query, { allowStatus: false, allowUser: true });
+    const total = await LeaveRequest.countDocuments(filter);
+    const requests = await LeaveRequest.find(filter)
       .populate("requester", "name email avatar profilePicture")
       .populate("assignedManager", "name email avatar profilePicture")
-      .sort({ createdAt: -1 });
-  }
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((normalizedPage - 1) * normalizedLimit)
+      .limit(normalizedLimit);
 
-  async expireAllPendingRequests(): Promise<number> {
-    const workspaces = await Workspace.find({ isDeleted: false }).select("_id").lean();
-    let total = 0;
-    for (const workspace of workspaces) total += await this.expireWorkspaceRequests(String(workspace._id));
-    return total;
+    const totalPages = Math.ceil(total / normalizedLimit);
+    return {
+      requests,
+      pagination: {
+        page: normalizedPage,
+        pageSize: normalizedLimit,
+        total,
+        totalPages,
+        hasMore: normalizedPage < totalPages,
+      },
+    };
   }
 }
 

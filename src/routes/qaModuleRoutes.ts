@@ -1,0 +1,20 @@
+const express = require("express");
+const router = express.Router({ mergeParams: true });
+const { protect } = require("../middlewares/authMiddleware");
+const { requirePermission } = require("../permissions/permission.middleware");
+const { getCapabilities, getSettings, updateSettings, listModules, createModule, archiveModule, listProjects, createProject, getProjectSettings, updateProjectSettings, updateWorkspaceDefaults } = require("../controllers/qaModuleController");
+
+router.use(protect);
+router.get("/capabilities", getCapabilities);
+router.get("/settings", requirePermission("QA_VIEW"), getSettings);
+router.patch("/settings", requirePermission("MANAGE_SETTINGS"), updateSettings);
+router.get("/projects", requirePermission("QA_VIEW"), listProjects);
+router.post("/projects", requirePermission("MANAGE_SETTINGS"), createProject);
+router.get("/project-settings", requirePermission("QA_VIEW"), getProjectSettings);
+router.patch("/project-settings", requirePermission("MANAGE_SETTINGS"), updateProjectSettings);
+router.patch("/settings/defaults", requirePermission("MANAGE_SETTINGS"), updateWorkspaceDefaults);
+router.get("/modules", requirePermission("QA_VIEW"), listModules);
+router.post("/modules", requirePermission("QA_MANAGE_CASES"), createModule);
+router.delete("/modules/:moduleId", requirePermission("QA_MANAGE_CASES"), archiveModule);
+module.exports = router;
+export {};

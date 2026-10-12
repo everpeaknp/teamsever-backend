@@ -39,7 +39,7 @@ describe("attendance location policy", () => {
     const now = new Date();
     expect(() => matchAttendanceArea({ latitude: 100, longitude: -74, accuracyMeters: 10, capturedAt: now.toISOString() }, office, policy, now)).toThrow();
     expect(() => matchAttendanceArea({ latitude: 40, longitude: -74, accuracyMeters: 10, capturedAt: new Date(now.getTime() - 121000).toISOString() }, office, policy, now)).toThrow("stale");
-    expect(() => matchAttendanceArea({ latitude: 40, longitude: -74, accuracyMeters: 10, capturedAt: new Date(now.getTime() + 16000).toISOString() }, office, policy, now)).toThrow("stale");
+    expect(() => matchAttendanceArea({ latitude: 40, longitude: -74, accuracyMeters: 10, capturedAt: new Date(now.getTime() + 16000).toISOString() }, office, policy, now)).toThrow("device clock differs from server time");
     expect(() => matchAttendanceArea({ latitude: 40, longitude: -74, accuracyMeters: 101, capturedAt: now.toISOString() }, office, policy, now)).toThrow("accuracy");
     expect(() => matchAttendanceArea({ latitude: 41, longitude: -74, accuracyMeters: 10, capturedAt: now.toISOString() }, office, policy, now)).toThrow("outside");
   });

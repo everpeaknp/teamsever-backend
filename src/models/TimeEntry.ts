@@ -28,7 +28,8 @@ export interface ITimeEntry extends Document {
   companionPairingExpiresAt?: Date;
   companionDismissedDevices?: Schema.Types.ObjectId[];
   clockInLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaName?: string };
-  clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; distanceFromClockInMeters?: number; withinRange: boolean };
+  clockOutLocation?: { latitude: number; longitude: number; accuracyMeters: number; capturedAt: Date; areaId?: Schema.Types.ObjectId; areaName?: string; verificationMethod?: "gps" | "network_confirmed"; distanceFromClockInMeters?: number; withinRange?: boolean };
+  adminClockOutReason?: string;
   locationReviewReason?: string;
   isDeleted: boolean;
   deletedAt?: Date;
@@ -89,7 +90,8 @@ const timeEntrySchema = new mongoose.Schema(
     companionPairingExpiresAt: { type: Date, select: false },
     companionDismissedDevices: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "TrustedAttendanceDevice" }], select: false },
     clockInLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaName: String }, select: false },
-    clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
+    clockOutLocation: { type: { latitude: Number, longitude: Number, accuracyMeters: Number, capturedAt: Date, areaId: mongoose.Schema.Types.ObjectId, areaName: String, verificationMethod: { type: String, enum: ["gps", "network_confirmed"] }, distanceFromClockInMeters: Number, withinRange: Boolean }, select: false },
+    adminClockOutReason: { type: String, trim: true, maxlength: 500 },
     locationReviewReason: { type: String, maxlength: 160 },
     isRunning: {
       type: Boolean,

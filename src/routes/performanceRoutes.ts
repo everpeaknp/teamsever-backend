@@ -229,7 +229,7 @@ const contributionController = require("../controllers/contributionController");
  * /api/performance/contributions/me:
  *   get:
  *     summary: Get my contributions & streaks
- *     description: Retrieve current user's daily contributions and streak statistics.
+ *     description: Retrieve all available daily contributions grouped by date, plus current and longest streaks.
  *     tags: ["7.4 Time — Performance Metrics"]
  *     security:
  *       - bearerAuth: []
@@ -245,9 +245,9 @@ const contributionController = require("../controllers/contributionController");
  *         required: false
  *         schema:
  *           type: string
- *           enum: [all, commits, tasks]
+ *           enum: [all, github, tasks]
  *           default: all
- *         description: Type of contributions
+ *         description: Filter contributions by source
  *     responses:
  *       200:
  *         description: Contributions retrieved successfully
@@ -269,7 +269,7 @@ router.get("/contributions/me", contributionController.getMyContributions);
  * /api/performance/contributions/{userId}:
  *   get:
  *     summary: Get user contributions & streaks
- *     description: Retrieve specific user's daily contributions and streak statistics.
+ *     description: Retrieve all available daily contributions grouped by date, plus current and longest streaks.
  *     tags: ["7.4 Time — Performance Metrics"]
  *     security:
  *       - bearerAuth: []
@@ -290,9 +290,9 @@ router.get("/contributions/me", contributionController.getMyContributions);
  *         required: false
  *         schema:
  *           type: string
- *           enum: [all, commits, tasks]
+ *           enum: [all, github, tasks]
  *           default: all
- *         description: Type of contributions
+ *         description: Filter contributions by source
  *     responses:
  *       200:
  *         description: Contributions retrieved successfully

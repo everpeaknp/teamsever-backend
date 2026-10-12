@@ -3,6 +3,7 @@ import { AuthRequest } from "../types/express";
 
 const asyncHandler = require("../utils/asyncHandler");
 const taskService = require("../services/taskService");
+const { transitionBug, listVerificationRetests, linkPassingRetest } = require("../services/bugWorkflowService");
 const AppError = require("../utils/AppError");
 
 // @desc    Create new task
@@ -10,7 +11,7 @@ const AppError = require("../utils/AppError");
 // @access  Private
 const createTask = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   console.log('🚀 CONTROLLER: createTask called');
-  const { title, description, status, priority, dueDate, deadline, assignee } = req.body;
+  const { title, description, status, priority, dueDate, deadline, assignee, workItemType, moduleId, qaReviewer, bugDetails } = req.body;
   const { listId } = req.params;
 
   console.log('  ➜ Body:', JSON.stringify(req.body, null, 2));
@@ -18,6 +19,10 @@ const createTask = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
   try {
     const task = await taskService.createTask({
       title,
+      workItemType,
+      moduleId,
+      qaReviewer,
+      bugDetails,
       description,
       status,
       priority,
@@ -91,6 +96,25 @@ const updateTask = asyncHandler(async (req: AuthRequest, res: Response, next: Ne
     success: true,
     data: task
   });
+});
+
+const qualityTransition = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await transitionBug(req.params.id, req.body.action, req.user!.id, {
+    idempotencyKey: req.body.idempotencyKey,
+    reason: req.body.reason,
+    executionId: req.body.executionId,
+  });
+  res.status(200).json({ success: true, data });
+});
+
+const qualityRetests = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await listVerificationRetests(req.params.id, req.user!.id);
+  res.status(200).json({ success: true, data });
+});
+
+const linkQualityRetest = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await linkPassingRetest(req.params.id, req.params.executionId, req.user!.id);
+  res.status(200).json({ success: true, data });
 });
 
 // @desc    Delete task
@@ -201,6 +225,9 @@ const getDependents = asyncHandler(async (req: AuthRequest, res: Response, next:
 
 module.exports = {
   createTask,
+  qualityTransition,
+  qualityRetests,
+  linkQualityRetest,
   getListTasks,
   getTask,
   updateTask,

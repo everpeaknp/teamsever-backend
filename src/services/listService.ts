@@ -8,6 +8,7 @@ const SpaceMember = require("../models/SpaceMember");
 const AppError = require("../utils/AppError");
 const softDelete = require("../utils/softDelete");
 const logger = require("../utils/logger");
+const { getTaskCountsByList } = require("../utils/taskCounts");
 
 interface CreateListData {
   name: string;
@@ -243,24 +244,11 @@ class ListService {
     }
 
     // Add task counts and list members to each list
-    const listsWithCounts = await Promise.all(
-      listsToReturn.map(async (list: any) => {
-        const taskCount = await Task.countDocuments({ 
-          list: list._id, 
-          isDeleted: false 
-        });
-        const completedCount = await Task.countDocuments({ 
-          list: list._id, 
-          status: 'done',
-          isDeleted: false 
-        });
-        return {
-          ...list,
-          taskCount,
-          completedCount
-        };
-      })
-    );
+    const taskCounts = await getTaskCountsByList(Task, listsToReturn);
+    const listsWithCounts = listsToReturn.map((list: any) => ({
+      ...list,
+      ...(taskCounts.get(String(list._id)) || { taskCount: 0, completedCount: 0 }),
+    }));
 
     return listsWithCounts;
   }

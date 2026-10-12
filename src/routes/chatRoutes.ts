@@ -337,6 +337,10 @@ const channelRouter = express.Router();
  *               $ref: "#/components/schemas/ApiResponse"
  */
 channelRouter
+  .route("/:channelId/members")
+  .get(protect, chatController.getChannelMembers);
+
+channelRouter
   .route("/:channelId/messages")
   .get(protect, chatController.getChannelMessages);
 

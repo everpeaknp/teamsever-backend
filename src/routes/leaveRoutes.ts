@@ -75,6 +75,11 @@ router.get(
 router.get("/my-requests", requirePermission("VIEW_WORKSPACE"), leaveController.getMyRequests);
 router.get("/inbox", requirePermission("VIEW_WORKSPACE"), leaveController.getAssignedInbox);
 
+// Personal history is private to the authenticated member. The review inbox
+// applies MANAGE_LEAVES and assigned-approver authorization in the service.
+router.get("/my-requests", leaveController.getMyRequests);
+router.get("/inbox", leaveController.getReviewInbox);
+
 /**
  * @swagger
  * /api/workspaces/{workspaceId}/leaves/today:

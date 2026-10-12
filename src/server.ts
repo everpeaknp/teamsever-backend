@@ -61,6 +61,10 @@ const startServer = async () => {
     const { spaceListRouter, listRouter } = require("./routes/listRoutes");
     const listMemberRoutes = require("./routes/listMemberRoutes");
     const { listTaskRouter, taskRouter } = require("./routes/taskRoutes");
+    const qaModuleRoutes = require("./routes/qaModuleRoutes");
+    const qaCaseRoutes = require("./routes/qaCaseRoutes");
+    const qaRunRoutes = require("./routes/qaRunRoutes");
+    const qaReportRoutes = require("./routes/qaReportRoutes");
     const { workspaceInvitationRouter, inviteRouter, publicInviteRouter } = require("./routes/invitationRoutes");
     const { workspaceChatRouter, channelRouter, chatRouter } = require("./routes/chatRoutes");
     const notificationRoutes = require("./routes/notificationRoutes");
@@ -103,7 +107,12 @@ const startServer = async () => {
     const recurringService = require("./services/recurringService");
     const attendanceLocationService = require("./services/attendanceLocationService");
     const AttendanceLocationEvent = require("./models/AttendanceLocationEvent");
-    await AttendanceLocationEvent.createIndexes();
+    // Index creation can take a while on a populated database. Keep it off the
+    // HTTP startup path so a slow index build does not leave every API route
+    // unavailable while MongoDB itself is already connected.
+    void AttendanceLocationEvent.createIndexes()
+      .then(() => console.log("[Server] Attendance location indexes ready"))
+      .catch((error) => console.error("[Server] Failed to ensure attendance location indexes:", error));
 
     // 2. Initialize Firebase Admin SDK
     initializeFirebase();
@@ -210,6 +219,10 @@ const startServer = async () => {
     app.use("/api/auth", authRoutes);
     const customRoleRoutes = require("./routes/customRoleRoutes");
     app.use("/api/workspaces", workspaceRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaModuleRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaCaseRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaRunRoutes);
+    app.use("/api/workspaces/:workspaceId/quality", qaReportRoutes);
     app.use("/api/v2/workspaces", workspaceV2Routes);
     app.use("/api/workspaces", customRoleRoutes);
     app.use("/api/workspaces/:workspaceId/spaces", workspaceSpaceRouter);

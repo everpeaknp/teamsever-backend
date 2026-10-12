@@ -23,6 +23,9 @@ export interface INotification extends Document {
     | "LEAVE_APPROVED"
     | "LEAVE_DENIED"
     | "LEAVE_REQUEST"
+    | "QA_RUN_ASSIGNED"
+    | "QA_FAILURE_RECORDED"
+    | "QA_RUN_CLOSED"
     | "SYSTEM";
   title: string;
   body: string;
@@ -76,6 +79,9 @@ const notificationSchema = new Schema<INotification>(
         "LEAVE_APPROVED",
         "LEAVE_DENIED",
         "LEAVE_REQUEST",
+        "QA_RUN_ASSIGNED",
+        "QA_FAILURE_RECORDED",
+        "QA_RUN_CLOSED",
         "SYSTEM"
       ],
       required: true,
