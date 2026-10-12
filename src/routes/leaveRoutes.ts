@@ -72,9 +72,6 @@ router.get(
   requirePermission("VIEW_WORKSPACE"),
   leaveController.getMyLeaveQuota
 );
-router.get("/my-requests", requirePermission("VIEW_WORKSPACE"), leaveController.getMyRequests);
-router.get("/inbox", requirePermission("VIEW_WORKSPACE"), leaveController.getAssignedInbox);
-
 // Personal history is private to the authenticated member. The review inbox
 // applies MANAGE_LEAVES and assigned-approver authorization in the service.
 router.get("/my-requests", leaveController.getMyRequests);
