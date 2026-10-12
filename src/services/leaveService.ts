@@ -10,8 +10,48 @@ const AppError = require("../utils/AppError");
 const permissionService = require("../permissions/permission.service");
 const enhancedNotificationService = require("./enhancedNotificationService").default || require("./enhancedNotificationService");
 const socketService = require("./socketService").default || require("./socketService");
+const { getWorkspaceTimezone, workspaceCalendarDateKey } = require("./workspaceCalendar");
 
 class LeaveService {
+  async expireWorkspaceRequests(workspaceId: string, now = new Date()): Promise<number> {
+    const timezone = await getWorkspaceTimezone(workspaceId);
+    const today = workspaceCalendarDateKey(now, timezone);
+    const cutoff = new Date(`${today}T00:00:00.000Z`);
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+
+    const candidates = await LeaveRequest.find({
+      workspace: workspaceId,
+      status: "pending",
+      endDate: { $lt: cutoff },
+    });
+    let expiredCount = 0;
+
+    for (const candidate of candidates) {
+      const expiredRequest = await LeaveRequest.findOneAndUpdate(
+        { _id: candidate._id, status: "pending", endDate: { $lt: cutoff } },
+        { $set: { status: "expired", expiredAt: now } },
+        { new: true },
+      );
+      if (!expiredRequest) continue;
+      expiredCount += 1;
+
+      if (!expiredRequest.directMessageId) continue;
+      const dm = await DirectMessage.findById(expiredRequest.directMessageId);
+      if (!dm) continue;
+
+      dm.metadata = { ...dm.metadata, status: "expired", expiredAt: now };
+      await dm.save();
+      try {
+        await dm.populate("sender", "name email avatar profilePicture");
+        await this.emitDirectMessageEvent("dm:updated", expiredRequest, dm);
+      } catch (error) {
+        console.error("[LeaveService] Failed to emit expired DM update:", error);
+      }
+    }
+
+    return expiredCount;
+  }
+
   private async applyRequestFilters(
     filter: any,
     query: any,
