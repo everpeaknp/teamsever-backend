@@ -1,7 +1,10 @@
 const CustomRole = require("../models/CustomRole");
 const Workspace = require("../models/Workspace");
 const EntitlementService = require("../services/entitlementService").default;
-const { ROLE_PERMISSIONS } = require("../permissions/permission.constants");
+const {
+  ROLE_PERMISSIONS,
+  withoutInheritedRolePermissions,
+} = require("../permissions/permission.constants");
 
 const PERMISSION_CATALOG = [
   { key: "VIEW_WORKSPACE", label: "Workspace Home Access", category: "Workspace Access" },
@@ -360,7 +363,7 @@ export const upsertSystemRolePermissionAdditions = async (req: any, res: any) =>
 export const getMemberAdditionalPermissions = async (req: any, res: any) => {
   try {
     const { workspaceId, memberId } = req.params;
-    const workspace = await Workspace.findById(workspaceId).select("members.user members.additionalPermissions members.restrictedPermissions");
+    const workspace = await Workspace.findById(workspaceId).select("members.user members.role members.additionalPermissions members.restrictedPermissions");
     if (!workspace) {
       return res.status(404).json({ success: false, message: "Workspace not found" });
     }
@@ -370,10 +373,14 @@ export const getMemberAdditionalPermissions = async (req: any, res: any) => {
       return res.status(404).json({ success: false, message: "Member not found in workspace" });
     }
 
+    const additionalPermissions = ROLE_PERMISSIONS[member.role]
+      ? withoutInheritedRolePermissions(member.role, member.additionalPermissions || [])
+      : member.additionalPermissions || [];
+
     res.status(200).json({
       success: true,
       data: {
-        additionalPermissions: member.additionalPermissions || [],
+        additionalPermissions,
         restrictedPermissions: member.restrictedPermissions || []
       }
     });
@@ -405,16 +412,27 @@ export const upsertMemberAdditionalPermissions = async (req: any, res: any) => {
         .filter((p: string) => p && ALL_PERMISSION_KEYS.has(p))
     )];
 
+    const roleWorkspace = await Workspace.findOne(
+      { _id: workspaceId, "members.user": memberId }
+    ).select("members.user members.role");
+    if (!roleWorkspace) {
+      return res.status(404).json({ success: false, message: "Member not found in workspace" });
+    }
+    const roleMember = roleWorkspace.members.find((m: any) => m.user.toString() === memberId);
+    const additiveOnlyPermissions = roleMember && ROLE_PERMISSIONS[roleMember.role]
+      ? withoutInheritedRolePermissions(roleMember.role, normalizedAdditionalPermissions)
+      : normalizedAdditionalPermissions;
+
     const workspace = await Workspace.findOneAndUpdate(
       { _id: workspaceId, "members.user": memberId },
       {
         $set: {
-          "members.$.additionalPermissions": normalizedAdditionalPermissions,
+          "members.$.additionalPermissions": additiveOnlyPermissions,
           "members.$.restrictedPermissions": normalizedRestrictedPermissions
         }
       },
       { new: true }
-    ).select("members.user members.additionalPermissions members.restrictedPermissions");
+    ).select("members.user members.role members.additionalPermissions members.restrictedPermissions");
 
     if (!workspace) {
       return res.status(404).json({ success: false, message: "Member not found in workspace" });

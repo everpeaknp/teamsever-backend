@@ -3,6 +3,7 @@ const { createTaskSchema } = require("../validators/taskValidators");
 const Workspace = require("../models/Workspace");
 const QaModule = require("../models/QaModule");
 const { roleHasPermission } = require("../permissions/permission.constants");
+const permissionConstants = require("../permissions/permission.constants");
 const { WorkspaceRole } = require("../permissions/permission.types");
 const { getPermissionCatalog } = require("../controllers/customRoleController");
 
@@ -89,11 +90,26 @@ describe("QA bug foundation", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("grants QA bug reporting and case work but reserves release signoff for managers", () => {
-    expect(roleHasPermission(WorkspaceRole.QA, "CREATE_BUG")).toBe(true);
-    expect(roleHasPermission(WorkspaceRole.QA, "AUTHOR_CASE")).toBe(true);
-    expect(roleHasPermission(WorkspaceRole.QA, "SIGN_OFF_QA")).toBe(false);
-    expect(roleHasPermission(WorkspaceRole.PROJECT_MANAGER, "SIGN_OFF_QA")).toBe(true);
+  it("grants the QA role every Quality workflow permission", () => {
+    for (const permission of [
+      "QA_VIEW",
+      "QA_MANAGE_CASES",
+      "QA_EXECUTE",
+      "QA_CREATE_BUG",
+      "QA_TRIAGE_BUG",
+      "QA_VERIFY_BUG",
+      "QA_MANAGE_RELEASES",
+      "QA_SIGN_OFF",
+    ] as const) {
+      expect(roleHasPermission(WorkspaceRole.QA, permission)).toBe(true);
+    }
+  });
+
+  it("removes newly inherited QA permissions from legacy member additions", () => {
+    expect(permissionConstants.withoutInheritedRolePermissions?.(
+      WorkspaceRole.QA,
+      ["QA_SIGN_OFF", "QA_TRIAGE_BUG", "MANAGE_SETTINGS"],
+    )).toEqual(["MANAGE_SETTINGS"]);
   });
 
   it("keeps the new Quality UI gated for existing workspaces", () => {

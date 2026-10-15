@@ -400,7 +400,7 @@ export const ROLE_PERMISSIONS: Record<WorkspaceRole, PermissionAction[]> = {
   ],
 
   [WorkspaceRole.QA]: [
-    "QA_VIEW", "QA_MANAGE_CASES", "QA_EXECUTE", "QA_CREATE_BUG", "QA_VERIFY_BUG", "QA_MANAGE_RELEASES",
+    ...QUALITY_MANAGER_PERMISSIONS,
     // Workspace
     "VIEW_WORKSPACE",
     "LEAVE_WORKSPACE",
@@ -476,6 +476,18 @@ export function roleHasPermission(
   action: PermissionAction
 ): boolean {
   return ROLE_PERMISSIONS[role].includes(canonicalPermissionAction(action));
+}
+
+/**
+ * Keep member additions additive by dropping permissions already inherited
+ * from the member's built-in role. This also cleans up legacy overrides when
+ * a role gains a new default permission.
+ */
+export function withoutInheritedRolePermissions(
+  role: WorkspaceRole,
+  permissions: PermissionAction[]
+): PermissionAction[] {
+  return permissions.filter((permission) => !roleHasPermission(role, permission));
 }
 
 /**
