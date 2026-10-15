@@ -4,6 +4,7 @@ const Workspace = require("../models/Workspace");
 const Space = require("../models/Space");
 const List = require("../models/List");
 const chatService = require("../services/chatService");
+const presenceService = require("../services/presenceService");
 const presenceManager = require("./presence");
 const { checkMessageLimitForWorkspace } = require("../middlewares/messageLimitMiddleware");
 
@@ -228,50 +229,19 @@ const registerHandlers = (io, socket) => {
     // Remove socket from socket service
     socketService.removeSocket(userId, socket.id);
 
-    // Check if user is still online (other devices)
-    const isStillOnline = socketService.isUserOnline(userId);
+    // Presence is per user, so one disconnected device must not mark a user
+    // offline while another socket is still connected.
+    if (socketService.isUserOnline(userId)) return;
 
-    // If user is completely offline, emit user:offline event
-    if (!isStillOnline) {
-      try {
-        // Get user's workspaces to notify workspace members
-        const Workspace = require("../models/Workspace");
-        Workspace.find({
-          "members.user": userId,
-          isDeleted: false,
-        })
-          .select("_id members")
-          .lean()
-          .then((workspaces) => {
-            workspaces.forEach((workspace) => {
-              // Notify all workspace members that user is offline
-              workspace.members.forEach((member) => {
-                const memberId = member.user.toString();
-                if (memberId !== userId) {
-                  socketService.emitToUser(memberId, "user:online", {
-                    userId,
-                    userName: socket.user!.name,
-                    workspaceId: workspace._id.toString(),
-                    timestamp: new Date(),
-                  });
-                }
-              });
-            });
-          })
-          .catch((error) => {
-            console.error("[Socket] Failed to emit user:online event:", error);
-          });
-      } catch (error) {
-        console.error("[Socket] Failed to emit user:online event:", error);
-      }
-    }
-
-    // Remove user from all workspace presence
     const affectedWorkspaces = presenceManager.removeUserFromAll(userId);
-
-    // Emit presence updates to affected workspaces
     affectedWorkspaces.forEach((workspaceId) => {
       presenceManager.emitPresenceUpdate(io, workspaceId);
+    });
+
+    // Persists lastSeenAt and emits the canonical user:offline event. The
+    // service checks the connection state again to avoid a reconnect race.
+    void presenceService.handleUserDisconnect(userId, affectedWorkspaces).catch((error) => {
+      console.error("[Socket] Failed to update user offline presence:", error);
     });
   });
 

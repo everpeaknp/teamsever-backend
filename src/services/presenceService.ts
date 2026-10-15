@@ -176,14 +176,17 @@ class PresenceService {
   /**
    * Broadcast user offline event to workspace members
    */
-  async broadcastUserOffline(userId: string, workspaceId: string): Promise<void> {
+  async broadcastUserOffline(userId: string, workspaceId: string, recordedLastSeen?: Date): Promise<void> {
     try {
-      // Update last seen
-      const lastSeen = new Date();
-      try {
-        await this.updateLastSeen(userId, lastSeen);
-      } catch (error) {
-        console.error("[Presence] Failed to persist last-seen time:", error);
+      // Standalone callers persist here; a disconnect handler can pass the
+      // single timestamp it already recorded for all workspace broadcasts.
+      const lastSeen = recordedLastSeen ?? new Date();
+      if (!recordedLastSeen) {
+        try {
+          await this.updateLastSeen(userId, lastSeen);
+        } catch (error) {
+          console.error("[Presence] Failed to persist last-seen time:", error);
+        }
       }
 
       // Get workspace members
@@ -242,8 +245,15 @@ class PresenceService {
   async handleUserDisconnect(userId: string, workspaceIds: string[]): Promise<void> {
     // Only broadcast offline if user has no more connections
     if (!socketService.isUserOnline(userId)) {
+      const lastSeen = new Date();
+      try {
+        // Persist even when this socket had not joined a workspace room.
+        await this.updateLastSeen(userId, lastSeen);
+      } catch (error) {
+        console.error("[Presence] Failed to persist last-seen time:", error);
+      }
       for (const workspaceId of workspaceIds) {
-        await this.broadcastUserOffline(userId, workspaceId);
+        await this.broadcastUserOffline(userId, workspaceId, lastSeen);
       }
     }
   }

@@ -41,4 +41,16 @@ describe('presenceService', () => {
       { $set: { lastSeenAt } },
     );
   });
+
+  it('persists last-seen even when the disconnecting socket had joined no workspace rooms', async () => {
+    socketService.isUserOnline.mockReturnValue(false);
+    User.updateOne.mockResolvedValue({ acknowledged: true });
+
+    await presenceService.handleUserDisconnect('member-id', []);
+
+    expect(User.updateOne).toHaveBeenCalledWith(
+      { _id: 'member-id' },
+      expect.objectContaining({ $set: expect.objectContaining({ lastSeenAt: expect.any(Date) }) }),
+    );
+  });
 });
