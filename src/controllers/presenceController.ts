@@ -43,7 +43,7 @@ const getOnlineUsers = asyncHandler(async (req: any, res: any) => {
 const getUserPresence = asyncHandler(async (req: any, res: any) => {
   const { userId } = req.params;
 
-  const presence = presenceService.getUserPresence(userId);
+  const presence = await presenceService.getUserPresence(userId);
 
   res.json({
     success: true,

@@ -12,7 +12,7 @@ const AppError = require("../utils/AppError");
 interface UserPresence {
   userId: string;
   status: "online" | "offline";
-  lastSeen: Date;
+  lastSeen: Date | null;
   deviceCount: number;
 }
 
@@ -24,21 +24,18 @@ interface WorkspacePresence {
 }
 
 class PresenceService {
-  // In-memory cache of user last seen times
-  private lastSeenCache: Map<string, Date> = new Map();
-
   /**
    * Get user presence status
    */
-  getUserPresence(userId: string): UserPresence {
+  async getUserPresence(userId: string): Promise<UserPresence> {
     const isOnline = socketService.isUserOnline(userId);
     const deviceCount = socketService.getUserConnectionCount(userId);
-    const lastSeen = this.lastSeenCache.get(userId) || new Date();
+    const user = await User.findById(userId).select("lastSeenAt").lean();
 
     return {
       userId,
       status: isOnline ? "online" : "offline",
-      lastSeen: isOnline ? new Date() : lastSeen,
+      lastSeen: isOnline ? new Date() : user?.lastSeenAt ?? null,
       deviceCount,
     };
   }
@@ -46,8 +43,9 @@ class PresenceService {
   /**
    * Update user last seen time
    */
-  updateLastSeen(userId: string): void {
-    this.lastSeenCache.set(userId, new Date());
+  async updateLastSeen(userId: string, lastSeenAt = new Date()): Promise<Date> {
+    await User.updateOne({ _id: userId }, { $set: { lastSeenAt } });
+    return lastSeenAt;
   }
 
   /**
@@ -90,12 +88,25 @@ class PresenceService {
     // Get all member user IDs
     const memberIds = workspace.members.map((m: any) => m.user.toString());
 
+    // Load names and persisted last-seen values in one query.
+    const users = await User.find({ _id: { $in: memberIds } })
+      .select("_id name email lastSeenAt")
+      .lean();
+    const userMap = new Map<string, any>(users.map((u: any) => [u._id.toString(), u]));
+
     // Get presence for each member
     const onlineUsers: UserPresence[] = [];
     const offlineUsers: UserPresence[] = [];
 
     for (const userId of memberIds) {
-      const presence = this.getUserPresence(userId);
+      const isOnline = socketService.isUserOnline(userId);
+      const user = userMap.get(userId);
+      const presence: UserPresence = {
+        userId,
+        status: isOnline ? "online" : "offline",
+        lastSeen: isOnline ? new Date() : user?.lastSeenAt ?? null,
+        deviceCount: socketService.getUserConnectionCount(userId),
+      };
       
       if (presence.status === "online") {
         onlineUsers.push(presence);
@@ -103,15 +114,6 @@ class PresenceService {
         offlineUsers.push(presence);
       }
     }
-
-    // Populate user details
-    const users = await User.find({
-      _id: { $in: memberIds },
-    })
-      .select("_id name email")
-      .lean();
-
-    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
 
     // Add user details to presence
     const enrichPresence = (presence: UserPresence) => ({
@@ -177,7 +179,12 @@ class PresenceService {
   async broadcastUserOffline(userId: string, workspaceId: string): Promise<void> {
     try {
       // Update last seen
-      this.updateLastSeen(userId);
+      const lastSeen = new Date();
+      try {
+        await this.updateLastSeen(userId, lastSeen);
+      } catch (error) {
+        console.error("[Presence] Failed to persist last-seen time:", error);
+      }
 
       // Get workspace members
       const workspace = await Workspace.findById(workspaceId)
@@ -210,7 +217,7 @@ class PresenceService {
             name: user.name,
             email: user.email,
           },
-          lastSeen: this.lastSeenCache.get(userId) || new Date(),
+          lastSeen,
           timestamp: new Date(),
         });
       });
@@ -259,19 +266,6 @@ class PresenceService {
     return socketService.isUserOnline(userId);
   }
 
-  /**
-   * Get user's last seen time
-   */
-  getLastSeen(userId: string): Date {
-    return this.lastSeenCache.get(userId) || new Date();
-  }
-
-  /**
-   * Clear last seen cache (for testing/cleanup)
-   */
-  clearCache(): void {
-    this.lastSeenCache.clear();
-  }
 }
 
 const presenceService = new PresenceService();

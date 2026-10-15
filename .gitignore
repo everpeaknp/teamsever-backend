@@ -111,3 +111,4 @@ tmp/
 .cache/
 .eslintcache
 !src/__tests__/workspaceClockOutLocation.test.ts
+!src/__tests__/presenceService.test.ts

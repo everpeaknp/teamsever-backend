@@ -6,6 +6,7 @@ interface IUser extends Document {
   password: string;
   profilePicture?: string;
   coverPhoto?: string;
+  lastSeenAt?: Date | null;
   googleId?: string;
   githubUsername?: string;
   appleId?: string;
@@ -64,6 +65,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     profilePicture: { type: String },
     coverPhoto: { type: String },
+    lastSeenAt: { type: Date, default: null },
     googleId: { type: String },
     githubUsername: { type: String },
     appleId: { type: String },
