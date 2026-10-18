@@ -6,7 +6,11 @@ export function resolveAttendanceClockSource(input: { mobileClockRequest: boolea
 }
 
 export function canClockOutFromClient(entrySource: ClockSource, entryDeviceId: string | null | undefined, requestSource: ClockSource, requestDeviceId: string | null | undefined): boolean {
-  if (entrySource !== requestSource) return false;
-  if (entrySource === "web" || entrySource === "mobile") return true;
-  return !!entryDeviceId && entryDeviceId === requestDeviceId;
+  // The route authenticates the user (and desktop routes also require a
+  // trusted device). A shift belongs to that user, so the user may end it from
+  // another signed-in client. Keep this check as a guard against an
+  // unauthenticated desktop source; location policy is validated separately.
+  void entrySource;
+  void entryDeviceId;
+  return requestSource !== "desktop" || !!requestDeviceId;
 }
