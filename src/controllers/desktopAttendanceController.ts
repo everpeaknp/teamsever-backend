@@ -79,13 +79,13 @@ const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
   if (entry?.clockInSource === "mobile") {
     if (String(entry.presenceCompanionDevice || "") === deviceId && req.desktopDevice.activityMonitoringEnabled) {
       presenceTrackingActive = true;
-    } else if (!entry.presenceCompanionDevice && req.desktopDevice.activityMonitoringEnabled) {
+    } else if (!entry.presenceCompanionDevice) {
       const dismissed = (entry.companionDismissedDevices || []).some((id: any) => String(id) === deviceId);
       const fingerprintFresh = !!entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() > Date.now();
       const ip = await resolveAttendanceClientIp(req.ip);
       const fingerprint = attendanceNetworkFingerprint(ip);
       if (!dismissed && fingerprintFresh && fingerprint && fingerprint === entry.networkFingerprint) {
-        if (req.desktopDevice.autoSyncMobileShifts) {
+        if (req.desktopDevice.activityMonitoringEnabled && req.desktopDevice.autoSyncMobileShifts) {
           const linked = await TimeEntry.findOneAndUpdate(
             { _id: entry._id, user: req.user.id, isRunning: true, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, networkFingerprint: fingerprint },
             { $set: { presenceCompanionDevice: req.desktopDevice._id }, $unset: { networkFingerprint: 1, networkFingerprintExpiresAt: 1 } },
@@ -116,7 +116,6 @@ const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
 const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
   const action = req.body?.action;
   if (!["sync_once", "always", "not_now"].includes(action)) return next(new AppError("Invalid companion action", 400));
-  if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable foreground app presence for this desktop before linking a mobile shift", 403));
   const entry = await TimeEntry.findOne({
     _id: req.params.timeEntryId,
     user: req.user.id,
@@ -136,10 +135,17 @@ const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: 
   if (!fingerprintFresh || !fingerprint || fingerprint !== entry.networkFingerprint) {
     return next(new AppError("This mobile shift is not on the same network. Use the pairing code from the mobile app.", 409));
   }
+  // The user's choice in the sync prompt is the explicit consent to enable
+  // desktop presence for this device. Requiring consent before showing that
+  // prompt would make a new device unable to discover or sync a mobile shift.
+  if (!req.desktopDevice.activityMonitoringEnabled) {
+    req.desktopDevice.activityMonitoringEnabled = true;
+    req.desktopDevice.activityMonitoringEnabledAt = new Date();
+  }
   if (action === "always") {
     req.desktopDevice.autoSyncMobileShifts = true;
-    await req.desktopDevice.save();
   }
+  await req.desktopDevice.save();
   const linked = await TimeEntry.findOneAndUpdate(
     { _id: entry._id, user: req.user.id, isRunning: true, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, networkFingerprint: fingerprint },
     { $set: { presenceCompanionDevice: req.desktopDevice._id }, $unset: { networkFingerprint: 1, networkFingerprintExpiresAt: 1 } },
