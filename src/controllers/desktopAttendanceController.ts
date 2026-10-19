@@ -207,7 +207,10 @@ const recordAppPresence = asyncHandler(async (req: any, res: Response, next: Nex
   const idleDetectionSupported = isLegacyHeartbeat ? false : req.body?.idleDetectionSupported;
   if (!presenceStatus || (appId !== null && appId !== undefined && !safeAppId) || !mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(timeEntryId) || !validDesktopActivityInterval(startedAt, endedAt) || !validDesktopPresenceCapabilities(presenceStatus, foregroundAppSupported, idleDetectionSupported) || (safeAppId && !foregroundAppSupported)) return next(new AppError("Invalid desktop presence sample", 400));
   if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Desktop presence monitoring is disabled for this device", 403));
-  const entry = await TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop", clockInDevice: req.desktopDevice._id }, { desktopPresenceDevice: req.desktopDevice._id }, { clockInSource: "mobile", presenceCompanionDevice: req.desktopDevice._id }] });
+  const entryQuery = TimeEntry.findOne({ _id: timeEntryId, workspace: workspaceId, user: req.user.id, isRunning: true, isDeleted: false, $or: [{ clockInSource: "desktop", clockInDevice: req.desktopDevice._id }, { desktopPresenceDevice: req.desktopDevice._id }, { clockInSource: "mobile", presenceCompanionDevice: req.desktopDevice._id }] });
+  // This field is select:false on TimeEntry, but is required below to verify
+  // that this trusted desktop owns the mobile shift's presence pairing.
+  const entry = await (typeof entryQuery.select === "function" ? entryQuery.select("+presenceCompanionDevice") : entryQuery);
   if (!entry || !canRecordDesktopPresence({
     monitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
     isRunning: !!entry.isRunning,

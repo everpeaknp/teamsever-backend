@@ -100,6 +100,31 @@ describe("desktop presence heartbeat API", () => {
     expect(JSON.stringify(DesktopAppPresence.create.mock.calls[0][0])).not.toMatch(/keyCount|mouseClickCount|typedText/);
   });
 
+  it("selects the hidden companion device before authorizing a mobile-shift heartbeat", async () => {
+    const mobileEntry = {
+      ...validEntry,
+      clockInSource: "mobile",
+      clockInDevice: undefined,
+      presenceCompanionDevice: mockDeviceId,
+    };
+    const query = {
+      select: jest.fn((projection: string) => Promise.resolve(
+        projection.includes("+presenceCompanionDevice")
+          ? mobileEntry
+          : { ...mobileEntry, presenceCompanionDevice: undefined },
+      )),
+      then: (resolve: (value: any) => unknown, reject: (reason: unknown) => unknown) =>
+        Promise.resolve({ ...mobileEntry, presenceCompanionDevice: undefined }).then(resolve, reject),
+    };
+    TimeEntry.findOne.mockReturnValueOnce(query);
+
+    const response = await request(app).post(activityUrl).send(basePayload);
+
+    expect(response.status).toBe(201);
+    expect(query.select).toHaveBeenCalledWith("+presenceCompanionDevice");
+    expect(DesktopAppPresence.create).toHaveBeenCalledWith(expect.objectContaining({ device: mockDeviceId, timeEntry: mockTimeEntryId }));
+  });
+
   it("stores AFK when idle detection works but foreground app lookup does not", async () => {
     const response = await request(app).post(activityUrl).send({
       ...basePayload,
