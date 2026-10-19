@@ -52,6 +52,7 @@ node_modules/
 !/src/__tests__/
 !/src/__tests__/desktopPresencePolicy.test.ts
 !/src/__tests__/desktopPresenceApi.test.ts
+!/src/__tests__/currentDesktopPresenceApi.test.ts
 !/src/__tests__/desktopActivityValidation.test.ts
 !/src/__tests__/desktopPresenceTimeline.test.ts
 src/__tests__/jest.setup.ts
@@ -69,6 +70,7 @@ src/__tests__/*
 !src/__tests__/timeEntryClockMode.test.ts
 !src/__tests__/invitationCodeReuse.test.ts
 !src/__tests__/analyticsActivityScope.test.ts
+!src/__tests__/currentDesktopPresenceApi.test.ts
 !src/__tests__/invitationLifecycle.test.ts
 !src/__tests__/apiRoutes.test.ts
 !src/__tests__/jest.setup.ts
