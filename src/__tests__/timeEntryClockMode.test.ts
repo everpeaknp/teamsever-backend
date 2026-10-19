@@ -31,6 +31,32 @@ describe("workspace clock status", () => {
     expect(query.select).toHaveBeenCalledWith("user task project startTime description isRunning attendanceMode");
     expect(result.activeTimers[0].attendanceMode).toBe("remote");
   });
+
+  it("allows clock-status reads for members who are currently clocked out", async () => {
+    Workspace.findOne.mockResolvedValue({
+      _id: "workspace-1",
+      owner: "owner-1",
+      members: [{ user: "member-1", role: "member", status: "inactive" }],
+    });
+    const query: any = {
+      select: jest.fn(() => query),
+      populate: jest.fn(() => query),
+      sort: jest.fn(() => query),
+      lean: jest.fn().mockResolvedValue([]),
+    };
+    TimeEntry.find.mockReturnValue(query);
+
+    const result = await timeEntryService.getWorkspaceClockStatus(
+      "workspace-1",
+      "member-1",
+    );
+
+    expect(result.viewerTimer).toBeNull();
+    expect(result.activeTimers).toEqual([]);
+    expect(TimeEntry.find).toHaveBeenCalledWith(
+      expect.objectContaining({ user: "member-1" }),
+    );
+  });
 });
 
 describe("workspace admin clock-out reason", () => {

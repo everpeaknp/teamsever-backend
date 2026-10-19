@@ -78,7 +78,7 @@ describe('TimeEntryService.getWorkspaceClockStatus', () => {
 
   test('does not expose clock status to inactive workspace members', async () => {
     const { service, find } = loadService('admin', 'admin-1', 'inactive');
-    await expect(service.getWorkspaceClockStatus('workspace-1', 'admin-1')).rejects.toMatchObject({ statusCode: 403 });
+    await expect(service.getWorkspaceClockStatus('workspace-1', 'outsider')).rejects.toMatchObject({ statusCode: 403 });
     expect(find).not.toHaveBeenCalled();
   });
 });

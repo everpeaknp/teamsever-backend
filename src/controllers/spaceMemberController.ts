@@ -25,20 +25,20 @@ const getSpaceMembers = asyncHandler(
 
     const space = await Space.findById(spaceId)
       .populate("workspace")
-      .populate("members.user", "name email avatar");
+      .populate("members.user", "name email avatar profilePicture");
     if (!space) {
       return next(new AppError("Space not found", 404));
     }
 
     // Get all space members with overrides
     const spaceMembers = await SpaceMember.find({ space: spaceId })
-      .populate("user", "name email avatar")
+      .populate("user", "name email avatar profilePicture")
       .populate("addedBy", "name")
       .lean();
 
     // Get workspace to map workspace roles for users who are already in this space
     const workspace = await Workspace.findById(space.workspace)
-      .populate("members.user", "name email avatar")
+      .populate("members.user", "name email avatar profilePicture")
       .populate("members.customRole");
 
     if (!workspace) {
@@ -65,7 +65,7 @@ const getSpaceMembers = asyncHandler(
           : member.user?._id?.toString?.();
       const userName = userObj?.name || "Unknown";
       const userEmail = userObj?.email || "";
-      const userAvatar = userObj?.avatar || null;
+      const userAvatar = userObj?.profilePicture || userObj?.avatar || null;
 
       const override = spaceMembers.find(
         (sm: any) => {
@@ -83,6 +83,7 @@ const getSpaceMembers = asyncHandler(
         name: userName,
         email: userEmail,
         avatar: userAvatar,
+        profilePicture: userObj?.profilePicture || userAvatar,
         workspaceRole: workspaceMember?.role || "member",
         customRole: workspaceMember?.customRole || null,
         customRoleTitle: workspaceMember?.customRoleTitle || null,

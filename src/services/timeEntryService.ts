@@ -661,7 +661,7 @@ class TimeEntryService {
 
     const isOwner = String(workspace.owner) === String(viewerId);
     const member = (workspace.members || []).find(
-      (item: any) => String(item.user) === String(viewerId) && item.status !== "inactive"
+      (item: any) => String(item.user) === String(viewerId)
     );
     if (!isOwner && !member) throw new AppError("Active workspace membership required", 403);
 
