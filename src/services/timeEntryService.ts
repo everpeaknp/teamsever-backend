@@ -682,13 +682,17 @@ class TimeEntryService {
       const currentDuration = Math.max(0, Math.floor((now - new Date(entry.startTime).getTime()) / 1000));
       return { ...entry, currentDuration, currentDurationFormatted: this.formatDuration(currentDuration) };
     });
+    const viewerTimer = activeTimers.find((entry: any) =>
+      String(entry.user?._id || entry.user) === String(viewerId)
+    ) || null;
 
     return {
       workspace: { _id: workspace._id, name: workspace.name },
       scope: canManageTeam ? "workspace" : "self",
       canManageTeam,
       activeTimerCount: activeTimers.length,
-      activeTimers
+      activeTimers,
+      viewerTimer,
     };
   }
 

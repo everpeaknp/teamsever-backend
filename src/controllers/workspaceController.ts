@@ -10,6 +10,7 @@ const Announcement = require("../models/Announcement");
 const performanceService = require("../services/performanceService");
 const activityService = require("../services/activityService");
 const analyticsV2CacheService = require("../services/analyticsV2CacheService");
+const { resolveAnalyticsViewAccess, getAnalyticsActivityPerformer } = require("../permissions/analyticsAccess");
 
 // @desc    Create new workspace
 // @route   POST /api/workspaces
@@ -264,8 +265,38 @@ const getWorkspaceAnalyticsV2 = asyncHandler(async (req: AuthRequest, res: Respo
     Urgent: Number(taskStats.urgentPriorityCount || 0)
   };
 
-  const spaceCount = await Space.countDocuments({ workspace: workspaceId, isDeleted: false });
-  const teamRows = await performanceService.getTeamPerformance(workspaceId, { from, to });
+  const [dashboardSpaces, teamRows] = await Promise.all([
+    Space.find({ workspace: workspaceId, isDeleted: false })
+      .select("_id name status color")
+      .lean()
+      .then(async (spaces: any[]) => {
+        const taskCounts = await Task.aggregate([
+          { $match: taskQuery },
+          {
+            $group: {
+              _id: "$space",
+              totalTasks: { $sum: 1 },
+              completedTasks: { $sum: { $cond: [{ $eq: ["$status", "done"] }, 1, 0] } }
+            }
+          }
+        ]);
+        const countsBySpace = new Map<string, { totalTasks: number; completedTasks: number }>(
+          taskCounts.map((entry: any) => [entry._id?.toString?.() || String(entry._id), {
+            totalTasks: Number(entry.totalTasks || 0),
+            completedTasks: Number(entry.completedTasks || 0)
+          }])
+        );
+        return spaces.map((space: any) => ({
+          _id: space._id,
+          name: space.name,
+          status: space.status,
+          color: space.color,
+          ...(countsBySpace.get(space._id.toString()) || { totalTasks: 0, completedTasks: 0 })
+        }));
+      }),
+    performanceService.getTeamPerformance(workspaceId, { from, to })
+  ]);
+  const spaceCount = dashboardSpaces.length;
 
   const nowUtc = new Date();
   const todayStart = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate(), 0, 0, 0, 0));
@@ -415,7 +446,7 @@ const getWorkspaceAnalyticsV2 = asyncHandler(async (req: AuthRequest, res: Respo
       low: priorityBuckets.Low,
       urgent: priorityBuckets.Urgent
     },
-    projectHealth: { spaces: [] },
+    projectHealth: { spaces: dashboardSpaces },
     teamAvailability: {
       liveNow: activeMembers.map(slimUser),
       clockedOut: members.filter((m: any) => m.status !== "active").map(slimUser),
@@ -634,6 +665,7 @@ const getWorkspaceAnalyticsV2TeamPerformance = asyncHandler(async (req: AuthRequ
 
 const getWorkspaceAnalyticsV2Activity = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const workspaceId = req.params.workspaceId || req.params.id;
+  const requestedView = typeof req.query.view === "string" ? req.query.view : undefined;
   const from = typeof req.query.from === "string" ? req.query.from : undefined;
   const to = typeof req.query.to === "string" ? req.query.to : undefined;
   const parsedPage = Number(req.query.page);
@@ -641,7 +673,25 @@ const getWorkspaceAnalyticsV2Activity = asyncHandler(async (req: AuthRequest, re
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
   const skip = (page - 1) * limit;
-  const rows = await activityService.getActivities({ workspaceId, userId: req.user!.id, limit, skip, startDate: from, endDate: to });
+  const PermissionService = require("../permissions/permission.service");
+  const [canViewPersonalAnalytics, canViewTeamAnalytics] = await Promise.all([
+    PermissionService.can(req.user!.id, "VIEW_ANALYTICS_PERSONAL", { userId: req.user!.id, workspaceId }),
+    PermissionService.can(req.user!.id, "VIEW_ANALYTICS_TEAM", { userId: req.user!.id, workspaceId })
+  ]);
+  const { effectiveView } = resolveAnalyticsViewAccess({
+    requestedView,
+    canViewPersonalAnalytics,
+    canViewTeamAnalytics
+  });
+  const rows = await activityService.getActivities({
+    workspaceId,
+    performedBy: getAnalyticsActivityPerformer(effectiveView, req.user!.id),
+    userId: req.user!.id,
+    limit,
+    skip,
+    startDate: from,
+    endDate: to
+  });
 
   const items = (rows || []).map((row: any) => ({
     _id: row._id,

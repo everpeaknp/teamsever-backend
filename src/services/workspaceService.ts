@@ -16,7 +16,10 @@ const PermissionService = require("../permissions/permission.service");
 const PlanInheritanceService = require("./planInheritanceService").default;
 const EntitlementService = require("./entitlementService").default;
 const analyticsV2CacheService = require("./analyticsV2CacheService");
-import { resolveAnalyticsViewAccess } from "../permissions/analyticsAccess";
+import {
+  getAnalyticsActivityPerformer,
+  resolveAnalyticsViewAccess
+} from "../permissions/analyticsAccess";
 const { isValidTimeZone } = require("./workspaceCalendar");
 interface CreateWorkspaceData {
   name: string;
@@ -581,7 +584,7 @@ class WorkspaceService {
     }
 
     const recentTasks = await Task.find(taskQuery)
-      .select("_id title status priority assignee space list updatedAt deadline completedAt createdAt")
+      .select("_id title workItemType status priority assignee space list updatedAt deadline completedAt createdAt")
       .populate("assignee", "name email avatar profilePicture")
       .sort("-updatedAt")
       .lean();
@@ -639,6 +642,7 @@ class WorkspaceService {
     // 7. Fetch Recent Activity (last 20 items)
     const recentActivity = await activityService.getActivities({
       workspaceId,
+      performedBy: getAnalyticsActivityPerformer(effectiveView, userId),
       limit: activityLimit,
       skip: activitySkip,
       startDate: period?.from,

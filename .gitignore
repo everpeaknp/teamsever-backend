@@ -68,6 +68,7 @@ src/__tests__/*
 !src/__tests__/leaveNotificationDelivery.test.ts
 !src/__tests__/timeEntryClockMode.test.ts
 !src/__tests__/invitationCodeReuse.test.ts
+!src/__tests__/analyticsActivityScope.test.ts
 !src/__tests__/invitationLifecycle.test.ts
 !src/__tests__/apiRoutes.test.ts
 !src/__tests__/jest.setup.ts

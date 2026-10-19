@@ -36,7 +36,7 @@ describe('TimeEntryService.getWorkspaceClockStatus', () => {
 
   const loadService = (memberRole: string, viewerId = 'member-1', status = 'active') => {
     const lean = jest.fn().mockResolvedValue([
-      { _id: 'entry-1', user: { _id: 'member-1', name: 'Member' }, startTime: new Date(Date.now() - 60_000) },
+      { _id: 'entry-1', user: { _id: 'member-1', name: 'Member' }, startTime: new Date(Date.now() - 60_000), isRunning: true },
     ]);
     const query: any = { select: () => query, populate: () => query, sort: () => query, lean };
     const find = jest.fn().mockReturnValue(query);
@@ -59,6 +59,7 @@ describe('TimeEntryService.getWorkspaceClockStatus', () => {
     const result = await service.getWorkspaceClockStatus('workspace-1', 'member-1');
     expect(find).toHaveBeenCalledWith(expect.objectContaining({ workspace: 'workspace-1', isRunning: true, user: 'member-1' }));
     expect(result).toMatchObject({ scope: 'self', canManageTeam: false, activeTimerCount: 1 });
+    expect(result.viewerTimer).toMatchObject({ _id: 'entry-1', isRunning: true });
   });
 
   test('allows admins to see the same running-entry roster used by the dashboard', async () => {
@@ -67,6 +68,12 @@ describe('TimeEntryService.getWorkspaceClockStatus', () => {
     expect(find).toHaveBeenCalledWith(expect.objectContaining({ workspace: 'workspace-1', isRunning: true }));
     expect(find.mock.calls[0][0]).not.toHaveProperty('user');
     expect(result).toMatchObject({ scope: 'workspace', canManageTeam: true });
+  });
+
+  test('selects the admin viewer entry from the team-wide status roster', async () => {
+    const { service } = loadService('admin', 'member-1');
+    const result = await service.getWorkspaceClockStatus('workspace-1', 'member-1');
+    expect(result.viewerTimer).toMatchObject({ _id: 'entry-1', isRunning: true });
   });
 
   test('does not expose clock status to inactive workspace members', async () => {

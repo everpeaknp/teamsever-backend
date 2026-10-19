@@ -1,5 +1,12 @@
 export type AnalyticsView = "workspace" | "personal";
 
+export function getAnalyticsActivityPerformer(
+  effectiveView: AnalyticsView,
+  userId: string
+): string | undefined {
+  return effectiveView === "personal" ? userId : undefined;
+}
+
 interface ResolveAnalyticsViewInput {
   requestedView?: string;
   canViewPersonalAnalytics: boolean;

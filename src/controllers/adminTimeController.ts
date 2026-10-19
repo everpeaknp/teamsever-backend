@@ -32,6 +32,7 @@ const getWorkspaceActiveTimers = asyncHandler(
 // @route GET /api/time/workspace/:workspaceId/clock-status
 const getWorkspaceClockStatus = asyncHandler(
   async (req: AuthRequest, res: Response) => {
+    res.set("Cache-Control", "no-store");
     const data = await timeEntryService.getWorkspaceClockStatus(
       req.params.workspaceId,
       req.user!.id

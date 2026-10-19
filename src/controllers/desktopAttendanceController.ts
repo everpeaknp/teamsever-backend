@@ -479,6 +479,9 @@ const getPublicClockPresence = asyncHandler(async (req: any, res: Response, next
 
 
 const getWorkspaceCurrentPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
   const workspaceId = String(req.params.workspaceId);
   if (!mongoose.Types.ObjectId.isValid(workspaceId)) return next(new AppError("Workspace not found", 404));
   const workspace = await Workspace.findById(workspaceId).select("owner members.user members.status");
@@ -506,12 +509,25 @@ const getWorkspaceCurrentPresence = asyncHandler(async (req: any, res: Response,
     }
   }
 
+  let requestedUserIds: Set<string> | null = null;
+  if (req.query.userIds !== undefined) {
+    const rawIds: string[] = Array.isArray(req.query.userIds)
+      ? req.query.userIds.flatMap((value: unknown) => String(value).split(','))
+      : String(req.query.userIds).split(',');
+    const normalizedIds: string[] = [...new Set(rawIds.map((id) => id.trim()).filter(Boolean))];
+    if (normalizedIds.length === 0 || normalizedIds.length > 100 || normalizedIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+      return next(new AppError("userIds must contain 1 to 100 valid user ids", 400));
+    }
+    requestedUserIds = new Set<string>(normalizedIds);
+  }
+
   const memberIds = new Set<string>(activeMembers.map((member: any) => String(member.user?._id || member.user)));
   memberIds.add(String(workspace.owner));
   const ids: string[] = [...memberIds].filter((id: string) => mongoose.Types.ObjectId.isValid(id));
   const users = await User.find({ _id: { $in: ids }, deletedAt: null }).select("name profilePicture").lean();
   const usersById = new Map<string, any>((users || []).map((user: any): [string, any] => [String(user._id), user]));
   const ordered = ids.flatMap((userId) => {
+    if (requestedUserIds && !requestedUserIds.has(userId)) return [];
     const user = usersById.get(userId);
     if (!user) return [];
     return [{ userId, user, sortName: normalizeRosterName(String(user.name || "")) }];

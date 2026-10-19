@@ -69,12 +69,24 @@ describe("workspace current desktop presence roster", () => {
     const response = await request(app).get(`/api/attendance/workspace/${workspaceId}/desktop-presence/current?pageSize=4`);
 
     expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toContain("no-store");
     expect(response.body.data.members.map((member: any) => member.displayName)).toEqual(["Ada", "Bea", "Owner", "Ramon"]);
     expect(response.body.data.members[0].presence).toEqual(expect.objectContaining({ appId: "brave.exe", presenceStatus: "active" }));
     expect(response.body.data.members[1].presence).toBeNull();
     expect(response.body.data.members[0]).toEqual(expect.objectContaining({ userId: otherId, avatar: null }));
     expect(response.body.data.members[0]).not.toHaveProperty("history");
     expect(response.body.data.permissions.canViewHistory).toBe(false);
+  });
+
+  it("returns current presence only for requested clocked-in user ids", async () => {
+    const response = await request(app)
+      .get(`/api/attendance/workspace/${workspaceId}/desktop-presence/current?userIds=${otherId},${viewerId}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.members.map((member: any) => member.userId).sort()).toEqual([otherId, viewerId].sort());
+    expect(response.body.data.members.find((member: any) => member.userId === otherId).presence).toEqual(
+      expect.objectContaining({ appId: "brave.exe", presenceStatus: "active" }),
+    );
   });
 
   it("paginates members by stable normalized name and user id", async () => {
