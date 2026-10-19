@@ -70,7 +70,7 @@ const setAutoSyncMobileShifts = asyncHandler(async (req: any, res: Response, nex
 
 const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
   const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false })
-    .select("workspace startTime clockInSource clockInDevice desktopPresenceDevice +presenceCompanionDevice +networkFingerprint +networkFingerprintExpiresAt +companionDismissedDevices")
+    .select("workspace startTime clockInSource clockInDevice desktopPresenceDevice +presenceCompanionDevice +networkFingerprint +networkFingerprintExpiresAt")
     .sort({ startTime: -1 });
   const deviceId = String(req.desktopDevice._id);
   const clockedInOnThisDevice = !!entry && entry.clockInSource === "desktop" && String(entry.clockInDevice) === deviceId;
@@ -80,11 +80,10 @@ const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
     if (String(entry.presenceCompanionDevice || "") === deviceId && req.desktopDevice.activityMonitoringEnabled) {
       presenceTrackingActive = true;
     } else if (!entry.presenceCompanionDevice) {
-      const dismissed = (entry.companionDismissedDevices || []).some((id: any) => String(id) === deviceId);
       const fingerprintFresh = !!entry.networkFingerprintExpiresAt && new Date(entry.networkFingerprintExpiresAt).getTime() > Date.now();
       const ip = await resolveAttendanceClientIp(req.ip);
       const fingerprint = attendanceNetworkFingerprint(ip);
-      if (!dismissed && fingerprintFresh && fingerprint && fingerprint === entry.networkFingerprint) {
+      if (fingerprintFresh && fingerprint && fingerprint === entry.networkFingerprint) {
         if (req.desktopDevice.activityMonitoringEnabled && req.desktopDevice.autoSyncMobileShifts) {
           const linked = await TimeEntry.findOneAndUpdate(
             { _id: entry._id, user: req.user.id, isRunning: true, clockInSource: "mobile", presenceCompanionDevice: { $exists: false }, networkFingerprint: fingerprint },

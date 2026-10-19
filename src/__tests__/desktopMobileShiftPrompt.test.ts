@@ -34,7 +34,9 @@ beforeEach(() => {
     clockInSource: "mobile",
     networkFingerprint: fingerprint,
     networkFingerprintExpiresAt: new Date(Date.now() + 60_000),
-    companionDismissedDevices: [],
+    // The legacy Electron dialog may have recorded closing its native window
+    // as "Not now". The in-app prompt must still be offered after upgrading.
+    companionDismissedDevices: [deviceId],
   };
   mockDevice = { _id: deviceId, activityMonitoringEnabled: false, autoSyncMobileShifts: false, save: jest.fn(async function(this: any) { return this; }) };
 });
