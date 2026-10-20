@@ -380,22 +380,33 @@ const getSubscriptionInfo = async (req: AuthRequest, res: Response) => {
       // Continue with zero usage if calculation fails
     }
 
-    // Get plan details
+    // Report the plan attached to this user's subscription, matching the
+    // workspace response. The paid flag controls entitlement checks, but it
+    // should not hide a plan that is still assigned to the user.
     let features = DEFAULT_LIMITS;
     let planName = 'Free (Default)';
+    let planId = user.subscription?.planId?._id || null;
 
     try {
-      const planRes = await getPlanFeatures(user);
-      features = planRes.features;
-      planName = planRes.planName;
+      const assignedPlan = user.subscription?.planId;
+      if (assignedPlan && typeof assignedPlan === 'object' && assignedPlan.name) {
+        features = await PlanInheritanceService.resolveFeatures(assignedPlan);
+        planName = assignedPlan.name;
+        planId = assignedPlan._id;
+      } else {
+        const planRes = await getPlanFeatures(user);
+        features = planRes.features;
+        planName = planRes.planName;
+      }
     } catch (planError) {
       console.error("[Get Subscription Info] Plan Resolution Error:", planError);
-      // Continue with default free features if resolution fails
+      // Continue with the assigned plan name and default features if resolution fails.
     }
 
     res.status(200).json({
       success: true,
       data: {
+        userId: user._id.toString(),
         isPaid: user.subscription?.isPaid || false,
         status: user.subscription?.status || 'free',
         daysRemaining: Math.max(0, daysRemaining),
@@ -404,7 +415,7 @@ const getSubscriptionInfo = async (req: AuthRequest, res: Response) => {
         memberCount: user.subscription?.memberCount || null,
         billingCycle: user.subscription?.billingCycle || null,
         plan: {
-          _id: user.subscription?.planId?._id || null,
+          _id: planId,
           name: planName,
           features: features
         },
