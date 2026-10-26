@@ -68,6 +68,53 @@ describe("leave and remote approval decisions", () => {
     expect(LeaveRequest.create).toHaveBeenCalledWith(expect.objectContaining({
       requestType: "remote", proposedRemoteArea: expect.objectContaining({ name: "Temporary place" }),
     }));
+    expect(DirectMessage.create).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringMatching(/^Remote Work Request:/),
+    }));
+  });
+
+  it("creates leave request messages without a decorative emoji", async () => {
+    const requesterId = "requester-1";
+    const managerId = "manager-1";
+    Workspace.findById.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        owner: "owner-1",
+        members: [
+          { user: requesterId, role: "member", status: "active" },
+          { user: managerId, role: "manager", status: "active" },
+        ],
+      }),
+    });
+    PermissionService.can.mockResolvedValue(true);
+    Conversation.findOne.mockReturnValue(
+      queryFor({ _id: "conversation-1", participants: [requesterId, managerId] }),
+    );
+    LeaveRequest.findOne.mockReturnValue(queryFor(null));
+    LeaveRequest.find.mockResolvedValue([]);
+    LeaveRequest.create.mockResolvedValue({
+      _id: "leave-1",
+      populate: jest.fn().mockResolvedValue(undefined),
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    DirectMessage.create.mockResolvedValue({
+      _id: "dm-1",
+      populate: jest.fn().mockResolvedValue(undefined),
+    });
+
+    await LeaveService.requestLeave({
+      workspaceId: "workspace-1",
+      requesterId,
+      assignedManagerId: managerId,
+      conversationId: "conversation-1",
+      startDate: "2026-10-13",
+      endDate: "2026-10-13",
+      reason: "Personal appointment",
+      requestType: "leave",
+    });
+
+    expect(DirectMessage.create).toHaveBeenCalledWith(expect.objectContaining({
+      content: expect.stringMatching(/^Leave Request:/),
+    }));
   });
 
   it("returns paginated requester history with an accurate total", async () => {

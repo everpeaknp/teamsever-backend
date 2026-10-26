@@ -10,6 +10,7 @@ const emailService = require("../services/emailService");
 
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
+const { normalizeAuthEmail } = require("../utils/normalizeAuthEmail");
 
 const normalizeAuthToken = (rawToken: unknown): string => {
   let candidate: unknown = rawToken;
@@ -28,13 +29,14 @@ const normalizeAuthToken = (rawToken: unknown): string => {
 
 const registerUser = asyncHandler(async (req: any, res: any) => {
   const { name, email, password } = req.body;
+  const normalizedEmail = normalizeAuthEmail(email);
 
-  if (!name || !email || !password) {
+  if (!name || !normalizedEmail || !password) {
     throw new AppError("Please provide all fields", 400);
   }
 
   // Check for existing user
-  const userExists = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
+  const userExists = await User.findOne({ email: normalizedEmail, deletedAt: null });
 
   if (userExists) {
     throw new AppError("An account with this email already exists. Please login instead.", 400);
@@ -53,7 +55,7 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
 
   const user = await User.create({
     name,
-    email: email.toLowerCase(), // Store email in lowercase
+    email: normalizedEmail,
     password: hashedPassword,
     subscription: {
       isPaid: false,
@@ -83,12 +85,13 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
 
 const loginUser = asyncHandler(async (req: any, res: any) => {
   const { email, password } = req.body;
+  const normalizedEmail = normalizeAuthEmail(email);
 
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     throw new AppError("Please provide email and password", 400);
   }
 
-  const user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
+  const user = await User.findOne({ email: normalizedEmail, deletedAt: null });
 
   if (!user) {
     throw new AppError("Invalid credentials", 401);
@@ -145,13 +148,14 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
   }
 
   const { email, name, picture, uid } = decodedToken;
+  const normalizedEmail = normalizeAuthEmail(email);
 
-  if (!email) {
+  if (!normalizedEmail) {
     throw new AppError("Email not found in token", 400);
   }
 
   // Check if user exists (case-insensitive)
-  let user = await User.findOne({ email: email.toLowerCase(), deletedAt: null });
+  let user = await User.findOne({ email: normalizedEmail, deletedAt: null });
 
   if (!user) {
     // Create new user with Google auth
@@ -167,8 +171,8 @@ const googleAuth = asyncHandler(async (req: any, res: any) => {
     });
 
     user = await User.create({
-      name: name || email.split('@')[0],
-      email: email.toLowerCase(),
+      name: name || normalizedEmail.split('@')[0],
+      email: normalizedEmail,
       password: await bcrypt.hash(randomPassword, 10),
       profilePicture: picture || undefined,
       googleId: uid,
@@ -244,7 +248,7 @@ const githubAuth = asyncHandler(async (req: any, res: any) => {
   // Extract GitHub username if available in the token (identities object)
   const githubUsername = firebase?.identities?.['github.com']?.[0] || "";
 
-  const normalizedEmail = email ? String(email).toLowerCase() : "";
+  const normalizedEmail = normalizeAuthEmail(email);
 
   // Resolve existing user by email first, then by GitHub username (for private-email GitHub accounts)
   let user = null;
@@ -340,7 +344,7 @@ const appleAuth = asyncHandler(async (req: any, res: any) => {
   }
 
   const { email, name, picture, uid } = decodedToken;
-  const normalizedEmail = email ? String(email).toLowerCase() : "";
+  const normalizedEmail = normalizeAuthEmail(email);
 
   let user = null;
   if (normalizedEmail) {

@@ -333,7 +333,7 @@ class LeaveService {
         conversation: conversationId,
         sender: requesterId,
         type: "leave_request",
-        content: requestType === "remote" ? `🏠 Remote Work Request: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\nReason: ${reason.trim()}` : `🌴 Leave Request: ${daysCount} day${daysCount > 1 ? "s" : ""} (${start.toLocaleDateString()} - ${end.toLocaleDateString()})\nReason: ${reason.trim()}`,
+        content: requestType === "remote" ? `Remote Work Request: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\nReason: ${reason.trim()}` : `Leave Request: ${daysCount} day${daysCount > 1 ? "s" : ""} (${start.toLocaleDateString()} - ${end.toLocaleDateString()})\nReason: ${reason.trim()}`,
         metadata: {
           leaveRequestId: leave._id,
           requestType,
