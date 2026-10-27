@@ -192,6 +192,9 @@ const startServer = async () => {
     // 6.5. NoSQL Injection Protection - MUST be after express.json() and before routes
     app.use(sanitizeMiddleware); // Custom middleware compatible with Express v5
 
+    // Invalidate shared hierarchy/task read caches after successful writes.
+    app.use(require("./middlewares/readCacheInvalidationMiddleware").readCacheInvalidationMiddleware);
+
     app.get("/", (_req, res) => {
       res.send("API is running...");
     });

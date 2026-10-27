@@ -13,6 +13,7 @@ const customFieldService = require("./customFieldService");
 const taskDependencyService = require("./taskDependencyService");
 const PermissionService = require("../permissions/permission.service");
 const analyticsV2CacheService = require("./analyticsV2CacheService");
+const apiReadCacheService = require("./apiReadCacheService").default;
 
 interface CreateTaskData {
   title: string;
@@ -371,37 +372,35 @@ class TaskService {
       throw new AppError("You do not have access to this list", 403);
     }
 
-    // Build query
-    const query: any = {
-      list: listId,
-      isDeleted: false
+    const normalizedFilters = {
+      status: filters?.status || "",
+      priority: filters?.priority || "",
+      assignee: filters?.assignee || "",
+      customField: filters?.customField || {},
     };
 
-    if (filters?.status) query.status = filters.status;
-    if (filters?.priority) query.priority = filters.priority;
-    if (filters?.assignee) query.assignee = filters.assignee;
-
-    // Custom field filtering
-    // Format: ?customField.fieldId=value
-    if (filters?.customField) {
-      for (const [fieldId, value] of Object.entries(filters.customField)) {
-        query.customFieldValues = {
-          $elemMatch: {
-            field: fieldId,
-            value: value
+    return apiReadCacheService.getOrLoad(
+      `list-tasks:${listId}:${userId}:${JSON.stringify(normalizedFilters)}`,
+      15,
+      async () => {
+        const query: any = { list: listId, isDeleted: false };
+        if (filters?.status) query.status = filters.status;
+        if (filters?.priority) query.priority = filters.priority;
+        if (filters?.assignee) query.assignee = filters.assignee;
+        if (filters?.customField) {
+          for (const [fieldId, value] of Object.entries(filters.customField)) {
+            query.customFieldValues = { $elemMatch: { field: fieldId, value } };
           }
-        };
+        }
+
+        return Task.find(query)
+          .populate("assignee", "name email profilePicture")
+          .populate("createdBy", "name email profilePicture")
+          .populate("customFieldValues.field", "name type options")
+          .sort("-createdAt")
+          .lean();
       }
-    }
-
-    const tasks = await Task.find(query)
-      .populate("assignee", "name email profilePicture")
-      .populate("createdBy", "name email profilePicture")
-      .populate("customFieldValues.field", "name type options")
-      .sort("-createdAt")
-      .lean();
-
-    return tasks;
+    );
   }
 
   async getTaskById(taskId: string, userId: string) {

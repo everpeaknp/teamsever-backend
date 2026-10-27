@@ -1,47 +1,60 @@
 import Redis from 'ioredis';
 
+export const getRedisRetryDelay = (attempt: number): number =>
+  Math.min(Math.max(attempt, 1) * 1000, 10000);
+
 // During tests we avoid connecting to a real Redis instance to prevent
 // connection warnings and open handles. Export a small no-op stub instead.
 let _redis: any;
-if (process.env.NODE_ENV === 'test') {
+const createDisabledRedis = () => {
   const noop = () => {};
-  const stub: any = {
+  return {
+    status: 'end',
     get: async () => null,
     set: async () => null,
+    setex: async () => null,
+    incr: async () => 0,
     del: async () => null,
     on: noop,
     quit: async () => null,
     disconnect: noop,
   };
-  _redis = stub;
+};
+
+if (process.env.NODE_ENV === 'test' || (!process.env.REDIS_URL && !process.env.REDIS_HOST)) {
+  // Local development can use the bounded in-process fallback without requiring
+  // a Redis daemon. Production should provide REDIS_URL or REDIS_HOST explicitly.
+  _redis = createDisabledRedis();
 } else {
-  const redisHost = process.env.REDIS_HOST || 'localhost';
   const redisPort = parseInt(process.env.REDIS_PORT || '6379');
   const redisPassword = process.env.REDIS_PASSWORD;
+  let unavailableWarningShown = false;
 
-  const redis = new Redis({
-    host: redisHost,
-    port: redisPort,
-    password: redisPassword,
-    retryStrategy(times) {
-      if (times > 5) {
-        console.warn('🟡 Redis: Max retries reached. Connection suspended.');
-        return null; // Stop retrying
-      }
-      const delay = Math.min(times * 200, 2000);
-      return delay;
-    },
+  const redisOptions = {
+    ...(redisPassword ? { password: redisPassword } : {}),
+    retryStrategy: getRedisRetryDelay,
     maxRetriesPerRequest: 3,
     enableOfflineQueue: false, // Don't queue commands if Redis is down
-  });
+  };
+  const redis = process.env.REDIS_URL
+    ? new Redis(process.env.REDIS_URL, redisOptions)
+    : new Redis({
+        host: process.env.REDIS_HOST,
+        port: redisPort,
+        ...redisOptions,
+      });
 
-  redis.on('connect', () => {
-    console.log('🟢 Redis connected');
+  redis.on('ready', () => {
+    unavailableWarningShown = false;
+    console.log('🟢 Redis ready; shared cache enabled');
   });
 
   redis.on('error', (err: any) => {
     if (err.code === 'ECONNREFUSED') {
-      console.warn('🟡 Redis connection refused. Running without cache.');
+      if (!unavailableWarningShown) {
+        console.warn('🟡 Redis unavailable; using local fallback and retrying.');
+        unavailableWarningShown = true;
+      }
     } else {
       console.error('🔴 Redis error:', err);
     }

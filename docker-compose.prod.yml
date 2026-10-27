@@ -9,10 +9,14 @@ services:
       - "5000:5000"
     env_file:
       - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     networks:
       - teamsever-network
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:alpine
@@ -21,6 +25,12 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
     networks:
       - teamsever-network
 

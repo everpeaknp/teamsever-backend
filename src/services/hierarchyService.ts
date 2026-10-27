@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const Workspace = require('../models/Workspace');
 const AppError = require('../utils/AppError');
+const apiReadCacheService = require('./apiReadCacheService').default;
 
 /**
  * HierarchyService - Optimized service for fetching workspace hierarchy
@@ -15,6 +16,15 @@ class HierarchyService {
    * @returns Hierarchical structure with spaces, folders, lists, and task counts
    */
   static async getWorkspaceHierarchy(workspaceId: string, userId: string, userRole?: string) {
+    const role = userRole || 'member';
+    return apiReadCacheService.getOrLoad(
+      `hierarchy:${workspaceId}:${userId}:${role}`,
+      30,
+      () => this.loadWorkspaceHierarchy(workspaceId, userId, role)
+    );
+  }
+
+  private static async loadWorkspaceHierarchy(workspaceId: string, userId: string, userRole?: string) {
     console.log('[HierarchyService] Starting Split Query Hierarchy for workspace:', workspaceId, 'user:', userId);
 
     const Space = require('../models/Space');
