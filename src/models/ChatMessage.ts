@@ -45,7 +45,9 @@ const chatMessageSchema = new Schema<IChatMessage>(
     },
     content: {
       type: String,
-      required: true,
+      required: function (this: IChatMessage) {
+        return !this.attachments?.length;
+      },
       trim: true,
       maxlength: 5000,
     },

@@ -16,7 +16,9 @@ const directMessageSchema = new Schema(
     },
     content: {
       type: String,
-      required: true,
+      required: function (this: any) {
+        return !this.attachments?.length;
+      },
       maxlength: 5000,
     },
     attachments: { type: [String], default: [], validate: (values: string[]) => values.length <= 5 },
