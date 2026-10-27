@@ -9,6 +9,7 @@
     "dev:watch": "tsc --watch",
     "build": "tsc",
     "migrate:qa-projects": "ts-node src/scripts/migrateQaProjects.ts",
+    "db:index:clock-status": "ts-node src/scripts/ensureClockStatusIndex.ts",
     "start": "node dist/server.js",
     "migrate:task-status": "ts-node src/scripts/migrateTaskStatus.ts",
     "test": "jest",

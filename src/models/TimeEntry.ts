@@ -114,6 +114,13 @@ const timeEntrySchema = new mongoose.Schema(
 timeEntrySchema.index({ task: 1, isDeleted: 1 });
 timeEntrySchema.index({ user: 1, isRunning: 1 });
 timeEntrySchema.index({ workspace: 1, isDeleted: 1 });
+// Workspace admins load every active timer ordered by clock-in time. Keep the
+// filter and sort in one index so this dashboard request does not scan all
+// historical entries in a busy workspace.
+timeEntrySchema.index(
+  { workspace: 1, isRunning: 1, isDeleted: 1, startTime: -1 },
+  { name: "workspace_running_deleted_start_desc" }
+);
 timeEntrySchema.index({ project: 1, isDeleted: 1 });
 timeEntrySchema.index({ startTime: 1 });
 timeEntrySchema.index({ endTime: 1 });
