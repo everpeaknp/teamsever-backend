@@ -117,3 +117,6 @@ tmp/
 !src/__tests__/workspaceClockOutLocation.test.ts
 !src/__tests__/presenceService.test.ts
 !src/__tests__/socketPresenceDisconnect.test.ts
+
+!src/__tests__/chatImageUploadController.test.ts
+!src/__tests__/chatMessageAttachmentsSocket.test.ts

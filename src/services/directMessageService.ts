@@ -14,7 +14,9 @@ interface SendMessageData {
   senderId: string;
   targetUserId: string;
   content: string;
+  attachments?: string[];
   workspaceId: string;
+  replyToMessageId?: string;
 }
 
 interface GetMessagesOptions {
@@ -128,12 +130,14 @@ class DirectMessageService {
    * Send a direct message
    */
   async sendMessage(data: SendMessageData): Promise<any> {
-    const { senderId, targetUserId, content, workspaceId } = data;
+    const { senderId, targetUserId, content, attachments = [], workspaceId, replyToMessageId } = data;
 
     // Validate content
-    if (!content || content.trim().length === 0) {
-      throw new AppError("Message content cannot be empty", 400);
+    if ((!content || content.trim().length === 0) && attachments.length === 0) {
+      throw new AppError("Message content or an image is required", 400);
     }
+
+    if (attachments.length > 5) throw new AppError("A message may contain at most 5 images", 400);
 
     if (content.length > 5000) {
       throw new AppError("Message content too long (max 5000 characters)", 400);
@@ -142,12 +146,23 @@ class DirectMessageService {
     // Find or create conversation
     const conversation = await this.findOrCreateConversation(senderId, targetUserId, workspaceId);
 
+    let replyTo: any = undefined;
+    if (replyToMessageId) {
+      replyTo = await DirectMessage.findOne({
+        _id: replyToMessageId,
+        conversation: conversation._id,
+      }).select("_id");
+      if (!replyTo) throw new AppError("Reply target is not in this conversation", 400);
+    }
+
     // Create message
     const message = await DirectMessage.create({
       conversation: conversation._id,
       sender: senderId,
-      content: content.trim(),
+      content: (content || "").trim(),
+      attachments,
       readBy: [senderId], // Sender has read their own message
+      ...(replyTo ? { replyTo: replyTo._id } : {}),
     });
 
     // Update conversation
@@ -157,6 +172,7 @@ class DirectMessageService {
 
     // Populate message
     await message.populate("sender", "name email avatar profilePicture");
+    await message.populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } });
 
     let recipientPreferences: any = null;
     let isSenderMutedByRecipient = false;
@@ -202,7 +218,12 @@ class DirectMessageService {
           conversation: conversation._id,
           sender: message.sender,
           content: message.content,
+          attachments: message.attachments || [],
+          type: message.type,
+          metadata: message.metadata,
+          isDeleted: message.isDeleted || false,
           readBy: message.readBy,
+          replyTo: message.replyTo,
           createdAt: message.createdAt,
         },
         conversation: {
@@ -232,7 +253,7 @@ class DirectMessageService {
           conversation._id.toString(),
           senderId,
           targetUserId,
-          content,
+          content.trim() || (attachments.length > 0 ? "📷 Photo" : ""),
           recipientPreferences
         );
       }
@@ -375,6 +396,8 @@ class DirectMessageService {
     const limit = options.limit || 50;
     const skip = (page - 1) * limit;
 
+    await this.markConversationAsRead(conversationId, userId, options.workspaceId);
+
     // Get total count
     const total = await DirectMessage.countDocuments({
       conversation: conversationId,
@@ -385,28 +408,15 @@ class DirectMessageService {
       conversation: conversationId,
     })
       .populate("sender", "name email avatar profilePicture")
+      .populate("readBy", "name avatar profilePicture")
+      .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
+      .populate("reactions.users", "name avatar profilePicture")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
     messages.reverse();
-
-    // Mark messages as read by current user
-    try {
-      await DirectMessage.updateMany(
-        {
-          conversation: conversationId,
-          sender: { $ne: userId },
-          readBy: { $ne: userId },
-        },
-        {
-          $addToSet: { readBy: userId },
-        }
-      );
-    } catch (error) {
-      console.error("[DirectMessage] Failed to mark messages as read:", error);
-    }
 
     return {
       messages,
@@ -483,17 +493,76 @@ class DirectMessageService {
       throw new AppError("Conversation does not belong to the requested workspace", 403);
     }
 
-    // Mark all messages as read
+    const unreadMessages = await DirectMessage.find({
+      conversation: conversationId,
+      sender: { $ne: userId },
+      readBy: { $ne: userId },
+    }).select("_id").lean();
+    if (!unreadMessages.length) return;
+
+    const messageIds = unreadMessages.map((message: any) => message._id);
     await DirectMessage.updateMany(
       {
-        conversation: conversationId,
-        sender: { $ne: userId },
-        readBy: { $ne: userId },
+        _id: { $in: messageIds },
       },
       {
         $addToSet: { readBy: userId },
       }
     );
+    const User = require("../models/User");
+    const reader = await User.findById(userId).select("_id name avatar profilePicture").lean();
+    const socketService = require("./socketService");
+    socketService.emitToUsers(conversation.participants.map((p: any) => p.toString()), "dm:read", {
+      conversationId,
+      messageIds,
+      reader,
+      readAt: new Date(),
+    });
+  }
+
+  /** Keep a DM tombstone in the thread while removing its original contents. */
+  async deleteMessage(messageId: string, userId: string) {
+    const message = await DirectMessage.findById(messageId);
+    if (!message) throw new AppError("Message not found", 404);
+    if (message.type && message.type !== "text") {
+      throw new AppError("Only text messages can be deleted", 400);
+    }
+    if (message.sender.toString() !== userId.toString()) {
+      throw new AppError("You can only delete your own messages", 403);
+    }
+
+    const conversation = await Conversation.findById(message.conversation);
+    if (!conversation) throw new AppError("Conversation not found", 404);
+    const isParticipant = conversation.participants.some(
+      (participant: any) => participant.toString() === userId.toString()
+    );
+    if (!isParticipant) {
+      throw new AppError("You do not have access to this conversation", 403);
+    }
+    if (message.isDeleted) return message;
+
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+    message.deletedBy = userId as any;
+    message.content = "This message was deleted";
+    message.reactions = [];
+    message.metadata = null;
+    await message.save();
+    await message.populate("sender", "name email avatar profilePicture");
+
+    try {
+      const participantIds = conversation.participants.map((participant: any) =>
+        participant.toString()
+      );
+      socketService.emitToUsers?.(participantIds, "dm:updated", {
+        message,
+        conversationId: conversation._id,
+      });
+    } catch (error) {
+      console.error("[DirectMessageService] Failed to emit deleted message:", error);
+    }
+
+    return message;
   }
 
   /**
@@ -560,6 +629,7 @@ class DirectMessageService {
 
     await message.save();
     await message.populate("sender", "name email avatar profilePicture");
+    await message.populate("reactions.users", "name avatar profilePicture");
 
     // DM clients use personal user rooms; the server does not require them to
     // join a separate conversation room.

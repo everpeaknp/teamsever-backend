@@ -52,7 +52,7 @@ const startConversation = asyncHandler(async (req: any, res: any) => {
 const sendMessage = asyncHandler(async (req: any, res: any) => {
   const senderId = req.user.id;
   const { userId: targetUserId } = req.params;
-  const { content } = req.body;
+  const { content, attachments = [], replyToMessageId } = req.body;
   const workspaceId = extractWorkspaceId(req);
 
   if (!workspaceId) {
@@ -72,12 +72,15 @@ const sendMessage = asyncHandler(async (req: any, res: any) => {
     });
   }
 
-  const result = await directMessageService.sendMessage({
+  const messagePayload: any = {
     senderId,
     targetUserId,
     content,
     workspaceId,
-  });
+  };
+  if (attachments.length) messagePayload.attachments = attachments;
+  if (replyToMessageId) messagePayload.replyToMessageId = replyToMessageId;
+  const result = await directMessageService.sendMessage(messagePayload);
 
   // Invalidate cache after sending message
   EntitlementService.invalidateEntitlementCache(senderId);
@@ -227,6 +230,11 @@ const toggleReaction = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+const deleteMessage = asyncHandler(async (req: any, res: any) => {
+  const message = await directMessageService.deleteMessage(req.params.id, req.user.id);
+  res.status(200).json({ success: true, data: message, message: "Message deleted" });
+});
+
 module.exports = {
   startConversation,
   sendMessage,
@@ -235,6 +243,7 @@ module.exports = {
   getConversation,
   markAsRead,
   toggleReaction,
+  deleteMessage,
 };
 
 export {};

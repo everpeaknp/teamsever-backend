@@ -234,6 +234,18 @@ const emitChatMessage = (
   })();
 };
 
+const emitChatMessageUpdated = (channelId: string, message: any): void => {
+  const socketIo = getIO();
+  if (!socketIo) return;
+  socketIo.to(`channel:${channelId}`).emit("chat:updated", { message });
+};
+
+const emitChatReadReceipt = (channelId: string, receipt: any): void => {
+  const socketIo = getIO();
+  if (!socketIo) return;
+  socketIo.to(`channel:${channelId}`).emit("chat:read", receipt);
+};
+
 /**
  * Emit to specific user by user ID
  * Uses socketService for efficient multi-device delivery
@@ -266,6 +278,8 @@ module.exports = {
   emitSpaceEvent,
   emitTaskEvent,
   emitChatMessage,
+  emitChatMessageUpdated,
+  emitChatReadReceipt,
   emitToUser,
   getWorkspaceOnlineCount
 };

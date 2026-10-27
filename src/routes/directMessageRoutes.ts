@@ -384,6 +384,29 @@ router.patch("/:conversationId/read", directMessageController.markAsRead);
  */
 router.post("/messages/:id/react", directMessageController.toggleReaction);
 
+/**
+ * @swagger
+ * /api/dm/messages/{id}:
+ *   delete:
+ *     summary: Delete a direct message
+ *     description: Replaces a sender's text message with a persistent deleted notice for all conversation participants.
+ *     tags: ["5.3 Collaboration — Direct Messages"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message deleted and tombstone broadcast to participants
+ *       403:
+ *         description: Only the message sender can delete it
+ */
+router.delete("/messages/:id", directMessageController.deleteMessage);
+
 module.exports = router;
 
 export {};

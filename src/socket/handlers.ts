@@ -250,7 +250,7 @@ const registerHandlers = (io, socket) => {
    */
   socket.on("chat:send", async (payload) => {
     try {
-      const { workspaceId, channelId, content, mentions } = payload;
+      const { workspaceId, channelId, content, mentions, replyToMessageId, attachments } = payload;
 
       if (!workspaceId) {
         socket.emit("error", { message: "Workspace ID is required" });
@@ -271,6 +271,8 @@ const registerHandlers = (io, socket) => {
         senderId: userId,
         content,
         mentions: mentions || [],
+        replyToMessageId,
+        ...(Array.isArray(attachments) && attachments.length ? { attachments } : {}),
       });
 
       // `chatService.createMessage` already emits `chat:new` to channel/workspace rooms.
@@ -285,42 +287,35 @@ const registerHandlers = (io, socket) => {
   /**
    * Chat: Typing indicator
    */
-  socket.on("chat:typing", async (payload) => {
+  const emitTyping = async (payload, isTyping) => {
     try {
-      const { channelId } = payload;
-      if (!channelId) return;
-
-      // Validate access
-      await chatService.validateChannelAccess(channelId, userId);
-
-      // Broadcast to channel room except sender
-      socket.to(`channel:${channelId}`).emit("chat:user_typing", {
-        channelId,
-        userId,
-        userName: socket.user!.name,
-      });
+      const { channelId, conversationId } = payload || {};
+      const event = isTyping ? "chat:user_typing" : "chat:user_stop_typing";
+      const data = { channelId, conversationId, userId, userName: socket.user!.name };
+      if (channelId) {
+        await chatService.validateChannelAccess(channelId, userId);
+        socket.to(`channel:${channelId}`).emit(event, data);
+        return;
+      }
+      if (!conversationId) return;
+      const Conversation = require("../models/Conversation");
+      const conversation = await Conversation.findById(conversationId).select("participants").lean();
+      if (!conversation || !conversation.participants.some((participant) => participant.toString() === userId)) return;
+      const recipientIds = conversation.participants
+        .map((participant) => participant.toString())
+        .filter((participantId) => participantId !== userId);
+      socketService.emitToUsers(recipientIds, event, data);
     } catch (error) {
-      // Silently fail
+      // Typing is transient; invalid or expired chat targets are ignored.
     }
-  });
+  };
+
+  socket.on("chat:typing", (payload) => emitTyping(payload, true));
 
   /**
    * Chat: Stop typing indicator
    */
-  socket.on("chat:stop_typing", async (payload) => {
-    try {
-      const { channelId } = payload;
-      if (!channelId) return;
-
-      // Broadcast to channel room except sender
-      socket.to(`channel:${channelId}`).emit("chat:user_stop_typing", {
-        channelId,
-        userId,
-      });
-    } catch (error) {
-      // Silently fail
-    }
-  });
+  socket.on("chat:stop_typing", (payload) => emitTyping(payload, false));
 };
 
 module.exports = registerHandlers;

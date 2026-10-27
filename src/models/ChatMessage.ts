@@ -5,6 +5,7 @@ export interface IChatMessage extends Document {
   channel: Types.ObjectId;
   sender: Types.ObjectId;
   content: string;
+  attachments?: string[];
   type: "text" | "system" | "github_commit" | "leave_request";
   metadata?: any;
   reactions?: {
@@ -13,8 +14,11 @@ export interface IChatMessage extends Document {
     count: number;
   }[];
   mentions: Types.ObjectId[];
+  replyTo?: Types.ObjectId;
   isDeleted: boolean;
   deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
+  readBy: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +49,11 @@ const chatMessageSchema = new Schema<IChatMessage>(
       trim: true,
       maxlength: 5000,
     },
+    attachments: {
+      type: [{ type: String, trim: true }],
+      default: [],
+      validate: { validator: (values: string[]) => values.length <= 5, message: "A message may contain at most 5 images" },
+    },
     type: {
       type: String,
       enum: ["text", "system", "github_commit", "leave_request"],
@@ -66,6 +75,7 @@ const chatMessageSchema = new Schema<IChatMessage>(
         ref: "User",
       },
     ],
+    replyTo: { type: Schema.Types.ObjectId, ref: "ChatMessage", default: null },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -73,6 +83,14 @@ const chatMessageSchema = new Schema<IChatMessage>(
     },
     deletedAt: {
       type: Date,
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    readBy: {
+      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
+      default: [],
     },
   },
   {

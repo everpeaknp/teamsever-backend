@@ -5,6 +5,10 @@ const { protect } = require("../middlewares/authMiddleware");
 const { checkMessageLimit } = require("../middlewares/messageLimitMiddleware");
 const validate = require("../utils/validation");
 const { sendMessageSchema, createChannelSchema } = require("../validators/chatValidators");
+const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
+const { uploadMultiple, handleUploadError } = require("../middlewares/uploadMiddleware");
+const { uploadChatImages } = require("../controllers/chatImageUploadController");
 
 // Workspace chat routes (prefixed with /api/workspaces/:workspaceId/chat)
 const workspaceChatRouter = express.Router({ mergeParams: true });
@@ -370,8 +374,23 @@ channelRouter
   .route("/:channelId/unread")
   .get(protect, chatController.getUnreadCount);
 
+channelRouter
+  .route("/:channelId/read")
+  .patch(protect, chatController.markChannelAsRead);
+
 // Individual message routes
 const chatRouter = express.Router();
+
+const chatImageUploadLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: any) => req.user?.id || ipKeyGenerator(req.ip),
+  message: { success: false, message: "Too many image uploads. Please wait before trying again.", error: "CHAT_IMAGE_RATE_LIMIT_EXCEEDED" },
+});
+
+chatRouter.post("/images", protect, chatImageUploadLimiter, uploadMultiple, handleUploadError, uploadChatImages);
 
 chatRouter.route("/:id").delete(protect, chatController.deleteMessage);
 chatRouter.route("/messages/:id/react").post(protect, chatController.toggleReaction);

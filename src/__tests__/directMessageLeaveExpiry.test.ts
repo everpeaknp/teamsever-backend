@@ -28,6 +28,11 @@ describe("DM leave request status refresh", () => {
       skip: jest.fn(() => messageQuery), limit: jest.fn(() => messageQuery),
       lean: jest.fn(async () => { calls.push("messages"); return []; }),
     };
+    DirectMessage.find.mockReturnValueOnce({
+      select: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue([]),
+      }),
+    });
     DirectMessage.find.mockReturnValue(messageQuery);
     DirectMessage.updateMany.mockResolvedValue({});
 

@@ -23,6 +23,7 @@ jest.mock("../services/directMessageService", () => ({
   getMessages: jest.fn(),
   getConversationById: jest.fn(),
   markConversationAsRead: jest.fn(),
+  deleteMessage: jest.fn(),
 }));
 
 jest.mock("../services/entitlementService", () => ({
@@ -120,6 +121,20 @@ describe("HTTP route contracts", () => {
       data: { _id: "conversation-1" },
     });
     expect(directMessageService.startConversation).toHaveBeenCalledWith("user-1", "user-2", "workspace-1");
+  });
+
+  it("soft-deletes a DM through its mounted route", async () => {
+    directMessageService.deleteMessage.mockResolvedValue({ _id: "message-1", isDeleted: true });
+    const app = createApp();
+    const response = await request(app).delete("/api/dm/messages/message-1");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      message: "Message deleted",
+      data: { _id: "message-1", isDeleted: true },
+    });
+    expect(directMessageService.deleteMessage).toHaveBeenCalledWith("message-1", "user-1");
   });
 
   it("sends a DM through the mounted message route", async () => {

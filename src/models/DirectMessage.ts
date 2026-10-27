@@ -19,6 +19,7 @@ const directMessageSchema = new Schema(
       required: true,
       maxlength: 5000,
     },
+    attachments: { type: [String], default: [], validate: (values: string[]) => values.length <= 5 },
     type: {
       type: String,
       enum: ["text", "leave_request"],
@@ -28,6 +29,9 @@ const directMessageSchema = new Schema(
       type: Schema.Types.Mixed,
       default: null,
     },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     reactions: [
       {
         emoji: { type: String, required: true },
@@ -39,6 +43,11 @@ const directMessageSchema = new Schema(
       type: [Schema.Types.ObjectId],
       ref: "User",
       default: [],
+    },
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "DirectMessage",
+      default: null,
     },
   },
   {

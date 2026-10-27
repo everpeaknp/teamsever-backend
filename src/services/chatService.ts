@@ -16,8 +16,10 @@ interface CreateMessageData {
   channelId: string;
   senderId: string;
   content: string;
+  attachments?: string[];
   type?: "text" | "system";
   mentions?: string[];
+  replyToMessageId?: string;
 }
 
 interface GetMessagesOptions {
@@ -295,8 +297,23 @@ class ChatService {
       .limit(limit)
       .lean();
 
+    const unreadByChannel = channels.length === 0 ? [] : await ChatMessage.aggregate([
+      { $match: {
+        channel: { $in: channels.map((channel: any) => channel._id) },
+        sender: { $ne: new mongoose.Types.ObjectId(userId) },
+        readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+        isDeleted: { $ne: true },
+      } },
+      { $group: { _id: "$channel", unreadCount: { $sum: 1 } } },
+    ]);
+    const unreadCounts = new Map(unreadByChannel.map((item: any) => [item._id.toString(), item.unreadCount]));
+    const channelsWithUnread = channels.map((channel: any) => ({
+      ...channel,
+      unreadCount: unreadCounts.get(channel._id.toString()) || 0,
+    }));
+
     return {
-      channels,
+      channels: channelsWithUnread,
       pagination: {
         total,
         page,
@@ -311,7 +328,7 @@ class ChatService {
    * Create a new chat message
    */
   async createMessage(data: CreateMessageData) {
-    const { workspaceId, channelId, senderId, content, type = "text", mentions = [] } = data;
+    const { workspaceId, channelId, senderId, content, attachments = [], type = "text", mentions = [] } = data;
 
     let targetChannelId = channelId;
 
@@ -336,9 +353,11 @@ class ChatService {
     }
 
     // Validate content
-    if (!content || content.trim().length === 0) {
-      throw new AppError("Message content cannot be empty", 400);
+    if ((!content || content.trim().length === 0) && attachments.length === 0) {
+      throw new AppError("Message content or an image is required", 400);
     }
+
+    if (attachments.length > 5) throw new AppError("A message may contain at most 5 images", 400);
 
     if (content.length > 5000) {
       throw new AppError("Message content too long (max 5000 characters)", 400);
@@ -351,13 +370,25 @@ class ChatService {
     const allowedIds = new Set(allowedMembers.map((member: any) => member._id.toString()));
     const safeMentions = candidateIds.filter((id) => allowedIds.has(id) && id !== senderId);
 
+    let replyTo: any = undefined;
+    if (data.replyToMessageId) {
+      replyTo = await ChatMessage.findOne({
+        _id: data.replyToMessageId,
+        channel: targetChannelId,
+      }).select("_id");
+      if (!replyTo) throw new AppError("Reply target is not in this channel", 400);
+    }
+
     const message = await ChatMessage.create({
       workspace: workspaceId,
       channel: targetChannelId,
       sender: senderId,
-      content: content.trim(),
+      content: (content || "").trim(),
+      attachments,
       type,
       mentions: safeMentions,
+      ...(replyTo ? { replyTo: replyTo._id } : {}),
+      readBy: [senderId],
     });
 
     // Update channel's lastMessageAt
@@ -365,6 +396,7 @@ class ChatService {
 
     // Populate sender info
     await message.populate("sender", "name email avatar profilePicture");
+    await message.populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } });
 
     // Log activity (non-blocking)
     try {
@@ -418,8 +450,10 @@ class ChatService {
       channelName: channel.name,
       sender: message.sender,
       content: message.content,
+      attachments: message.attachments || [],
       type: message.type,
       mentions: message.mentions,
+      replyTo: message.replyTo,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     }, workspaceId);
@@ -452,10 +486,17 @@ class ChatService {
     const limit = options.limit || 50;
     const skip = (page - 1) * limit;
 
+    await this.markChannelAsRead(channelId, userId);
+
     // Build query
     const query: any = {
       channel: channelId,
-      isDeleted: false,
+      // Older soft-deleted rows may still contain original text. Keep those
+      // hidden; only the new explicit tombstones are safe to return.
+      $or: [
+        { isDeleted: { $ne: true } },
+        { isDeleted: true, content: "This message was deleted" },
+      ],
     };
 
     // Optional: Filter by specific user (sender)
@@ -480,6 +521,9 @@ class ChatService {
     const messages = await ChatMessage.find(query)
       .populate("sender", "name email avatar profilePicture")
       .populate("mentions", "name email avatar profilePicture")
+      .populate("readBy", "name avatar profilePicture")
+      .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
+      .populate("reactions.users", "name avatar profilePicture")
       .sort({ createdAt: -1 }) // Newest first
       .skip(skip)
       .limit(limit)
@@ -516,28 +560,55 @@ class ChatService {
     // Validate channel access
     await this.validateChannelAccess(message.channel.toString(), userId);
 
-    // Only sender or Admin/Owner can delete message
-    const { membership } = await this.validateWorkspaceMembership(message.workspace.toString(), userId);
-    
-    const isPrivileged = membership.role === "admin" || membership.role === "owner" || membership.role === "operations_manager" || membership.role === "project_manager";
-    
-    if (message.sender.toString() !== userId && !isPrivileged) {
+    if (message.type && message.type !== "text") {
+      throw new AppError("Only regular messages can be unsent", 400);
+    }
+    if (message.sender.toString() !== userId) {
       throw new AppError("You do not have permission to delete this message", 403);
     }
 
-    // Soft delete
-    await softDelete(ChatMessage, messageId);
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+    message.deletedBy = userId as any;
+    message.content = "This message was deleted";
+    message.reactions = [];
+    message.metadata = undefined;
+    message.mentions = [];
+    await message.save();
+    await message.populate("sender", "name email avatar profilePicture");
+    const { emitChatMessageUpdated } = require("../socket/events");
+    emitChatMessageUpdated(message.channel.toString(), message);
+    return { message: "Message unsent", data: message };
+  }
 
-    return { message: "Message deleted successfully" };
+  async markChannelAsRead(channelId: string, userId: string) {
+    const channel = await this.validateChannelAccess(channelId, userId);
+    const unread = await ChatMessage.find({ channel: channelId, sender: { $ne: userId }, readBy: { $ne: userId } })
+      .select("_id")
+      .lean();
+    if (unread.length === 0) return;
+    const messageIds = unread.map((message: any) => message._id);
+    await ChatMessage.updateMany(
+      { _id: { $in: messageIds } },
+      { $addToSet: { readBy: userId } },
+    );
+    const User = require("../models/User");
+    const reader = await User.findById(userId).select("_id name avatar profilePicture").lean();
+    const { emitChatReadReceipt } = require("../socket/events");
+    emitChatReadReceipt(channelId, { channelId, channelName: channel.name, messageIds, reader, readAt: new Date() });
   }
 
   /**
    * Get unread message count for a channel by user
    */
   async getUnreadCount(channelId: string, userId: string) {
-    // This part requires a tracking mechanism (per-user-per-channel read state)
-    // For now, returning 0 or simplified logic
-    return 0;
+    await this.validateChannelAccess(channelId, userId);
+    return ChatMessage.countDocuments({
+      channel: channelId,
+      sender: { $ne: userId },
+      readBy: { $ne: userId },
+      isDeleted: { $ne: true },
+    });
   }
 
   /**
@@ -711,6 +782,7 @@ class ChatService {
 
     // Populate sender
     await message.populate("sender", "name email avatar profilePicture");
+    await message.populate("reactions.users", "name avatar profilePicture");
 
     // Realtime broadcast via Socket.IO
     try {

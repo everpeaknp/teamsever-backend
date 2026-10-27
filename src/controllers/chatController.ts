@@ -89,16 +89,19 @@ const getChannelMembers = asyncHandler(async (req: any, res: any) => {
  */
 const sendMessage = asyncHandler(async (req: any, res: any) => {
   const { workspaceId } = req.params;
-  const { channelId, content, mentions } = req.body;
+  const { channelId, content, mentions, replyToMessageId, attachments = [] } = req.body;
   const senderId = req.user.id;
 
-  const message = await chatService.createMessage({
+  const messagePayload: any = {
     workspaceId,
     channelId,
     senderId,
     content,
     mentions,
-  });
+  };
+  if (attachments.length) messagePayload.attachments = attachments;
+  if (replyToMessageId) messagePayload.replyToMessageId = replyToMessageId;
+  const message = await chatService.createMessage(messagePayload);
 
   // Include message usage in response
   const response: any = {
@@ -127,6 +130,7 @@ const deleteMessage = asyncHandler(async (req: any, res: any) => {
   res.status(200).json({
     success: true,
     message: result.message,
+    data: result.data,
   });
 });
 
@@ -145,6 +149,11 @@ const getUnreadCount = asyncHandler(async (req: any, res: any) => {
     success: true,
     data: { unreadCount: count },
   });
+});
+
+const markChannelAsRead = asyncHandler(async (req: any, res: any) => {
+  await chatService.markChannelAsRead(req.params.channelId, req.user.id);
+  res.status(200).json({ success: true, message: "Channel marked as read" });
 });
 
 /**
@@ -244,11 +253,8 @@ const getWorkspaceUnreadCount = asyncHandler(async (req: any, res: any) => {
     channel: { $in: channelIds },
     isDeleted: false,
     sender: { $ne: userId },
+    readBy: { $ne: userId },
   };
-
-  if (membership?.lastChatReadAt) {
-    unreadQuery.createdAt = { $gt: membership.lastChatReadAt };
-  }
 
   const unreadCount = await ChatMessage.countDocuments(unreadQuery);
 
@@ -276,6 +282,9 @@ const markWorkspaceChatAsRead = asyncHandler(async (req: any, res: any) => {
       },
     }
   );
+
+  const defaultChannel = await chatService.getOrCreateDefaultChannel(workspaceId, userId);
+  await chatService.markChannelAsRead(defaultChannel._id.toString(), userId);
 
   res.status(200).json({
     success: true,
@@ -307,6 +316,7 @@ module.exports = {
   sendMessage,
   deleteMessage,
   getUnreadCount,
+  markChannelAsRead,
   updateChannel,
   deleteChannel,
   getWorkspaceUnreadCount,
