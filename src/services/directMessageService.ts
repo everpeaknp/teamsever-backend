@@ -9,6 +9,7 @@ const logger = require("../utils/logger");
 const enhancedNotificationService = require("./enhancedNotificationService");
 const { emitToUser } = require("../socket/events");
 const socketService = require("./socketService").default || require("./socketService");
+const apiReadCacheService = require("./apiReadCacheService").default;
 
 interface SendMessageData {
   senderId: string;
@@ -169,6 +170,10 @@ class DirectMessageService {
     conversation.lastMessage = message._id;
     conversation.lastMessageAt = new Date();
     await conversation.save();
+
+    // Invalidate before emitting dm:new; socket-driven refreshes should see
+    // the just-created message instead of a cached older page.
+    await apiReadCacheService.invalidateNamespace("chat-messages");
 
     // Populate message
     await message.populate("sender", "name email avatar profilePicture");
@@ -398,36 +403,37 @@ class DirectMessageService {
 
     await this.markConversationAsRead(conversationId, userId, options.workspaceId);
 
-    // Get total count
-    const total = await DirectMessage.countDocuments({
-      conversation: conversationId,
-    });
+    const cachedPage = await apiReadCacheService.getOrLoad(
+      `conversation:${conversationId}:user:${userId}:page:${page}:limit:${limit}`,
+      10,
+      async () => {
+        const total = await DirectMessage.countDocuments({ conversation: conversationId });
+        const messages = await DirectMessage.find({ conversation: conversationId })
+          .populate("sender", "name email avatar profilePicture")
+          .populate("readBy", "name avatar profilePicture")
+          .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
+          .populate("reactions.users", "name avatar profilePicture")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
 
-    // Get messages (sorted by newest first, then reversed for ASC display)
-    const messages = await DirectMessage.find({
-      conversation: conversationId,
-    })
-      .populate("sender", "name email avatar profilePicture")
-      .populate("readBy", "name avatar profilePicture")
-      .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
-      .populate("reactions.users", "name avatar profilePicture")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    messages.reverse();
-
-    return {
-      messages,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit,
-        hasMore: page * limit < total,
+        messages.reverse();
+        return {
+          messages,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            limit,
+            hasMore: page * limit < total,
+          },
+        };
       },
-    };
+      "chat-messages",
+    );
+
+    return cachedPage;
   }
 
   /**
@@ -509,6 +515,7 @@ class DirectMessageService {
         $addToSet: { readBy: userId },
       }
     );
+    await apiReadCacheService.invalidateNamespace("chat-messages");
     const User = require("../models/User");
     const reader = await User.findById(userId).select("_id name avatar profilePicture").lean();
     const socketService = require("./socketService");
@@ -548,6 +555,7 @@ class DirectMessageService {
     message.reactions = [];
     message.metadata = null;
     await message.save();
+    await apiReadCacheService.invalidateNamespace("chat-messages");
     await message.populate("sender", "name email avatar profilePicture");
 
     try {
@@ -628,6 +636,7 @@ class DirectMessageService {
     }
 
     await message.save();
+    await apiReadCacheService.invalidateNamespace("chat-messages");
     await message.populate("sender", "name email avatar profilePicture");
     await message.populate("reactions.users", "name avatar profilePicture");
 

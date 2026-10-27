@@ -10,6 +10,7 @@ const logger = require("../utils/logger");
 const notificationService = require("./enhancedNotificationService");
 const entitlementService = require("./entitlementService").default;
 const socketService = require("./socketService").default || require("./socketService");
+const apiReadCacheService = require("./apiReadCacheService").default;
 
 interface CreateMessageData {
   workspaceId: string;
@@ -267,61 +268,57 @@ class ChatService {
     const { membership } = await this.validateWorkspaceMembership(workspaceId, userId);
     const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
     const isAdmin = isPrivileged;
-
-    // Ensure default channels exist
-    await this.getOrCreateDefaultChannels(workspaceId, userId);
-
-    // Find all public channels OR private channels where user is a member
-    // Admins/Owners can see ALL channels
-    const query: any = {
-      workspace: workspaceId,
-      isDeleted: false,
-    };
-
-    if (!isAdmin) {
-      query.$or = [
-        { type: "public" },
-        { type: "private", members: userId }
-      ];
-    }
-
     const page = options.page || 1;
     const limit = options.limit || 30;
-    const skip = (page - 1) * limit;
 
-    const total = await ChatChannel.countDocuments(query);
+    return apiReadCacheService.getOrLoad(
+      `workspace:${workspaceId}:user:${userId}:role:${membership.role}:page:${page}:limit:${limit}`,
+      5,
+      async () => {
+        // Ensure default channels exist when loading a fresh channel list.
+        await this.getOrCreateDefaultChannels(workspaceId, userId);
 
-    const channels = await ChatChannel.find(query)
-      .sort({ lastMessageAt: -1, name: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+        const query: any = { workspace: workspaceId, isDeleted: false };
+        if (!isAdmin) {
+          query.$or = [{ type: "public" }, { type: "private", members: userId }];
+        }
 
-    const unreadByChannel = channels.length === 0 ? [] : await ChatMessage.aggregate([
-      { $match: {
-        channel: { $in: channels.map((channel: any) => channel._id) },
-        sender: { $ne: new mongoose.Types.ObjectId(userId) },
-        readBy: { $ne: new mongoose.Types.ObjectId(userId) },
-        isDeleted: { $ne: true },
-      } },
-      { $group: { _id: "$channel", unreadCount: { $sum: 1 } } },
-    ]);
-    const unreadCounts = new Map(unreadByChannel.map((item: any) => [item._id.toString(), item.unreadCount]));
-    const channelsWithUnread = channels.map((channel: any) => ({
-      ...channel,
-      unreadCount: unreadCounts.get(channel._id.toString()) || 0,
-    }));
+        const skip = (page - 1) * limit;
+        const total = await ChatChannel.countDocuments(query);
+        const channels = await ChatChannel.find(query)
+          .sort({ lastMessageAt: -1, name: 1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
 
-    return {
-      channels: channelsWithUnread,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit,
-        hasMore: page * limit < total,
+        const unreadByChannel = channels.length === 0 ? [] : await ChatMessage.aggregate([
+          { $match: {
+            channel: { $in: channels.map((channel: any) => channel._id) },
+            sender: { $ne: new mongoose.Types.ObjectId(userId) },
+            readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+            isDeleted: { $ne: true },
+          } },
+          { $group: { _id: "$channel", unreadCount: { $sum: 1 } } },
+        ]);
+        const unreadCounts = new Map(unreadByChannel.map((item: any) => [item._id.toString(), item.unreadCount]));
+        const channelsWithUnread = channels.map((channel: any) => ({
+          ...channel,
+          unreadCount: unreadCounts.get(channel._id.toString()) || 0,
+        }));
+
+        return {
+          channels: channelsWithUnread,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            limit,
+            hasMore: page * limit < total,
+          },
+        };
       },
-    };
+      "chat-channels",
+    );
   }
 
   /**
@@ -397,6 +394,13 @@ class ChatService {
     // Populate sender info
     await message.populate("sender", "name email avatar profilePicture");
     await message.populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } });
+
+    // Invalidate before broadcasting so clients refreshing from the socket event
+    // cannot receive a cached page that predates this message.
+    await Promise.all([
+      apiReadCacheService.invalidateNamespace("chat-channels"),
+      apiReadCacheService.invalidateNamespace("chat-messages"),
+    ]);
 
     // Log activity (non-blocking)
     try {
@@ -531,34 +535,39 @@ class ChatService {
       query["metadata.spaceName"] = options.spaceName;
     }
 
-    // Get total count
-    const total = await ChatMessage.countDocuments(query);
+    const filterKey = JSON.stringify({ user: options.userId || "", folder: options.folderId || "", space: options.spaceName || "" });
+    const cachedPage = await apiReadCacheService.getOrLoad(
+      `channel:${channelId}:user:${userId}:page:${page}:limit:${limit}:filters:${filterKey}`,
+      10,
+      async () => {
+        const total = await ChatMessage.countDocuments(query);
+        const messages = await ChatMessage.find(query)
+          .populate("sender", "name email avatar profilePicture")
+          .populate("mentions", "name email avatar profilePicture")
+          .populate("readBy", "name avatar profilePicture")
+          .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
+          .populate("reactions.users", "name avatar profilePicture")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
 
-    // Get messages sorted by newest first (then reverse for ASC display)
-    const messages = await ChatMessage.find(query)
-      .populate("sender", "name email avatar profilePicture")
-      .populate("mentions", "name email avatar profilePicture")
-      .populate("readBy", "name avatar profilePicture")
-      .populate({ path: "replyTo", select: "content sender createdAt isDeleted", populate: { path: "sender", select: "name avatar profilePicture" } })
-      .populate("reactions.users", "name avatar profilePicture")
-      .sort({ createdAt: -1 }) // Newest first
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    messages.reverse();
-
-    return {
-      channel,
-      messages,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-        limit,
-        hasMore: page * limit < total,
+        messages.reverse();
+        return {
+          messages,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            limit,
+            hasMore: page * limit < total,
+          },
+        };
       },
-    };
+      "chat-messages",
+    );
+
+    return { channel, ...cachedPage };
   }
 
   /**
@@ -592,6 +601,7 @@ class ChatService {
     message.metadata = undefined;
     message.mentions = [];
     await message.save();
+    await apiReadCacheService.invalidateNamespace("chat-messages");
     await message.populate("sender", "name email avatar profilePicture");
     const { emitChatMessageUpdated } = require("../socket/events");
     emitChatMessageUpdated(message.channel.toString(), message);
@@ -609,6 +619,10 @@ class ChatService {
       { _id: { $in: messageIds } },
       { $addToSet: { readBy: userId } },
     );
+    await Promise.all([
+      apiReadCacheService.invalidateNamespace("chat-channels"),
+      apiReadCacheService.invalidateNamespace("chat-messages"),
+    ]);
     const User = require("../models/User");
     const reader = await User.findById(userId).select("_id name avatar profilePicture").lean();
     const { emitChatReadReceipt } = require("../socket/events");
@@ -796,6 +810,7 @@ class ChatService {
     }
 
     await message.save();
+    await apiReadCacheService.invalidateNamespace("chat-messages");
 
     // Populate sender
     await message.populate("sender", "name email avatar profilePicture");

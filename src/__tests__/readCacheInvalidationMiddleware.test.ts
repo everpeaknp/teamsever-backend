@@ -1,6 +1,9 @@
 jest.mock("../services/apiReadCacheService", () => ({
   __esModule: true,
-  default: { invalidateAll: jest.fn().mockResolvedValue(undefined) },
+  default: {
+    invalidateAll: jest.fn().mockResolvedValue(undefined),
+    invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 const { EventEmitter } = require("events");
@@ -14,7 +17,10 @@ const response = (statusCode: number) => {
 };
 
 describe("read cache invalidation middleware", () => {
-  beforeEach(() => cache.invalidateAll.mockClear());
+  beforeEach(() => {
+    cache.invalidateAll.mockClear();
+    cache.invalidateNamespace.mockClear();
+  });
 
   test("invalidates shared reads after a successful task write", async () => {
     const req = { method: "PATCH", originalUrl: "/api/tasks/task-1" };
@@ -48,6 +54,31 @@ describe("read cache invalidation middleware", () => {
     unrelated.emit("finish");
     await new Promise(setImmediate);
 
+    expect(cache.invalidateAll).not.toHaveBeenCalled();
+  });
+
+  test("channel configuration writes invalidate channel lists without clearing workspace and task caches", async () => {
+    const req = { method: "POST", path: "/api/workspaces/workspace-1/chat/channels" };
+    const res = response(201);
+
+    readCacheInvalidationMiddleware(req, res, jest.fn());
+    res.emit("finish");
+    await new Promise(setImmediate);
+
+    expect(cache.invalidateAll).not.toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith("chat-channels");
+    expect(cache.invalidateNamespace).not.toHaveBeenCalledWith("chat-messages");
+  });
+
+  test("leaves message cache invalidation to the chat service before realtime broadcasts", async () => {
+    const req = { method: "POST", path: "/api/workspaces/workspace-1/chat" };
+    const res = response(201);
+
+    readCacheInvalidationMiddleware(req, res, jest.fn());
+    res.emit("finish");
+    await new Promise(setImmediate);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
     expect(cache.invalidateAll).not.toHaveBeenCalled();
   });
 });

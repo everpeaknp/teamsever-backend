@@ -79,4 +79,24 @@ describe("ApiReadCacheService", () => {
     expect(loader).toHaveBeenCalledTimes(1);
     expect(redis.values.size).toBe(0);
   });
+
+  test("invalidates chat reads without evicting unrelated shared reads", async () => {
+    const redis = new FakeRedis();
+    const cache = new ApiReadCacheService(redis as any);
+    const chatLoader = jest.fn()
+      .mockResolvedValueOnce({ messages: ["old"] })
+      .mockResolvedValueOnce({ messages: ["new"] });
+    const hierarchyLoader = jest.fn().mockResolvedValue({ spaces: ["space-1"] });
+
+    await cache.getOrLoad("recent:channel-1:user-1", 10, chatLoader, "chat-messages");
+    await cache.getOrLoad("hierarchy:workspace-1:user-1", 30, hierarchyLoader);
+    await cache.invalidateNamespace("chat-messages");
+    const recent = await cache.getOrLoad("recent:channel-1:user-1", 10, chatLoader, "chat-messages");
+    const hierarchy = await cache.getOrLoad("hierarchy:workspace-1:user-1", 30, hierarchyLoader);
+
+    expect(recent).toEqual({ messages: ["new"] });
+    expect(hierarchy).toEqual({ spaces: ["space-1"] });
+    expect(chatLoader).toHaveBeenCalledTimes(2);
+    expect(hierarchyLoader).toHaveBeenCalledTimes(1);
+  });
 });
