@@ -253,7 +253,7 @@ class DirectMessageService {
           conversation._id.toString(),
           senderId,
           targetUserId,
-          content.trim() || (attachments.length > 0 ? "📷 Photo" : ""),
+          content.trim() || (attachments.length > 0 ? "sent a photo" : ""),
           recipientPreferences
         );
       }

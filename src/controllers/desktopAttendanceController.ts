@@ -26,6 +26,37 @@ const {
   buildHistorySummaryPipeline,
 } = require("../services/desktopPresencePagination");
 
+const desktopPresenceEnabledForUser = async (userId: string) => {
+  const user = await User.findById(userId).select("desktopPresenceEnabled").lean();
+  // Accounts created before this preference existed remain enabled.
+  return user?.desktopPresenceEnabled !== false;
+};
+
+const requireDesktopPresenceEnabled = async (userId: string, next: NextFunction) => {
+  if (await desktopPresenceEnabledForUser(userId)) return true;
+  next(new AppError("Desktop presence is disabled in account settings", 403));
+  return false;
+};
+
+const getDesktopPresencePreference = asyncHandler(async (req: any, res: Response) => {
+  const enabled = await desktopPresenceEnabledForUser(req.user.id);
+  return res.json({ success: true, data: { enabled } });
+});
+
+const updateDesktopPresencePreference = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") return next(new AppError("enabled must be a boolean", 400));
+  const user = await User.findByIdAndUpdate(req.user.id, { $set: { desktopPresenceEnabled: enabled } }, { new: true });
+  if (!user) return next(new AppError("User not found", 404));
+  if (!enabled) {
+    await TrustedAttendanceDevice.updateMany(
+      { user: req.user.id, revokedAt: null },
+      { $set: { activityMonitoringEnabled: false, activityMonitoringEnabledAt: null } },
+    );
+  }
+  return res.json({ success: true, data: { enabled: user.desktopPresenceEnabled !== false } });
+});
+
 const createDevice = asyncHandler(async (req: any, res: Response) => {
   const { name, platform } = req.body || {};
   if (typeof name !== "string" || !name.trim() || name.trim().length > 80) throw new AppError("Device name must be 1 to 80 characters", 400);
@@ -50,6 +81,7 @@ const revokeDevice = asyncHandler(async (req: any, res: Response, next: NextFunc
 const setActivityConsent = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
   const enabled = req.body?.enabled;
   if (typeof enabled !== "boolean") return next(new AppError("enabled must be a boolean", 400));
+  if (enabled && !(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   if (!mongoose.Types.ObjectId.isValid(req.params.deviceId)) return next(new AppError("Device not found", 404));
   const device = await TrustedAttendanceDevice.findOneAndUpdate({ _id: req.params.deviceId, user: req.user.id, revokedAt: null }, { $set: { activityMonitoringEnabled: enabled, activityMonitoringEnabledAt: enabled ? new Date() : null } }, { new: true });
   if (!device) return next(new AppError("Active device not found", 404));
@@ -59,6 +91,7 @@ const setActivityConsent = asyncHandler(async (req: any, res: Response, next: Ne
 const setAutoSyncMobileShifts = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
   const enabled = req.body?.enabled;
   if (typeof enabled !== "boolean") return next(new AppError("enabled must be a boolean", 400));
+  if (enabled && !(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   const device = await TrustedAttendanceDevice.findOneAndUpdate(
     { _id: req.params.deviceId, user: req.user.id, revokedAt: null },
     { $set: { autoSyncMobileShifts: enabled } },
@@ -69,14 +102,15 @@ const setAutoSyncMobileShifts = asyncHandler(async (req: any, res: Response, nex
 });
 
 const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
+  const desktopPresenceEnabled = await desktopPresenceEnabledForUser(req.user.id);
   const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false })
     .select("workspace startTime clockInSource clockInDevice desktopPresenceDevice +presenceCompanionDevice +networkFingerprint +networkFingerprintExpiresAt")
     .sort({ startTime: -1 });
   const deviceId = String(req.desktopDevice._id);
   const clockedInOnThisDevice = !!entry && entry.clockInSource === "desktop" && String(entry.clockInDevice) === deviceId;
-  let presenceTrackingActive = !!entry && !!req.desktopDevice.activityMonitoringEnabled && (clockedInOnThisDevice || String(entry.desktopPresenceDevice || "") === deviceId);
+  let presenceTrackingActive = desktopPresenceEnabled && !!entry && !!req.desktopDevice.activityMonitoringEnabled && (clockedInOnThisDevice || String(entry.desktopPresenceDevice || "") === deviceId);
   let pendingMobileShift: { timeEntryId: string; workspaceId: string; startTime: string } | null = null;
-  if (entry?.clockInSource === "mobile") {
+  if (desktopPresenceEnabled && entry?.clockInSource === "mobile") {
     if (String(entry.presenceCompanionDevice || "") === deviceId && req.desktopDevice.activityMonitoringEnabled) {
       presenceTrackingActive = true;
     } else if (!entry.presenceCompanionDevice) {
@@ -108,11 +142,13 @@ const getDeviceStatus = asyncHandler(async (req: any, res: Response) => {
     clockInSource: entry?.clockInSource || null,
     source: entry?.clockInSource || null,
     activityMonitoringEnabled: req.desktopDevice.activityMonitoringEnabled,
+    desktopPresenceEnabled,
     pendingMobileShift,
   } });
 });
 
 const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   const action = req.body?.action;
   if (!["sync_once", "always", "not_now"].includes(action)) return next(new AppError("Invalid companion action", 400));
   const entry = await TimeEntry.findOne({
@@ -155,6 +191,7 @@ const respondToMobileShift = asyncHandler(async (req: any, res: Response, next: 
 });
 
 const createMobilePairingCode = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const expiresAt = new Date(Date.now() + 5 * 60_000);
   const entry = await TimeEntry.findOneAndUpdate(
@@ -167,6 +204,7 @@ const createMobilePairingCode = asyncHandler(async (req: any, res: Response, nex
 });
 
 const pairMobileShiftWithCode = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable foreground app presence for this desktop before linking a mobile shift", 403));
   const code = String(req.body?.code || "");
   if (!/^\d{6}$/.test(code)) return next(new AppError("Enter the 6-digit code shown in the mobile app", 400));
@@ -181,6 +219,7 @@ const pairMobileShiftWithCode = asyncHandler(async (req: any, res: Response, nex
 });
 
 const attachPresenceToActiveShift = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   if (req.body?.consent !== true) return next(new AppError("Explicit consent is required to share desktop presence for this shift", 400));
   if (!req.desktopDevice.activityMonitoringEnabled) return next(new AppError("Enable desktop presence consent on this device first", 403));
   const entry = await TimeEntry.findOne({ user: req.user.id, isRunning: true, isDeleted: false });
@@ -198,6 +237,7 @@ const attachPresenceToActiveShift = asyncHandler(async (req: any, res: Response,
 });
 
 const recordAppPresence = asyncHandler(async (req: any, res: Response, next: NextFunction) => {
+  if (!(await requireDesktopPresenceEnabled(req.user.id, next))) return;
   const { workspaceId, timeEntryId, appId, startedAt, endedAt } = req.body || {};
   const rawStatus = req.body?.presenceStatus;
   const isLegacyHeartbeat = rawStatus === undefined && req.body?.foregroundAppSupported === undefined && req.body?.idleDetectionSupported === undefined;
@@ -663,4 +703,4 @@ const updateDesktopPresencePolicy = asyncHandler(async (req: any, res: Response,
   await workspace.save();
   return res.json({ success: true, data: { policy: { afkThresholdMinutes }, canManage: true } });
 });
-module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getWorkspaceCurrentPresence, getPublicClockPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy };
+module.exports = { createDevice, listDevices, revokeDevice, setActivityConsent, setAutoSyncMobileShifts, createMobilePairingCode, pairMobileShiftWithCode, respondToMobileShift, getDeviceStatus, attachPresenceToActiveShift, recordAppPresence, getAppPresence, getWorkspaceCurrentPresence, getPublicClockPresence, getDesktopPresencePolicy, updateDesktopPresencePolicy, getDesktopPresencePreference, updateDesktopPresencePreference };

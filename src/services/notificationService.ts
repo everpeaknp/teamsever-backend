@@ -300,10 +300,18 @@ class NotificationService {
       const existing = await DeviceToken.findOne({ token });
 
       if (existing) {
-        // Update user if different
+        // Refresh the owner and platform for tokens registered before the
+        // client supplied platform metadata.
+        let changed = false;
         if (existing.user.toString() !== userId) {
           existing.user = userId;
+          changed = true;
+        }
+        if (existing.platform !== platform) {
           existing.platform = platform;
+          changed = true;
+        }
+        if (changed) {
           await existing.save();
           console.log(`[Notification] Updated device token for user ${userId}`);
         }

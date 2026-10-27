@@ -136,6 +136,7 @@ const getDevices = asyncHandler(async (req: any, res: any) => {
  */
 const registerFCMToken = asyncHandler(async (req: any, res: any) => {
   const fcmToken = req.body?.fcmToken || req.body?.token;
+  const requestedPlatform = req.body?.platform;
   const userId = req.user.id;
 
   if (!fcmToken) {
@@ -145,7 +146,10 @@ const registerFCMToken = asyncHandler(async (req: any, res: any) => {
     });
   }
 
-  await notificationService.registerDeviceToken(userId, fcmToken, 'web');
+  const platform = ["web", "android", "ios"].includes(requestedPlatform)
+    ? requestedPlatform
+    : "web";
+  await notificationService.registerDeviceToken(userId, fcmToken, platform);
 
   res.status(200).json({
     success: true,

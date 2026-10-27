@@ -17,6 +17,8 @@ router.post("/desktop/companion/:timeEntryId/respond", desktopDeviceAuth, deskto
 router.post("/desktop/companion/pair", companionPairingRateLimit, desktopDeviceAuth, desktopController.pairMobileShiftWithCode);
 
 router.use(protect);
+router.get("/desktop-presence-preference", desktopController.getDesktopPresencePreference);
+router.patch("/desktop-presence-preference", desktopController.updateDesktopPresencePreference);
 router.get("/workspace/:workspaceId/desktop-presence-policy", desktopController.getDesktopPresencePolicy);
 router.put("/workspace/:workspaceId/desktop-presence-policy", desktopController.updateDesktopPresencePolicy);
 router.get("/workspace/:workspaceId/desktop-presence/current", desktopController.getWorkspaceCurrentPresence);

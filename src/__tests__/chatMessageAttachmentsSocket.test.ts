@@ -3,7 +3,7 @@ jest.mock("../models/ChatChannel", () => ({ findByIdAndUpdate: jest.fn() }));
 jest.mock("../models/Workspace", () => ({}));
 jest.mock("../models/User", () => ({}));
 jest.mock("../utils/logger", () => ({ logActivity: jest.fn() }));
-jest.mock("../services/enhancedNotificationService", () => ({ createNotification: jest.fn() }));
+jest.mock("../services/enhancedNotificationService", () => ({ createNotification: jest.fn(), notifyGroupChatPhoto: jest.fn() }));
 jest.mock("../services/entitlementService", () => ({ default: {} }));
 jest.mock("../services/planInheritanceService", () => ({ default: {} }));
 jest.mock("../services/socketService", () => ({ default: {} }));
@@ -11,6 +11,7 @@ jest.mock("../socket/events", () => ({ emitChatMessage: jest.fn() }));
 
 const ChatMessage = require("../models/ChatMessage");
 const chatEvents = require("../socket/events");
+const notificationService = require("../services/enhancedNotificationService");
 const chatService = require("../services/chatService");
 
 describe("group chat image message socket payload", () => {
@@ -33,6 +34,10 @@ describe("group chat image message socket payload", () => {
     ChatMessage.create.mockResolvedValue(message);
     const channel = { _id: "channel-1", workspace: "workspace-1", name: "General" };
     jest.spyOn(chatService, "validateChannelAccess").mockResolvedValue(channel);
+    jest.spyOn(chatService, "getChannelMembers").mockResolvedValue([
+      { _id: "user-1" },
+      { _id: "user-2" },
+    ]);
 
     await chatService.createMessage({
       workspaceId: "workspace-1",
@@ -47,5 +52,14 @@ describe("group chat image message socket payload", () => {
       expect.objectContaining({ attachments }),
       "workspace-1",
     );
+    await Promise.resolve();
+    expect(notificationService.notifyGroupChatPhoto).toHaveBeenCalledWith(expect.objectContaining({
+      channelId: "channel-1",
+      channelName: "General",
+      workspaceId: "workspace-1",
+      senderId: "user-1",
+      messageId: "message-1",
+      recipientIds: ["user-1", "user-2"],
+    }));
   });
 });

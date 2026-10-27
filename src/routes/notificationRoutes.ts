@@ -19,7 +19,7 @@ router.use(protect);
  * /api/notifications/devices/fcm-token:
  *   post:
  *     summary: Register FCM token (canonical)
- *     description: Canonical endpoint for raw FCM token registration. Accepts `fcmToken` (preferred) and `token` (legacy compatibility).
+ *     description: Canonical endpoint for raw FCM token registration. Accepts `fcmToken` (preferred), optional `platform`, and `token` (legacy compatibility).
  *     tags: ["10.3 Utilities — Push Notification Devices"]
  *     requestBody:
  *       required: true
@@ -30,6 +30,7 @@ router.use(protect);
  *             required: [fcmToken]
  *             properties:
  *               fcmToken: { type: string }
+ *               platform: { type: string, enum: [web, android, ios] }
  *               token:
  *                 type: string
  *                 description: Legacy field name still accepted.

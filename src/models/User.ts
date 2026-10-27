@@ -13,6 +13,7 @@ interface IUser extends Document {
   deletedAt?: Date | null;
   deletedReason?: string;
   isSuperUser?: boolean;
+  desktopPresenceEnabled?: boolean;
   passwordResetToken?: string;
   passwordResetTokenExpires?: Date;
   subscription?: {
@@ -75,6 +76,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    desktopPresenceEnabled: { type: Boolean, default: true },
     notificationPreferences: {
       githubCommits: { type: Boolean, default: true },
       taskAssigned: { type: Boolean, default: true },

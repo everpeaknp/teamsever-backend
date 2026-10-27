@@ -417,7 +417,9 @@ class ChatService {
       try {
         const sender = await User.findById(senderId).select("name").lean();
         const senderName = sender?.name || "Someone";
-        const messagePreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+        const messagePreview = content.trim()
+          ? content.length > 100 ? content.substring(0, 100) + "..." : content
+          : attachments.length > 0 ? "sent a photo" : "";
 
         safeMentions.forEach((mentionedUserId) => {
           notificationService.createNotification({
@@ -457,6 +459,21 @@ class ChatService {
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     }, workspaceId);
+
+    if (attachments.length > 0) {
+      void this.getChannelMembers(targetChannelId, senderId, workspaceId)
+        .then((members: any[]) => notificationService.notifyGroupChatPhoto?.({
+          channelId: targetChannelId,
+          channelName: channel.name,
+          workspaceId,
+          senderId,
+          messageId: message._id.toString(),
+          recipientIds: members.map((member) => member._id.toString()),
+        }))
+        .catch((error: any) => {
+          console.error("Failed to send group photo notifications:", error);
+        });
+    }
 
     return message;
   }

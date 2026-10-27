@@ -72,6 +72,7 @@ interface SendPushOptions {
   body: string;
   data?: PushNotificationData;
   imageUrl?: string;
+  platforms?: Array<"web" | "android" | "ios">;
 }
 
 class EnhancedNotificationService {
@@ -190,6 +191,20 @@ class EnhancedNotificationService {
         await this.sendPushNotification(recipientId, {
           title,
           body,
+          data: {
+            type,
+            notificationId: notification._id.toString(),
+            ...data,
+          },
+        });
+      } else if (type === "DM_NEW") {
+        // A web socket session must not suppress delivery to the user's phone.
+        // Flutter suppresses the foreground FCM copy when its live socket has
+        // already shown the in-app message toast.
+        await this.sendPushNotification(recipientId, {
+          title,
+          body,
+          platforms: ["android", "ios"],
           data: {
             type,
             notificationId: notification._id.toString(),
@@ -654,6 +669,50 @@ class EnhancedNotificationService {
     }
   }
 
+  async notifyGroupChatPhoto(options: {
+    channelId: string;
+    channelName: string;
+    workspaceId: string;
+    senderId: string;
+    messageId: string;
+    recipientIds: string[];
+  }): Promise<void> {
+    try {
+      const sender = await User.findById(options.senderId).select("name").lean();
+      const users = await User.find({
+        _id: { $in: options.recipientIds, $ne: options.senderId },
+      }).select("_id notificationPreferences").lean();
+      const senderName = sender?.name || "Someone";
+      const recipients = users.filter((user: any) => {
+        const prefs = user.notificationPreferences;
+        if (!prefs) return true;
+        if (prefs.groupChats === false) return false;
+        const mutedChannels = Array.isArray(prefs.mutedChannels) ? prefs.mutedChannels : [];
+        return !mutedChannels.includes(options.channelId) &&
+          !mutedChannels.includes(`workspace_${options.workspaceId}`);
+      });
+
+      await Promise.allSettled(recipients.map((recipient: any) =>
+        this.sendPushNotification(recipient._id.toString(), {
+          title: `${senderName} to ${options.channelName}`,
+          body: "sent a photo",
+          platforms: ["android", "ios"],
+          data: {
+            type: "GROUP_CHAT_NEW",
+            message: "sent a photo",
+            senderName,
+            channelId: options.channelId,
+            channelName: options.channelName,
+            workspaceId: options.workspaceId,
+            messageId: options.messageId,
+          },
+        })
+      ));
+    } catch (error) {
+      console.error("[Notification] Failed to notify group chat photo:", error);
+    }
+  }
+
   /**
    * Notify file upload
    */
@@ -981,7 +1040,10 @@ class EnhancedNotificationService {
       }
 
       // Get user's device tokens
-      const deviceTokens = await DeviceToken.find({ user: userId }).lean();
+      const deviceTokens = await DeviceToken.find({
+        user: userId,
+        ...(options.platforms?.length ? { platform: { $in: options.platforms } } : {}),
+      }).lean();
 
       if (deviceTokens.length === 0) {
         console.log(`[Notification] No device tokens found for user ${userId}`);
@@ -1012,6 +1074,15 @@ class EnhancedNotificationService {
           ...(options.imageUrl && { imageUrl: options.imageUrl }),
         },
         data: stringData,
+        ...(options.data?.notificationId || options.data?.messageId
+          ? {
+              android: {
+                notification: {
+                  tag: options.data.notificationId || options.data.messageId,
+                },
+              },
+            }
+          : {}),
       };
 
       // Send to all tokens
