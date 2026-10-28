@@ -37,6 +37,7 @@ jest.mock("../services/entitlementService", () => ({
 jest.mock("../services/notificationService", () => ({
   getUserNotifications: jest.fn(),
   markAsRead: jest.fn(),
+  acknowledgeNotification: jest.fn(),
   markAllAsRead: jest.fn(),
   getUnreadCount: jest.fn(),
   createNotification: jest.fn(),
@@ -103,6 +104,25 @@ describe("HTTP route contracts", () => {
       message: "workspaceId is required",
     });
     expect(directMessageService.getConversations).not.toHaveBeenCalled();
+  });
+
+  it("passes multi-select filters to the DM conversation service", async () => {
+    directMessageService.getConversations.mockResolvedValue({
+      conversations: [],
+      pagination: { total: 0, page: 1, pages: 0, limit: 20, hasMore: false },
+    });
+    const app = createApp();
+
+    const response = await request(app)
+      .get("/api/dm")
+      .query({ workspaceId: "workspace-1", unreadOnly: "true", clockedInOnly: "true" });
+
+    expect(response.status).toBe(200);
+    expect(directMessageService.getConversations).toHaveBeenCalledWith(
+      "user-1",
+      "workspace-1",
+      { page: 1, limit: 20, search: "", unreadOnly: true, clockedInOnly: true },
+    );
   });
 
   it("starts a DM conversation through the mounted route", async () => {
@@ -180,6 +200,27 @@ describe("HTTP route contracts", () => {
       unreadOnly: true,
       workspaceId: "workspace-1",
     });
+  });
+
+  it("acknowledges a notice through the notification center route", async () => {
+    notificationService.acknowledgeNotification.mockResolvedValue({
+      _id: "notice-1",
+      acknowledgedAt: "2026-10-29T10:00:00.000Z",
+    });
+
+    const response = await request(createApp()).patch(
+      "/api/notifications/notice-1/acknowledge",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      data: { _id: "notice-1", acknowledgedAt: "2026-10-29T10:00:00.000Z" },
+    });
+    expect(notificationService.acknowledgeNotification).toHaveBeenCalledWith(
+      "notice-1",
+      "user-1",
+    );
   });
 
   it("creates a workspace invitation through the mounted route", async () => {

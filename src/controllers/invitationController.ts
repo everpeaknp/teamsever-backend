@@ -124,6 +124,17 @@ const acceptInvite = asyncHandler(async (req: AuthRequest, res: Response, next: 
   });
 });
 
+// @desc    Decline a workspace invitation
+// @route   POST /api/invites/decline/:token
+// @access  Private
+const declineInvite = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { token } = req.params;
+  if (!token) throw new AppError("Invitation token is required", 400);
+
+  const result = await invitationService.declineInvite(token, req.user!.id);
+  res.status(200).json({ success: true, data: result, message: result.message });
+});
+
 // @desc    Get all pending invitations for a workspace
 // @route   GET /api/workspaces/:workspaceId/invites
 // @access  Private (Admin/Owner only)
@@ -222,6 +233,7 @@ const redeemInvite = asyncHandler(async (req: AuthRequest, res: Response, next: 
 module.exports = {
   sendInvite,
   acceptInvite,
+  declineInvite,
   redeemInvite,
   getWorkspaceInvitations,
   cancelInvitation,

@@ -67,6 +67,10 @@ src/__tests__/*
 !src/__tests__/leaveApprovalFlow.test.ts
 !src/__tests__/leaveRequestWorkspaceProjection.test.ts
 !src/__tests__/leaveNotificationDelivery.test.ts
+!src/__tests__/chatChannelRoutes.test.ts
+!src/__tests__/directMessageController.test.ts
+!src/__tests__/chatReactionNotifications.test.ts
+!src/__tests__/reactionNotificationPipeline.test.ts
 !src/__tests__/timeEntryClockMode.test.ts
 !src/__tests__/invitationCodeReuse.test.ts
 !src/__tests__/analyticsActivityScope.test.ts

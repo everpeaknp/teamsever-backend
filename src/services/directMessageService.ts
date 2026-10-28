@@ -3,6 +3,7 @@ const Conversation = require("../models/Conversation");
 const DirectMessage = require("../models/DirectMessage");
 const User = require("../models/User");
 const Workspace = require("../models/Workspace");
+const TimeEntry = require("../models/TimeEntry");
 const AppError = require("../utils/AppError");
 const leaveService = require("./leaveService");
 const logger = require("../utils/logger");
@@ -29,6 +30,9 @@ interface GetMessagesOptions {
 interface GetConversationsOptions {
   page?: number;
   limit?: number;
+  search?: string;
+  unreadOnly?: boolean;
+  clockedInOnly?: boolean;
 }
 
 class DirectMessageService {
@@ -61,7 +65,7 @@ class DirectMessageService {
     const workspace = await Workspace.findOne({
       _id: workspaceId,
       isDeleted: false,
-    }).select("members.user owner").lean();
+    }).select("members.user members.role owner").lean();
 
     if (!workspace) {
       throw new AppError("Workspace not found", 404);
@@ -297,6 +301,12 @@ class DirectMessageService {
     if (!memberIds.has(userId)) {
       throw new AppError("You do not have access to this workspace", 403);
     }
+    if (options.clockedInOnly) {
+      const role = workspace.members?.find((member: any) => member.user?.toString?.() === userId)?.role;
+      if (workspace.owner?.toString?.() !== userId && !["admin", "owner"].includes(role)) {
+        throw new AppError("Clocked-in filtering requires workspace management access", 403);
+      }
+    }
 
     const page = options.page || 1;
     const limit = options.limit || 20;
@@ -306,6 +316,32 @@ class DirectMessageService {
       workspace: workspaceId,
       participants: userId,
     };
+
+    if (options.search?.trim()) {
+      const escaped = options.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const matchingUsers = await User.find({
+        _id: { $in: [...memberIds].filter((id) => id && id !== userId) },
+        $or: [{ name: { $regex: escaped, $options: "i" } }, { email: { $regex: escaped, $options: "i" } }],
+      }).select("_id").lean();
+      baseQuery.participants = { $all: [userId], $in: matchingUsers.map((member: any) => member._id) };
+    }
+    if (options.unreadOnly) {
+      const unreadConversations = await DirectMessage.distinct("conversation", {
+        sender: { $ne: new mongoose.Types.ObjectId(userId) },
+        readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+      });
+      baseQuery._id = { $in: unreadConversations };
+    }
+    if (options.clockedInOnly) {
+      const activeEntries = await TimeEntry.find({ workspace: workspaceId, isRunning: true, isDeleted: false, user: { $ne: userId } }).select("user").lean();
+      const activeUserIds = activeEntries.map((entry: any) => entry.user).filter(Boolean);
+      if (activeUserIds.length === 0) {
+        return { conversations: [], pagination: { total: 0, page, pages: 0, limit, hasMore: false } };
+      }
+      const searchableParticipants = Array.isArray(baseQuery.participants?.$in) ? baseQuery.participants.$in : activeUserIds;
+      const matchingActiveUsers = activeUserIds.filter((id: any) => searchableParticipants.some((candidate: any) => candidate.toString() === id.toString()));
+      baseQuery.participants = { $all: [userId], $in: matchingActiveUsers };
+    }
 
     const total = await Conversation.countDocuments(baseQuery);
 
@@ -599,6 +635,8 @@ class DirectMessageService {
       throw new AppError("You do not have access to this conversation", 403);
     }
 
+    const messageAuthorId = (message.sender?._id ?? message.sender)?.toString();
+
     if (!message.reactions) {
       message.reactions = [];
     }
@@ -652,6 +690,22 @@ class DirectMessageService {
       });
     } catch (err) {
       console.error("[DirectMessageService] Failed to emit reaction socket event:", err);
+    }
+
+    if (!userAlreadyReactedSameEmoji && messageAuthorId !== userId.toString()) {
+      try {
+        await enhancedNotificationService.notifyMessageReaction({
+          type: "DM_REACTION",
+          recipientId: messageAuthorId,
+          actorId: userId.toString(),
+          messageId: message._id.toString(),
+          emoji,
+          workspaceId: conversation.workspace?.toString(),
+          conversationId: conversation._id?.toString?.() ?? message.conversation.toString(),
+        });
+      } catch (err) {
+        console.error("[DirectMessageService] Failed to notify message reaction:", err);
+      }
     }
 
     return message;

@@ -53,6 +53,26 @@ describe("leave notification delivery", () => {
     push.mockRestore();
   });
 
+  it("sends mobile FCM for regular notifications while socket-connected", async () => {
+    const push = jest.spyOn(notifications, "sendPushNotification").mockResolvedValue(true);
+
+    await notifications.createNotification({
+      recipientId: "requester-1",
+      type: "ANNOUNCEMENT_NEW",
+      title: "New announcement",
+      body: "Please read the update",
+      data: { workspaceId: "workspace-1" },
+    });
+
+    expect(socketService.emitToUser).toHaveBeenCalledWith("requester-1", "notification:new", expect.any(Object));
+    expect(push).toHaveBeenCalledWith("requester-1", expect.objectContaining({
+      title: "New announcement",
+      platforms: ["android", "ios"],
+      data: expect.objectContaining({ notificationId: "notification-1", workspaceId: "workspace-1" }),
+    }));
+    push.mockRestore();
+  });
+
   it("notifies only the requester when a request is denied", async () => {
     const create = jest.spyOn(notifications, "createNotification").mockResolvedValue({});
     await notifications.notifyLeaveDenied({

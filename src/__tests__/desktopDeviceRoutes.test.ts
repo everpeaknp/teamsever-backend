@@ -6,6 +6,8 @@ jest.mock("../middlewares/desktopDeviceAuth", () => ({ desktopDeviceAuth: (req: 
 jest.mock("../controllers/attendanceLocationController", () => new Proxy({}, { get: () => (_req: any, res: any) => res.status(200).json({ success: true }) }));
 jest.mock("../controllers/desktopAttendanceController", () => ({
   getDeviceStatus: (_req: any, res: any) => res.status(200).json({ success: true, data: { clockedIn: false } }),
+  getDesktopPresencePreference: (_req: any, res: any) => res.status(200).json({ success: true }),
+  updateDesktopPresencePreference: (_req: any, res: any) => res.status(200).json({ success: true }),
   attachPresenceToActiveShift: (_req: any, res: any) => res.status(200).json({ success: true }),
   recordAppPresence: (_req: any, res: any) => res.status(201).json({ success: true }),
   createDevice: (_req: any, res: any) => res.status(201).json({ success: true }),

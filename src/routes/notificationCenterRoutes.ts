@@ -56,7 +56,7 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  * /api/notifications:
  *   get:
  *     summary: Get notifications
- *     description: Retrieve the current user's in-app notifications, newest first, scoped to one workspace.
+ *     description: Retrieve the current user's in-app notifications, newest first. Omit workspaceId to retrieve the account-wide feed.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
@@ -77,8 +77,8 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *         name: workspaceId
  *         schema:
  *           type: string
- *         required: true
- *         description: Required workspace scope. Only notifications with matching `data.workspaceId` are returned.
+ *         required: false
+ *         description: Optional workspace scope. When omitted, notifications across all workspaces are returned.
  *     responses:
  *       200:
  *         description: Notifications retrieved
@@ -95,12 +95,6 @@ router.post("/fcm-token", notificationController.registerFCMToken);
  *                 unread: { type: "integer", example: 3 }
  *       401:
  *         description: Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
- *       400:
- *         description: workspaceId is required
  *         content:
  *           application/json:
  *             schema:
@@ -170,7 +164,7 @@ router.post("/", notificationCenterController.createNotification);
  * /api/notifications/unread-count:
  *   get:
  *     summary: Get unread notification count
- *     description: Returns unread count for current user in one workspace scope.
+ *     description: Returns unread count for current user. Omit workspaceId to count across all workspaces.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
@@ -179,8 +173,8 @@ router.post("/", notificationCenterController.createNotification);
  *         name: workspaceId
  *         schema:
  *           type: string
- *         required: true
- *         description: Required workspace scope. Counts only notifications with matching `data.workspaceId`.
+ *         required: false
+ *         description: Optional workspace scope.
  *     responses:
  *       200:
  *         description: Unread count
@@ -196,12 +190,6 @@ router.post("/", notificationCenterController.createNotification);
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ApiError"
- *       400:
- *         description: workspaceId is required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ApiError"
  */
 router.get("/unread-count", notificationCenterController.getUnreadCount);
 
@@ -210,7 +198,7 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  * /api/notifications/read-all:
  *   patch:
  *     summary: Mark all notifications as read
- *     description: Marks current user's unread notifications as read inside one workspace scope.
+ *     description: Marks current user's unread notifications as read. Omit workspaceId to mark all workspaces' notifications as read.
  *     tags: ["10.2 Utilities — Notification Center"]
  *     security:
  *       - bearerAuth: []
@@ -219,8 +207,8 @@ router.get("/unread-count", notificationCenterController.getUnreadCount);
  *         name: workspaceId
  *         schema:
  *           type: string
- *         required: true
- *         description: Required workspace scope. Marks only notifications with matching `data.workspaceId`.
+ *         required: false
+ *         description: Optional workspace scope.
  *     responses:
  *       200:
  *         description: All notifications marked as read
@@ -282,6 +270,31 @@ router.patch("/read-all", notificationCenterController.markAllAsRead);
  *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/:id/read", notificationCenterController.markAsRead);
+
+/**
+ * @swagger
+ * /api/notifications/{id}/acknowledge:
+ *   patch:
+ *     summary: Acknowledge a notice
+ *     description: Records explicit acknowledgement and marks the notification as read.
+ *     tags: ["10.2 Utilities — Notification Center"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notice acknowledged
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Notification not found
+ */
+router.patch("/:id/acknowledge", notificationCenterController.acknowledgeNotification);
 
 module.exports = router;
 

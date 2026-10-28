@@ -2,14 +2,6 @@ const notificationService = require("../services/notificationService");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-const requireWorkspaceId = (req: any): string => {
-  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId).trim() : "";
-  if (!workspaceId) {
-    throw new AppError("workspaceId is required", 400);
-  }
-  return workspaceId;
-};
-
 /**
  * @desc    Get user notifications with pagination
  * @route   GET /api/notifications
@@ -54,6 +46,20 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
   });
 });
 
+/** Record explicit acknowledgement for a notice. */
+const acknowledgeNotification = asyncHandler(async (req: any, res: any) => {
+  const notification = await notificationService.acknowledgeNotification(
+    req.params.id,
+    req.user.id,
+  );
+
+  res.status(200).json({
+    success: true,
+    data: notification,
+    message: "Notice acknowledged",
+  });
+});
+
 /**
  * @desc    Mark all notifications as read
  * @route   PATCH /api/notifications/read-all
@@ -61,9 +67,9 @@ const markAsRead = asyncHandler(async (req: any, res: any) => {
  */
 const markAllAsRead = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
-  const workspaceId = requireWorkspaceId(req);
+  const workspaceId = req.query.workspaceId ? String(req.query.workspaceId).trim() : undefined;
 
-  const count = await notificationService.markAllAsRead(userId, workspaceId);
+  const count = await notificationService.markAllAsRead(userId, workspaceId || undefined);
 
   res.status(200).json({
     success: true,
@@ -144,6 +150,7 @@ const createNotification = asyncHandler(async (req: any, res: any) => {
 module.exports = {
   getNotifications,
   markAsRead,
+  acknowledgeNotification,
   markAllAsRead,
   getUnreadCount,
   createNotification

@@ -12,6 +12,8 @@ export interface INotification extends Document {
     | "COMMENT_DELETED"
     | "COMMENT_MENTION"
     | "DM_NEW"
+    | "DM_REACTION"
+    | "GROUP_CHAT_REACTION"
     | "FILE_UPLOAD"
     | "INVITATION"
     | "INVITE_ACCEPTED"
@@ -44,6 +46,7 @@ export interface INotification extends Document {
   };
   read: boolean;
   readAt?: Date;
+  acknowledgedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +71,8 @@ const notificationSchema = new Schema<INotification>(
         "COMMENT_DELETED",
         "COMMENT_MENTION",
         "DM_NEW",
+        "DM_REACTION",
+        "GROUP_CHAT_REACTION",
         "FILE_UPLOAD",
         "INVITATION",
         "INVITE_ACCEPTED",
@@ -106,6 +111,10 @@ const notificationSchema = new Schema<INotification>(
       index: true,
     },
     readAt: {
+      type: Date,
+      default: null,
+    },
+    acknowledgedAt: {
       type: Date,
       default: null,
     },

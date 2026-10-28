@@ -11,6 +11,7 @@ const notificationService = require("./enhancedNotificationService");
 const entitlementService = require("./entitlementService").default;
 const socketService = require("./socketService").default || require("./socketService");
 const apiReadCacheService = require("./apiReadCacheService").default;
+const TimeEntry = require("../models/TimeEntry");
 
 interface CreateMessageData {
   workspaceId: string;
@@ -34,6 +35,9 @@ interface GetMessagesOptions {
 interface GetChannelsOptions {
   page?: number;
   limit?: number;
+  search?: string;
+  unreadOnly?: boolean;
+  clockedInOnly?: boolean;
 }
 
 interface CreateChannelData {
@@ -266,13 +270,21 @@ class ChatService {
    */
   async getChannels(workspaceId: string, userId: string, options: GetChannelsOptions = {}) {
     const { membership } = await this.validateWorkspaceMembership(workspaceId, userId);
+    if (
+      options.clockedInOnly &&
+      membership.role !== "admin" &&
+      membership.role !== "owner"
+    ) {
+      throw new AppError("Clocked-in filtering requires workspace management access", 403);
+    }
     const isPrivileged = membership.role === 'admin' || membership.role === 'owner' || membership.role === 'operations_manager' || membership.role === 'project_manager';
     const isAdmin = isPrivileged;
     const page = options.page || 1;
     const limit = options.limit || 30;
+    const search = options.search?.trim() || "";
 
     return apiReadCacheService.getOrLoad(
-      `workspace:${workspaceId}:user:${userId}:role:${membership.role}:page:${page}:limit:${limit}`,
+      `workspace:${workspaceId}:user:${userId}:role:${membership.role}:page:${page}:limit:${limit}:search:${search}:unread:${!!options.unreadOnly}:clocked:${!!options.clockedInOnly}`,
       5,
       async () => {
         // Ensure default channels exist when loading a fresh channel list.
@@ -281,6 +293,34 @@ class ChatService {
         const query: any = { workspace: workspaceId, isDeleted: false };
         if (!isAdmin) {
           query.$or = [{ type: "public" }, { type: "private", members: userId }];
+        }
+
+        if (search) {
+          const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const searchClause = { $or: [{ name: { $regex: escaped, $options: "i" } }, { description: { $regex: escaped, $options: "i" } }] };
+          if (query.$or) query.$and = [{ $or: query.$or }, searchClause];
+          else Object.assign(query, searchClause);
+          delete query.$or;
+        }
+        if (options.unreadOnly) {
+          const unreadChannels = await ChatMessage.distinct("channel", {
+            workspace: workspaceId,
+            sender: { $ne: new mongoose.Types.ObjectId(userId) },
+            readBy: { $ne: new mongoose.Types.ObjectId(userId) },
+            isDeleted: { $ne: true },
+          });
+          query._id = { $in: unreadChannels };
+        }
+        if (options.clockedInOnly) {
+          const activeEntries = await TimeEntry.find({ workspace: workspaceId, isRunning: true, isDeleted: false, user: { $ne: userId } }).select("user").lean();
+          const activeUserIds = activeEntries.map((entry: any) => entry.user).filter(Boolean);
+          if (!activeUserIds.length) {
+            return { channels: [], pagination: { total: 0, page, pages: 0, limit, hasMore: false } };
+          }
+          query.$and = query.$and || [];
+          query.$and.push({
+            $or: [{ type: "public" }, { members: { $in: activeUserIds } }],
+          });
         }
 
         const skip = (page - 1) * limit;
@@ -771,7 +811,8 @@ class ChatService {
     }
 
     // Validate user access to the channel
-    await this.validateChannelAccess(message.channel.toString(), userId);
+    const channel = await this.validateChannelAccess(message.channel.toString(), userId);
+    const messageAuthorId = (message.sender?._id ?? message.sender)?.toString();
 
     if (!message.reactions) {
       message.reactions = [];
@@ -830,6 +871,23 @@ class ChatService {
       }
     } catch (err) {
       console.error("[ChatService] Failed to emit reaction socket event:", err);
+    }
+
+    if (!userAlreadyReactedSameEmoji && messageAuthorId !== userId.toString()) {
+      try {
+        await notificationService.notifyMessageReaction({
+          type: "GROUP_CHAT_REACTION",
+          recipientId: messageAuthorId,
+          actorId: userId.toString(),
+          messageId: message._id.toString(),
+          emoji,
+          workspaceId: (channel.workspace ?? message.workspace)?.toString(),
+          channelId: message.channel.toString(),
+          channelName: channel.name,
+        });
+      } catch (err) {
+        console.error("[ChatService] Failed to notify message reaction:", err);
+      }
     }
 
     return message;

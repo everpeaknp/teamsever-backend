@@ -3,6 +3,7 @@ const {
   getWorkspaceMembers,
   updateMemberRole,
   removeMember,
+  leaveWorkspace,
   inviteMember,
   updateMyStatus,
 } = require("../controllers/memberController");
@@ -153,6 +154,8 @@ router.post("/invite", protect, checkMemberLimit, requirePermission("INVITE_MEMB
  *               $ref: "#/components/schemas/ApiError"
  */
 router.patch("/me/status", protect, requirePermission("VIEW_WORKSPACE"), updateMyStatus);
+
+router.delete("/me", protect, leaveWorkspace);
 
 /**
  * @swagger

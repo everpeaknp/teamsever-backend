@@ -102,6 +102,9 @@ const getConversations = asyncHandler(async (req: any, res: any) => {
   const workspaceId = extractWorkspaceId(req);
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const search = String(req.query.search || "").trim();
+  const unreadOnly = req.query.unreadOnly === "true";
+  const clockedInOnly = req.query.clockedInOnly === "true";
 
   if (!workspaceId) {
     return res.status(400).json({
@@ -113,6 +116,9 @@ const getConversations = asyncHandler(async (req: any, res: any) => {
   const result = await directMessageService.getConversations(userId, workspaceId, {
     page,
     limit,
+    search,
+    unreadOnly,
+    clockedInOnly,
   });
 
   res.status(200).json({

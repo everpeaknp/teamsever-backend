@@ -284,6 +284,48 @@ const removeMember = asyncHandler(
 );
 
 /**
+ * @desc    Leave the current workspace
+ * @route   DELETE /api/workspaces/:workspaceId/members/me
+ * @access  Private (workspace member)
+ */
+const leaveWorkspace = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { workspaceId } = req.params;
+    const userId = req.user!.id;
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) return next(new AppError("Workspace not found", 404));
+    if (workspace.owner.toString() === userId) {
+      return next(new AppError("Workspace owners cannot leave. Transfer ownership first.", 400));
+    }
+
+    const memberIndex = workspace.members.findIndex(
+      (member: any) => member.user.toString() === userId,
+    );
+    if (memberIndex === -1) {
+      return next(new AppError("You are not a member of this workspace", 404));
+    }
+
+    workspace.members.splice(memberIndex, 1);
+    await workspace.save();
+
+    const io = require('../server').io;
+    if (io) {
+      io.to(workspaceId).emit('member:removed', {
+        workspaceId,
+        userId,
+        removedBy: userId,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "You left the workspace successfully",
+      data: null,
+    });
+  },
+);
+
+/**
  * @desc    Invite member to workspace
  * @route   POST /api/workspaces/:workspaceId/members/invite
  * @access  Private (Admin or Owner)
@@ -487,6 +529,7 @@ module.exports = {
   getWorkspaceMembers,
   updateMemberRole,
   removeMember,
+  leaveWorkspace,
   inviteMember,
   updateMyStatus,
 };

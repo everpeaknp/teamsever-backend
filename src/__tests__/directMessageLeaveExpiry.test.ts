@@ -3,6 +3,7 @@ jest.mock("../models/Conversation", () => ({ findById: jest.fn() }));
 jest.mock("../models/DirectMessage", () => ({ countDocuments: jest.fn(), find: jest.fn(), updateMany: jest.fn() }));
 jest.mock("../models/User", () => ({}));
 jest.mock("../models/Workspace", () => ({}));
+jest.mock("../models/TimeEntry", () => ({ find: jest.fn() }));
 jest.mock("../services/leaveService", () => ({ expireWorkspaceRequests: jest.fn() }));
 jest.mock("../utils/logger", () => ({}));
 jest.mock("../services/enhancedNotificationService", () => ({}));

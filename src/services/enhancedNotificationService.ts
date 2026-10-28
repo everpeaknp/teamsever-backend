@@ -24,6 +24,8 @@ type NotificationType =
   | "MENTION"
   | "COMMENT_MENTION"
   | "DM_NEW"
+  | "DM_REACTION"
+  | "GROUP_CHAT_REACTION"
   | "FILE_UPLOAD"
   | "INVITATION"
   | "SPACE_INVITATION"
@@ -76,7 +78,11 @@ interface SendPushOptions {
 }
 
 class EnhancedNotificationService {
-  private async isNotificationEnabledForUser(recipientId: string, type: NotificationType): Promise<boolean> {
+  private async isNotificationEnabledForUser(
+    recipientId: string,
+    type: NotificationType,
+    data: NotificationData = {},
+  ): Promise<boolean> {
     const user = await User.findById(recipientId).select("notificationPreferences").lean();
     const prefs = user?.notificationPreferences;
     if (!prefs) return true;
@@ -101,6 +107,18 @@ class EnhancedNotificationService {
         return prefs.taskUpdates !== false;
       case "DM_NEW":
         return prefs.messages !== false;
+      case "DM_REACTION": {
+        const mutedUsers = Array.isArray(prefs.mutedUsers) ? prefs.mutedUsers : [];
+        return prefs.messages !== false && !mutedUsers.includes(data.actorId);
+      }
+      case "GROUP_CHAT_REACTION": {
+        const mutedChannels = Array.isArray(prefs.mutedChannels)
+          ? prefs.mutedChannels
+          : [];
+        return prefs.groupChats !== false &&
+          !mutedChannels.includes(data.channelId) &&
+          !mutedChannels.includes(`workspace_${data.workspaceId}`);
+      }
       case "COMMENT_MENTION":
       case "MENTION":
         return prefs.mentions !== false;
@@ -130,7 +148,7 @@ class EnhancedNotificationService {
   async createNotification(options: CreateNotificationOptions): Promise<any> {
     try {
       const { recipientId, type, title, body, data = {} } = options;
-      const notificationsEnabled = await this.isNotificationEnabledForUser(recipientId, type);
+      const notificationsEnabled = await this.isNotificationEnabledForUser(recipientId, type, data);
       if (!notificationsEnabled) {
         return null;
       }
@@ -197,10 +215,10 @@ class EnhancedNotificationService {
             ...data,
           },
         });
-      } else if (type === "DM_NEW") {
-        // A web socket session must not suppress delivery to the user's phone.
-        // Flutter suppresses the foreground FCM copy when its live socket has
-        // already shown the in-app message toast.
+      } else {
+        // A live socket does not mean the mobile app is foregrounded. Send to
+        // mobile devices as well; Flutter suppresses the FCM copy while active
+        // and the OS presents it when the app is backgrounded or closed.
         await this.sendPushNotification(recipientId, {
           title,
           body,
@@ -220,6 +238,53 @@ class EnhancedNotificationService {
     }
   }
 
+  async notifyMessageReaction(options: {
+    type: "DM_REACTION" | "GROUP_CHAT_REACTION";
+    recipientId: string;
+    actorId: string;
+    messageId: string;
+    emoji: string;
+    workspaceId?: string;
+    conversationId?: string;
+    channelId?: string;
+    channelName?: string;
+  }): Promise<void> {
+    if (!options.recipientId || options.recipientId === options.actorId) return;
+
+    try {
+      const actor = await User.findById(options.actorId).select("name").lean();
+      const actorName = actor?.name || "Someone";
+      const isGroupReaction = options.type === "GROUP_CHAT_REACTION";
+      const title = isGroupReaction
+        ? `${actorName} reacted to a message`
+        : `${actorName} reacted to your message`;
+      const channelName = options.channelName?.trim();
+
+      await this.createNotification({
+        recipientId: options.recipientId,
+        type: options.type,
+        title,
+        body: isGroupReaction
+          ? `in ${channelName ? `#${channelName}` : "a group chat"} with ${options.emoji}`
+          : `Reacted with ${options.emoji}`,
+        data: {
+          resourceId: options.messageId,
+          resourceType: isGroupReaction ? "ChatMessage" : "DirectMessage",
+          messageId: options.messageId,
+          actorId: options.actorId,
+          actorName,
+          emoji: options.emoji,
+          ...(options.workspaceId ? { workspaceId: options.workspaceId } : {}),
+          ...(options.conversationId ? { conversationId: options.conversationId } : {}),
+          ...(options.channelId ? { channelId: options.channelId } : {}),
+          ...(channelName ? { channelName } : {}),
+        },
+      });
+    } catch (error) {
+      console.error("[Notification] Failed to notify message reaction:", error);
+    }
+  }
+
   /**
    * Notify new announcement to all workspace members
    */
@@ -230,11 +295,24 @@ class EnhancedNotificationService {
     content: string
   ): Promise<void> {
     try {
-      const workspace = await Workspace.findById(workspaceId).lean();
+      const workspace = await Workspace.findById(workspaceId)
+        .populate("members.customRole", "name label")
+        .lean();
       if (!workspace) return;
 
       const author = await User.findById(authorId).select("name").lean();
       const authorName = author?.name || "Someone";
+      const authorMembership = workspace.members?.find(
+        (member: any) => String(member.user) === authorId
+      );
+      const senderRole =
+        authorMembership?.customRoleTitle ||
+        authorMembership?.customRole?.label ||
+        authorMembership?.customRole?.name ||
+        String(authorMembership?.role || "Workspace team")
+          .split(/[\s_]+/)
+          .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
       const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
 
       // Notify all members except author
@@ -257,6 +335,11 @@ class EnhancedNotificationService {
             resourceType: "Announcement",
             workspaceId,
             announcementId,
+            // Keep enough of the original notice on the notification so the
+            // dashboard card and its detail sheet can render immediately,
+            // before the dashboard analytics request refreshes.
+            announcementContent: content.substring(0, 1000),
+            senderRole,
           },
         });
       }

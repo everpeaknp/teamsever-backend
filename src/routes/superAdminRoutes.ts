@@ -7,6 +7,18 @@ const {
   updateSystemSettings
 } = require("../controllers/superAdminController");
 const { protect } = require("../middlewares/authMiddleware");
+const productUpdates = require("../controllers/productUpdateController");
+const multer = require("multer");
+const { PRODUCT_UPDATE_IMAGE_MAX_BYTES, validateProductUpdateImage } = require("../utils/productUpdateImagePolicy");
+const productUpdateImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: PRODUCT_UPDATE_IMAGE_MAX_BYTES, files: 1 },
+  fileFilter: (_req: any, file: any, callback: any) => {
+    const error = validateProductUpdateImage(file.mimetype, 1);
+    if (!error) return callback(null, true);
+    callback(new Error(error));
+  },
+}).single("file");
 
 const router = express.Router();
 
@@ -173,6 +185,18 @@ router.get("/analytics", getFinancialAnalytics);
  *               $ref: "#/components/schemas/ApiError"
  */
 router.put("/settings", updateSystemSettings);
+
+router.get("/product-updates", productUpdates.adminList);
+router.post("/product-updates", productUpdates.adminSave);
+router.delete("/product-updates/:id", productUpdates.adminDelete);
+router.post("/product-updates/upload-image", (req: any, res: any, next: any) => {
+  productUpdateImageUpload(req, res, (error: any) => {
+    if (error) return res.status(400).json({ success: false, message: error.message || "Image upload failed." });
+    next();
+  });
+}, productUpdates.uploadSlideImage);
+router.get("/product-updates/next", productUpdates.getNextForUser);
+router.post("/product-updates/:id/seen", productUpdates.markSeen);
 
 const { migrateWebhooks } = require("../controllers/superAdminController");
 router.post("/migrate-webhooks", migrateWebhooks);

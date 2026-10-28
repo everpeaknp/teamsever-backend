@@ -37,8 +37,11 @@ const getChannels = asyncHandler(async (req: any, res: any) => {
   const userId = req.user.id;
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
+  const search = String(req.query.search || "").trim();
+  const unreadOnly = req.query.unreadOnly === "true";
+  const clockedInOnly = req.query.clockedInOnly === "true";
 
-  const result = await chatService.getChannels(workspaceId, userId, { page, limit });
+  const result = await chatService.getChannels(workspaceId, userId, { page, limit, search, unreadOnly, clockedInOnly });
 
   res.status(200).json({
     success: true,

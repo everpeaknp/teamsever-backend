@@ -2,6 +2,7 @@ const express = require("express");
 const {
   sendInvite,
   acceptInvite,
+  declineInvite,
   redeemInvite,
   getWorkspaceInvitations,
   cancelInvitation,
@@ -258,6 +259,7 @@ const inviteRouter = express.Router();
  *               $ref: "#/components/schemas/ApiError"
  */
 inviteRouter.post("/accept/:token", protect, acceptInvite);
+inviteRouter.post("/decline/:token", protect, declineInvite);
 
 /**
  * @swagger

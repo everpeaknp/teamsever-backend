@@ -501,6 +501,30 @@ class InvitationService {
     };
   }
 
+  /** Decline a workspace invitation by its recipient. */
+  async declineInvite(token: string, userId: string) {
+    const invitation = await Invitation.findOne({ token, status: "pending" });
+    if (!invitation) {
+      throw new AppError("Invalid or expired invitation", 404);
+    }
+
+    if (new Date() > invitation.expiresAt) {
+      invitation.status = "expired";
+      await invitation.save();
+      throw new AppError("This invitation has expired", 400);
+    }
+
+    const user = await User.findById(userId).select("email");
+    if (!user) throw new AppError("User not found", 404);
+    if (invitation.email && user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      throw new AppError("This invitation was sent to a different email address", 403);
+    }
+
+    invitation.status = "declined";
+    await invitation.save();
+    return { message: "Invitation declined successfully" };
+  }
+
   /**
    * Get all pending invitations for a workspace
    */

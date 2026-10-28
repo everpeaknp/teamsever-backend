@@ -5,6 +5,17 @@ const presenceManager = require("../socket/presence");
 const logger = require("../utils/logger");
 const { emitToUser } = require("../socket/events");
 const enhancedNotificationService = require("./enhancedNotificationService");
+const Announcement = require("../models/Announcement");
+const Workspace = require("../models/Workspace");
+
+const formatRoleName = (role: unknown): string | undefined => {
+  if (typeof role !== "string" || !role.trim()) return undefined;
+  return role
+    .trim()
+    .split(/[\s_]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
 
 interface NotificationData {
   resourceId?: string;
@@ -91,6 +102,68 @@ class NotificationService {
         .limit(limit)
         .lean();
 
+      const announcementNotifications = notifications.filter(
+        (notification: any) =>
+          notification.type === "ANNOUNCEMENT_NEW" &&
+          notification.data?.announcementId
+      );
+      if (announcementNotifications.length > 0) {
+        const announcementIds = announcementNotifications.map(
+          (notification: any) => notification.data.announcementId
+        );
+        const announcements = await Announcement.find({
+          _id: { $in: announcementIds },
+        })
+          .select("author workspace")
+          .lean();
+        const announcementById = new Map<string, any>(
+          announcements.map((announcement: any) => [
+            String(announcement._id),
+            announcement,
+          ])
+        );
+        const workspaceIds = [
+          ...new Set(
+            announcements.map((announcement: any) =>
+              String(announcement.workspace)
+            )
+          ),
+        ];
+        const workspaces = await Workspace.find({
+          _id: { $in: workspaceIds },
+        })
+          .select("members")
+          .populate("members.customRole", "name label")
+          .lean();
+        const workspaceById = new Map<string, any>(
+          workspaces.map((workspace: any) => [String(workspace._id), workspace])
+        );
+
+        for (const notification of announcementNotifications) {
+          const announcement = announcementById.get(
+            String(notification.data.announcementId)
+          );
+          if (!announcement) continue;
+          const workspace = workspaceById.get(String(announcement.workspace));
+          const authorId = String(announcement.author);
+          const authorMembership = workspace?.members?.find(
+            (member: any) => String(member.user) === authorId
+          );
+          const roleName = formatRoleName(
+            authorMembership?.customRoleTitle ||
+              authorMembership?.customRole?.label ||
+              authorMembership?.customRole?.name ||
+              authorMembership?.role
+          );
+          if (roleName) {
+            notification.data = {
+              ...notification.data,
+              senderRole: roleName,
+            };
+          }
+        }
+      }
+
       return {
         notifications,
         pagination: {
@@ -133,6 +206,33 @@ class NotificationService {
       return notification;
     } catch (error) {
       console.error("[Notification] Failed to mark as read:", error);
+      throw error;
+    }
+  }
+
+  /** Permanently records that the recipient acknowledged a notice. */
+  async acknowledgeNotification(notificationId: string, userId: string): Promise<any> {
+    try {
+      const notification = await Notification.findOne({
+        _id: notificationId,
+        recipient: userId,
+      });
+
+      if (!notification) {
+        throw new Error("Notification not found");
+      }
+
+      const acknowledgedAt = notification.acknowledgedAt || new Date();
+      notification.acknowledgedAt = acknowledgedAt;
+      if (!notification.read) {
+        notification.read = true;
+        notification.readAt = acknowledgedAt;
+      }
+      await notification.save();
+
+      return notification;
+    } catch (error) {
+      console.error("[Notification] Failed to acknowledge notice:", error);
       throw error;
     }
   }
