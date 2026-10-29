@@ -11,6 +11,7 @@ const enhancedNotificationService = require("./enhancedNotificationService");
 const { emitToUser } = require("../socket/events");
 const socketService = require("./socketService").default || require("./socketService");
 const apiReadCacheService = require("./apiReadCacheService").default;
+const { reactionTogglePipeline } = require("../utils/reactionTogglePipeline");
 
 interface SendMessageData {
   senderId: string;
@@ -637,43 +638,21 @@ class DirectMessageService {
 
     const messageAuthorId = (message.sender?._id ?? message.sender)?.toString();
 
-    if (!message.reactions) {
-      message.reactions = [];
-    }
-
-    const userAlreadyReactedSameEmoji = message.reactions.some(
-      (r: any) => r.emoji === emoji && r.users.some((u: any) => u.toString() === userId.toString())
+    // Update atomically so two clients tapping the same reaction cannot create
+    // duplicate user ids in the persisted reaction.
+    const updatedMessage = await DirectMessage.findOneAndUpdate(
+      { _id: message._id },
+      reactionTogglePipeline(userId.toString(), emoji),
+      { new: true, updatePipeline: true }
     );
-
-    // Remove user from ALL reactions on this message (one person, one react)
-    for (let i = message.reactions.length - 1; i >= 0; i--) {
-      const r = message.reactions[i];
-      const uIdx = r.users.findIndex((u: any) => u.toString() === userId.toString());
-      if (uIdx > -1) {
-        r.users.splice(uIdx, 1);
-        r.count = r.users.length;
-        if (r.count === 0) {
-          message.reactions.splice(i, 1);
-        }
-      }
+    if (!updatedMessage) {
+      throw new AppError("Message not found", 404);
     }
-
-    // If user wasn't already reacting with this exact emoji, add them to it
-    if (!userAlreadyReactedSameEmoji) {
-      const existingReaction = message.reactions.find((r: any) => r.emoji === emoji);
-      if (existingReaction) {
-        existingReaction.users.push(userId as any);
-        existingReaction.count = existingReaction.users.length;
-      } else {
-        message.reactions.push({
-          emoji,
-          users: [userId as any],
-          count: 1,
-        });
-      }
-    }
-
-    await message.save();
+    message.reactions = updatedMessage.reactions;
+    const userHasReactionAfterToggle = (message.reactions ?? []).some(
+      (reaction: any) => reaction.emoji === emoji &&
+        (reaction.users ?? []).some((reactor: any) => reactor.toString() === userId.toString())
+    );
     await apiReadCacheService.invalidateNamespace("chat-messages");
     await message.populate("sender", "name email avatar profilePicture");
     await message.populate("reactions.users", "name avatar profilePicture");
@@ -684,6 +663,8 @@ class DirectMessageService {
       socketService.emitToUsers?.(conversation.participants.map((p: any) => p.toString()), "dm:reaction", {
         messageId: message._id,
         conversationId: message.conversation,
+        messageSenderId: message.sender?._id?.toString?.() ?? message.sender?.toString?.(),
+        messageSenderName: message.sender?.name ?? null,
         reactions: message.reactions,
         userId,
         emoji,
@@ -692,7 +673,7 @@ class DirectMessageService {
       console.error("[DirectMessageService] Failed to emit reaction socket event:", err);
     }
 
-    if (!userAlreadyReactedSameEmoji && messageAuthorId !== userId.toString()) {
+    if (userHasReactionAfterToggle && messageAuthorId !== userId.toString()) {
       try {
         await enhancedNotificationService.notifyMessageReaction({
           type: "DM_REACTION",

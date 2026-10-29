@@ -12,6 +12,7 @@ const entitlementService = require("./entitlementService").default;
 const socketService = require("./socketService").default || require("./socketService");
 const apiReadCacheService = require("./apiReadCacheService").default;
 const TimeEntry = require("../models/TimeEntry");
+const { reactionTogglePipeline } = require("../utils/reactionTogglePipeline");
 
 interface CreateMessageData {
   workspaceId: string;
@@ -814,43 +815,21 @@ class ChatService {
     const channel = await this.validateChannelAccess(message.channel.toString(), userId);
     const messageAuthorId = (message.sender?._id ?? message.sender)?.toString();
 
-    if (!message.reactions) {
-      message.reactions = [];
-    }
-
-    const userAlreadyReactedSameEmoji = message.reactions.some(
-      (r: any) => r.emoji === emoji && r.users.some((u: any) => u.toString() === userId.toString())
+    // Update the whole reactions array atomically so concurrent requests cannot
+    // append the same user more than once.
+    const updatedMessage = await ChatMessage.findOneAndUpdate(
+      { _id: message._id, isDeleted: false },
+      reactionTogglePipeline(userId.toString(), emoji),
+      { new: true, updatePipeline: true }
     );
-
-    // Remove user from ALL reactions on this message (one person, one react)
-    for (let i = message.reactions.length - 1; i >= 0; i--) {
-      const r = message.reactions[i];
-      const uIdx = r.users.findIndex((u: any) => u.toString() === userId.toString());
-      if (uIdx > -1) {
-        r.users.splice(uIdx, 1);
-        r.count = r.users.length;
-        if (r.count === 0) {
-          message.reactions.splice(i, 1);
-        }
-      }
+    if (!updatedMessage) {
+      throw new AppError("Message not found", 404);
     }
-
-    // If user wasn't already reacting with this exact emoji, add them to it
-    if (!userAlreadyReactedSameEmoji) {
-      const existingReaction = message.reactions.find((r: any) => r.emoji === emoji);
-      if (existingReaction) {
-        existingReaction.users.push(userId as any);
-        existingReaction.count = existingReaction.users.length;
-      } else {
-        message.reactions.push({
-          emoji,
-          users: [userId as any],
-          count: 1,
-        });
-      }
-    }
-
-    await message.save();
+    message.reactions = updatedMessage.reactions;
+    const userHasReactionAfterToggle = (message.reactions ?? []).some(
+      (reaction: any) => reaction.emoji === emoji &&
+        (reaction.users ?? []).some((reactor: any) => reactor.toString() === userId.toString())
+    );
     await apiReadCacheService.invalidateNamespace("chat-messages");
 
     // Populate sender
@@ -864,6 +843,8 @@ class ChatService {
         io.to(`channel:${message.channel.toString()}`).emit("chat:reaction", {
           messageId: message._id,
           channelId: message.channel,
+          messageSenderId: message.sender?._id?.toString?.() ?? message.sender?.toString?.(),
+          messageSenderName: message.sender?.name ?? null,
           reactions: message.reactions,
           userId,
           emoji,
@@ -873,7 +854,7 @@ class ChatService {
       console.error("[ChatService] Failed to emit reaction socket event:", err);
     }
 
-    if (!userAlreadyReactedSameEmoji && messageAuthorId !== userId.toString()) {
+    if (userHasReactionAfterToggle && messageAuthorId !== userId.toString()) {
       try {
         await notificationService.notifyMessageReaction({
           type: "GROUP_CHAT_REACTION",

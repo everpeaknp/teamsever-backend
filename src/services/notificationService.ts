@@ -203,6 +203,81 @@ class NotificationService {
     }
   }
 
+  /** Returns the newest active workspace announcement for the dashboard banner. */
+  async getPendingWorkspaceNotice(
+    userId: string,
+    workspaceId: string
+  ): Promise<any | null> {
+    const notifications = await Notification.find({
+      recipient: userId,
+      type: "ANNOUNCEMENT_NEW",
+      acknowledgedAt: null,
+      "data.workspaceId": workspaceId,
+      "data.announcementId": { $exists: true, $nin: [null, ""] },
+    })
+      .select("recipient type title body data read readAt acknowledgedAt createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    if (notifications.length === 0) return null;
+
+    const announcementIds = notifications.map((item: any) => item.data.announcementId);
+    const announcements = await Announcement.find({
+      _id: { $in: announcementIds },
+      workspace: workspaceId,
+    })
+      .select("author workspace subject body content")
+      .lean();
+    const announcementById = new Map<string, any>(
+      announcements.map((item: any) => [String(item._id), item])
+    );
+    const orphanedNotifications = notifications.filter(
+      (item: any) => !announcementById.has(String(item.data.announcementId))
+    );
+    if (orphanedNotifications.length > 0) {
+      await Notification.deleteMany({
+        _id: { $in: orphanedNotifications.map((item: any) => item._id) },
+        recipient: userId,
+      });
+    }
+
+    const notification = notifications.find((item: any) =>
+      announcementById.has(String(item.data.announcementId))
+    );
+    if (!notification) return null;
+
+    const announcement = announcementById.get(String(notification.data.announcementId));
+    const workspace = await Workspace.findById(workspaceId)
+      .select("members")
+      .populate("members.customRole", "name label")
+      .lean();
+    const authorId = String(announcement.author);
+    const authorMembership = workspace?.members?.find(
+      (member: any) => String(member.user) === authorId
+    );
+    const senderRole = formatRoleName(
+      authorMembership?.customRoleTitle ||
+        authorMembership?.customRole?.label ||
+        authorMembership?.customRole?.name ||
+        authorMembership?.role
+    );
+    const announcementSubject = String(announcement.subject || "").trim();
+    const announcementBody = String(announcement.body || announcement.content || "").trim();
+
+    return {
+      ...notification,
+      data: {
+        ...notification.data,
+        ...(senderRole ? { senderRole } : {}),
+        ...(announcementSubject ? { announcementSubject } : {}),
+        ...(announcementBody
+          ? { announcementBody, announcementContent: announcementBody }
+          : {}),
+      },
+    };
+  }
+
   async deleteAnnouncementNotifications(announcementId: string): Promise<void> {
     await Notification.deleteMany({
       type: "ANNOUNCEMENT_NEW",

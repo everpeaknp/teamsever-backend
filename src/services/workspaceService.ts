@@ -409,6 +409,7 @@ class WorkspaceService {
       activityLimit?: number;
       activitySkip?: number;
       includeTeamPerformance?: boolean;
+      mobileDashboard?: boolean;
     }
   ) {
     // Import services inside the method to avoid circular dependencies
@@ -419,6 +420,7 @@ class WorkspaceService {
     const createdAtRange = this.buildDateRange(period?.from, period?.to, { defaultToday: false });
     const activityLimit = Math.min(50, Math.max(1, Number(period?.activityLimit || 10)));
     const activitySkip = Math.max(0, Number(period?.activitySkip || 0));
+    const isMobileDashboard = period?.mobileDashboard === true;
 
     // 1. Fetch Workspace & Members (populated for UI badges/avatars)
     const workspace = await Workspace.findOne({
@@ -583,11 +585,72 @@ class WorkspaceService {
       taskQuery.$or = [{ assignee: userId }, { createdBy: userId }];
     }
 
-    const recentTasks = await Task.find(taskQuery)
+    const mobileTaskQuery = isMobileDashboard
+      ? { ...taskQuery, assignee: userId }
+      : taskQuery;
+    const dashboardTaskStatsPromise = isMobileDashboard
+      ? Task.aggregate([
+          { $match: taskQuery },
+          {
+            $group: {
+              _id: null,
+              totalTasks: { $sum: 1 },
+              completedTasks: { $sum: { $cond: [{ $eq: ["$status", "done"] }, 1, 0] } },
+              openTasks: {
+                $sum: {
+                  $cond: [{ $not: [{ $in: ["$status", ["done", "cancelled"]] }] }, 1, 0]
+                }
+              },
+              delayedOpenTasks: {
+                $sum: {
+                  $cond: [{
+                    $and: [
+                      { $not: [{ $in: ["$status", ["done", "cancelled"]] }] },
+                      { $ne: ["$deadline", null] },
+                      { $lt: ["$deadline", new Date()] }
+                    ]
+                  }, 1, 0]
+                }
+              },
+              completedWithDeadline: {
+                $sum: {
+                  $cond: [{ $and: [{ $eq: ["$status", "done"] }, { $ne: ["$deadline", null] }] }, 1, 0]
+                }
+              },
+              completedOnTime: {
+                $sum: {
+                  $cond: [{
+                    $and: [
+                      { $eq: ["$status", "done"] },
+                      { $ne: ["$deadline", null] },
+                      { $ne: ["$completedAt", null] },
+                      { $lte: ["$completedAt", "$deadline"] }
+                    ]
+                  }, 1, 0]
+                }
+              },
+              todoCount: { $sum: { $cond: [{ $eq: ["$status", "todo"] }, 1, 0] } },
+              inProgressCount: { $sum: { $cond: [{ $in: ["$status", ["inprogress", "in-progress"]] }, 1, 0] } },
+              reviewCount: { $sum: { $cond: [{ $eq: ["$status", "review"] }, 1, 0] } },
+              blockedCount: { $sum: { $cond: [{ $eq: ["$status", "blocked"] }, 1, 0] } },
+              cancelledCount: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+              lowPriorityCount: { $sum: { $cond: [{ $eq: ["$priority", "low"] }, 1, 0] } },
+              mediumPriorityCount: { $sum: { $cond: [{ $eq: ["$priority", "medium"] }, 1, 0] } },
+              highPriorityCount: { $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] } },
+              urgentPriorityCount: { $sum: { $cond: [{ $eq: ["$priority", "urgent"] }, 1, 0] } }
+            }
+          }
+        ])
+      : Promise.resolve(null);
+    const [recentTasks, dashboardTaskStatsRows] = await Promise.all([
+      Task.find(mobileTaskQuery)
       .select("_id title workItemType status priority assignee space list updatedAt deadline completedAt createdAt")
-      .populate("assignee", "name email avatar profilePicture")
+      .populate("assignee", isMobileDashboard ? "name avatar profilePicture" : "name email avatar profilePicture")
       .sort("-updatedAt")
-      .lean();
+      .lean(),
+      dashboardTaskStatsPromise
+    ]);
+    const dashboardTaskStats = dashboardTaskStatsRows?.[0] || {};
 
     const isPrivilegedDashboardUser = ["owner", "admin", "operations_manager", "project_manager"].includes(userRole);
     let dashboardSpaces: any[] = [];
@@ -654,25 +717,44 @@ class WorkspaceService {
     
     // 2. Build stats from effective scope (workspace or personal)
     const now = new Date();
-    const totalTasks = recentTasks.length;
+    const totalTasks = isMobileDashboard
+      ? Number(dashboardTaskStats.totalTasks || 0)
+      : recentTasks.length;
     const completedTaskRows = recentTasks.filter((t: any) => t.status === "done");
-    const completedTasks = completedTaskRows.length;
+    const completedTasks = isMobileDashboard
+      ? Number(dashboardTaskStats.completedTasks || 0)
+      : completedTaskRows.length;
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     const openTaskRows = recentTasks.filter((t: any) => {
       const s = String(t.status || "").toLowerCase();
       return s !== "done" && s !== "cancelled";
     });
-    const delayedOpenTasks = openTaskRows.filter((t: any) => t.deadline && new Date(t.deadline) < now).length;
-    const delayedRate = openTaskRows.length > 0 ? Math.round((delayedOpenTasks / openTaskRows.length) * 100) : 0;
+    const delayedOpenTasks = isMobileDashboard
+      ? Number(dashboardTaskStats.delayedOpenTasks || 0)
+      : openTaskRows.filter((t: any) => t.deadline && new Date(t.deadline) < now).length;
+    const openTaskCount = isMobileDashboard
+      ? Number(dashboardTaskStats.openTasks || 0)
+      : openTaskRows.length;
+    const delayedRate = openTaskCount > 0 ? Math.round((delayedOpenTasks / openTaskCount) * 100) : 0;
     const completedWithDeadlineRows = completedTaskRows.filter((t: any) => !!t.deadline);
     const completedOnTimeWithDeadline = completedWithDeadlineRows.filter((t: any) => {
       if (!t.completedAt || !t.deadline) return false;
       return new Date(t.completedAt) <= new Date(t.deadline);
     }).length;
-    const deadlineCompletionRate = completedWithDeadlineRows.length > 0
-      ? Math.round((completedOnTimeWithDeadline / completedWithDeadlineRows.length) * 100)
+    const completedWithDeadlineCount = isMobileDashboard
+      ? Number(dashboardTaskStats.completedWithDeadline || 0)
+      : completedWithDeadlineRows.length;
+    const deadlineCompletionRate = completedWithDeadlineCount > 0
+      ? Math.round(((isMobileDashboard
+          ? Number(dashboardTaskStats.completedOnTime || 0)
+          : completedOnTimeWithDeadline) / completedWithDeadlineCount) * 100)
       : 100;
-    const priorityBuckets: Record<string, number> = { Low: 0, Medium: 0, High: 0, Urgent: 0 };
+    const priorityBuckets: Record<string, number> = {
+      Low: isMobileDashboard ? Number(dashboardTaskStats.lowPriorityCount || 0) : 0,
+      Medium: isMobileDashboard ? Number(dashboardTaskStats.mediumPriorityCount || 0) : 0,
+      High: isMobileDashboard ? Number(dashboardTaskStats.highPriorityCount || 0) : 0,
+      Urgent: isMobileDashboard ? Number(dashboardTaskStats.urgentPriorityCount || 0) : 0
+    };
     const buildPriorityPerformance = (taskRows: any[]) => {
       const rowsByPriority: Record<string, any[]> = {
         high: [],
@@ -715,21 +797,30 @@ class WorkspaceService {
         low: summarize(rowsByPriority.low)
       };
     };
-    const statusBuckets: Record<string, number> = { "To Do": 0, "In Progress": 0, Review: 0, Done: 0, Blocked: 0, Cancelled: 0 };
-    for (const task of recentTasks as any[]) {
-      const p = String(task.priority || "").toLowerCase();
-      if (p === "low") priorityBuckets.Low++;
-      else if (p === "medium") priorityBuckets.Medium++;
-      else if (p === "high") priorityBuckets.High++;
-      else if (p === "urgent") priorityBuckets.Urgent++;
+    const statusBuckets: Record<string, number> = {
+      "To Do": isMobileDashboard ? Number(dashboardTaskStats.todoCount || 0) : 0,
+      "In Progress": isMobileDashboard ? Number(dashboardTaskStats.inProgressCount || 0) : 0,
+      Review: isMobileDashboard ? Number(dashboardTaskStats.reviewCount || 0) : 0,
+      Done: isMobileDashboard ? Number(dashboardTaskStats.completedTasks || 0) : 0,
+      Blocked: isMobileDashboard ? Number(dashboardTaskStats.blockedCount || 0) : 0,
+      Cancelled: isMobileDashboard ? Number(dashboardTaskStats.cancelledCount || 0) : 0
+    };
+    if (!isMobileDashboard) {
+      for (const task of recentTasks as any[]) {
+        const p = String(task.priority || "").toLowerCase();
+        if (p === "low") priorityBuckets.Low++;
+        else if (p === "medium") priorityBuckets.Medium++;
+        else if (p === "high") priorityBuckets.High++;
+        else if (p === "urgent") priorityBuckets.Urgent++;
 
-      const s = String(task.status || "").toLowerCase();
-      if (s === "todo") statusBuckets["To Do"]++;
-      else if (s === "inprogress" || s === "in-progress") statusBuckets["In Progress"]++;
-      else if (s === "review") statusBuckets.Review++;
-      else if (s === "done") statusBuckets.Done++;
-      else if (s === "blocked") statusBuckets.Blocked++;
-      else if (s === "cancelled") statusBuckets.Cancelled++;
+        const s = String(task.status || "").toLowerCase();
+        if (s === "todo") statusBuckets["To Do"]++;
+        else if (s === "inprogress" || s === "in-progress") statusBuckets["In Progress"]++;
+        else if (s === "review") statusBuckets.Review++;
+        else if (s === "done") statusBuckets.Done++;
+        else if (s === "blocked") statusBuckets.Blocked++;
+        else if (s === "cancelled") statusBuckets.Cancelled++;
+      }
     }
 
     const stats = {

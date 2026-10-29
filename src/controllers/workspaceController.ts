@@ -10,6 +10,8 @@ const Announcement = require("../models/Announcement");
 const performanceService = require("../services/performanceService");
 const activityService = require("../services/activityService");
 const analyticsV2CacheService = require("../services/analyticsV2CacheService");
+const mobileDashboardService = require("../services/mobileDashboardService");
+const notificationService = require("../services/notificationService");
 const { resolveAnalyticsViewAccess, getAnalyticsActivityPerformer } = require("../permissions/analyticsAccess");
 
 // @desc    Create new workspace
@@ -519,6 +521,71 @@ const getWorkspaceAnalyticsV2Details = asyncHandler(async (req: AuthRequest, res
   });
 });
 
+const getWorkspaceMobileDashboard = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const workspaceId = req.params.workspaceId;
+  const userId = req.user!.id;
+  const requestedView = typeof req.query.view === "string" ? req.query.view : undefined;
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+  const timezone = typeof req.query.tz === "string" ? req.query.tz : "UTC";
+  const cacheKey = analyticsV2CacheService.buildSummaryKey({
+    workspaceId,
+    userId: `${userId}:mobile-dashboard:${timezone}`,
+    view: requestedView,
+    from,
+    to
+  });
+
+  const cached = await analyticsV2CacheService.get(cacheKey);
+  if (cached) {
+    const noticeBanner = await notificationService.getPendingWorkspaceNotice(
+      userId,
+      workspaceId
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Mobile dashboard retrieved successfully",
+      data: { ...cached, noticeBanner }
+    });
+  }
+
+  // Reuse the scoped analytics query once, then shape only the fields used by
+  // the mobile dashboard. This avoids the three summary/details/trend requests
+  // and avoids returning the full workspace hierarchy and member objects.
+  const analytics = await workspaceService.getWorkspaceAnalytics(
+    workspaceId,
+    userId,
+    requestedView,
+    { from, to, activityLimit: 10, mobileDashboard: true }
+  );
+  const payload = mobileDashboardService.buildMobileDashboardPayload(analytics, {
+    workspaceId,
+    userId,
+    from,
+    to,
+    timezone
+  });
+  const noticeBanner = await notificationService.getPendingWorkspaceNotice(
+    userId,
+    workspaceId
+  );
+  payload.noticeBanner = noticeBanner;
+
+  // Keep the analytics cache independent from notification acknowledgement
+  // state. The banner is looked up fresh on every request and must not linger
+  // in the cached dashboard after the user acknowledges it.
+  await analyticsV2CacheService.set(
+    cacheKey,
+    { ...payload, noticeBanner: null },
+    20
+  );
+  return res.status(200).json({
+    success: true,
+    message: "Mobile dashboard retrieved successfully",
+    data: payload
+  });
+});
+
 const getWorkspaceAnalyticsV2CompletionTrend = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
   const workspaceId = req.params.workspaceId || req.params.id;
   const requestedView = typeof req.query.view === "string" ? req.query.view : undefined;
@@ -927,6 +994,7 @@ module.exports = {
   getWorkspaceAnalytics,
   getWorkspaceAnalyticsV2,
   getWorkspaceAnalyticsV2Details,
+  getWorkspaceMobileDashboard,
   getWorkspaceAnalyticsV2CompletionTrend,
   getWorkspaceAnalyticsV2TeamPerformance,
   getWorkspaceAnalyticsV2Activity,

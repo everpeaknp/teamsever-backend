@@ -4,6 +4,7 @@ const { requirePermission } = require("../permissions/permission.middleware");
 const {
   getWorkspaceAnalyticsV2,
   getWorkspaceAnalyticsV2Details,
+  getWorkspaceMobileDashboard,
   getWorkspaceAnalyticsV2CompletionTrend,
   getWorkspaceAnalyticsV2TeamPerformance,
   getWorkspaceAnalyticsV2Activity,
@@ -124,6 +125,51 @@ router.get(
   protect,
   requirePermission("VIEW_ANALYTICS_PERSONAL"),
   getWorkspaceAnalyticsV2Details
+);
+
+/**
+ * @swagger
+ * /api/v2/workspaces/{workspaceId}/mobile-dashboard:
+ *   get:
+ *     summary: Get the compact mobile dashboard payload
+ *     description: Returns the summary, assigned work, recent activity, announcements, and personal performance used by the compact mobile dashboard in one scoped response. The effective analytics view is enforced by the server.
+ *     tags: ["0.1 ⭐ Primary Dashboard V2"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: view
+ *         schema:
+ *           type: string
+ *           enum: [workspace, personal]
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: tz
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Mobile dashboard retrieved successfully
+ */
+router.get(
+  "/:workspaceId/mobile-dashboard",
+  protect,
+  requirePermission("VIEW_ANALYTICS_PERSONAL"),
+  getWorkspaceMobileDashboard
 );
 
 /**
