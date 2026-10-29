@@ -122,7 +122,7 @@ class NotificationService {
         const announcements = await Announcement.find({
           _id: { $in: announcementIds },
         })
-          .select("author workspace")
+          .select("author workspace subject body content")
           .lean();
         const announcementById = new Map<string, any>(
           announcements.map((announcement: any) => [
@@ -163,12 +163,26 @@ class NotificationService {
               authorMembership?.customRole?.name ||
               authorMembership?.role
           );
-          if (roleName) {
-            notification.data = {
-              ...notification.data,
-              senderRole: roleName,
-            };
-          }
+          const announcementSubject = String(
+            announcement.subject || notification.data?.announcementSubject || ""
+          ).trim();
+          const announcementBody = String(
+            announcement.body || announcement.content ||
+              notification.data?.announcementBody ||
+              notification.data?.announcementContent || ""
+          ).trim();
+          notification.data = {
+            ...notification.data,
+            ...(roleName ? { senderRole: roleName } : {}),
+            ...(announcementSubject ? { announcementSubject } : {}),
+            ...(announcementBody
+              ? {
+                  announcementBody,
+                  // Keep legacy clients able to render the linked content.
+                  announcementContent: announcementBody,
+                }
+              : {}),
+          };
         }
       }
 
@@ -282,6 +296,11 @@ class NotificationService {
           ? notification.data?.announcementId
           : undefined;
       if (announcementId) {
+        notification.acknowledgedAt = acknowledgedAt;
+        notification.read = true;
+        notification.readAt = acknowledgedAt;
+        await notification.save();
+
         await Notification.updateMany(
           {
             recipient: userId,
@@ -296,9 +315,6 @@ class NotificationService {
             },
           }
         );
-        notification.acknowledgedAt = acknowledgedAt;
-        notification.read = true;
-        notification.readAt = acknowledgedAt;
         return notification;
       }
 

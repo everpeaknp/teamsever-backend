@@ -104,6 +104,7 @@ describe("announcement notification cleanup", () => {
         },
       }
     );
+    expect(savedNotice.save).toHaveBeenCalledTimes(1);
     expect(result.acknowledgedAt).toEqual(expect.any(Date));
   });
 });

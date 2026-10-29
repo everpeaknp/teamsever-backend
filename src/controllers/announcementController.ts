@@ -37,13 +37,20 @@ exports.getAnnouncements = async (req, res) => {
 exports.createAnnouncement = async (req, res) => {
   try {
     const { id: workspaceId } = req.params;
-    const { content } = req.body;
+    const subject = typeof req.body.subject === 'string'
+      ? req.body.subject.trim()
+      : '';
+    const body = typeof req.body.body === 'string'
+      ? req.body.body.trim()
+      : typeof req.body.content === 'string'
+      ? req.body.content.trim()
+      : '';
     const userId = req.user.id;
 
-    if (!content || !content.trim()) {
+    if (!body) {
       return res.status(400).json({
         success: false,
-        message: 'Announcement content is required',
+        message: 'Announcement body is required',
       });
     }
 
@@ -125,7 +132,10 @@ exports.createAnnouncement = async (req, res) => {
     console.log('[Announcement] Cooldown check passed, creating announcement');
 
     const announcement = await Announcement.create({
-      content: content.trim(),
+      subject,
+      body,
+      // Keep the legacy field populated for older clients and records.
+      content: body,
       workspace: workspaceId,
       author: userId,
     });
@@ -149,7 +159,8 @@ exports.createAnnouncement = async (req, res) => {
       announcement._id.toString(),
       workspaceId,
       userId,
-      content
+      subject,
+      body
     ).catch(err => {
       console.error('[Announcement] Notification failed:', err);
     });

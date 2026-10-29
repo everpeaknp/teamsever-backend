@@ -292,9 +292,12 @@ class EnhancedNotificationService {
     announcementId: string,
     workspaceId: string,
     authorId: string,
-    content: string
+    subjectOrBody: string,
+    body?: string
   ): Promise<void> {
     try {
+      const subject = body === undefined ? '' : subjectOrBody;
+      const announcementBody = body === undefined ? subjectOrBody : body;
       const workspace = await Workspace.findById(workspaceId)
         .populate("members.customRole", "name label")
         .lean();
@@ -313,7 +316,9 @@ class EnhancedNotificationService {
           .split(/[\s_]+/)
           .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
           .join(" ");
-      const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
+      const bodyPreview = announcementBody.length > 100
+        ? announcementBody.substring(0, 100) + "..."
+        : announcementBody;
 
       // Notify all members except author
       const recipients = [
@@ -332,8 +337,8 @@ class EnhancedNotificationService {
         await this.createNotification({
           recipientId,
           type: "ANNOUNCEMENT_NEW",
-          title: `New Announcement in ${workspace.name}`,
-          body: `${authorName}: ${contentPreview}`,
+          title: subject || `New Announcement in ${workspace.name}`,
+          body: `${authorName}: ${bodyPreview}`,
           data: {
             resourceId: announcementId,
             resourceType: "Announcement",
@@ -342,7 +347,10 @@ class EnhancedNotificationService {
             // Keep enough of the original notice on the notification so the
             // dashboard card and its detail sheet can render immediately,
             // before the dashboard analytics request refreshes.
-            announcementContent: content.substring(0, 1000),
+            announcementSubject: subject,
+            announcementBody: announcementBody.substring(0, 1000),
+            // Legacy clients read announcementContent.
+            announcementContent: announcementBody.substring(0, 1000),
             senderRole,
           },
         });
