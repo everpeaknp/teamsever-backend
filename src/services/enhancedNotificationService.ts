@@ -316,9 +316,13 @@ class EnhancedNotificationService {
       const contentPreview = content.length > 100 ? content.substring(0, 100) + "..." : content;
 
       // Notify all members except author
-      const recipients = workspace.members
-        .map((m: any) => m.user.toString())
-        .filter((id: string) => id !== authorId);
+      const recipients = [
+        ...new Set<string>(
+          workspace.members
+            .map((m: any) => m.user.toString())
+            .filter((id: string) => id !== authorId)
+        ),
+      ];
 
       for (const recipientId of recipients) {
         // Check preferences

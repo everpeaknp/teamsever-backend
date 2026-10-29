@@ -1,6 +1,7 @@
 const Announcement = require('../models/Announcement');
 const Workspace = require('../models/Workspace');
 const enhancedNotificationService = require('../services/enhancedNotificationService').default || require('../services/enhancedNotificationService');
+const notificationService = require('../services/notificationService');
 const PermissionService = require("../permissions/permission.service");
 const analyticsV2CacheService = require("../services/analyticsV2CacheService");
 
@@ -198,6 +199,16 @@ exports.deleteAnnouncement = async (req, res) => {
         success: false,
         message: 'Announcement not found',
       });
+    }
+
+    try {
+      await notificationService.deleteAnnouncementNotifications(
+        announcement._id.toString()
+      );
+    } catch (cleanupError) {
+      // Keep the announcement deletion successful; notification feed reads
+      // also prune orphaned announcement notices if this cleanup fails.
+      console.error('[Announcement] Failed to remove recipient notices:', cleanupError);
     }
 
     res.status(200).json({

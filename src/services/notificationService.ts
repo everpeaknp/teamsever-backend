@@ -73,6 +73,14 @@ class NotificationService {
       const limit = options.limit || 20;
       const skip = (page - 1) * limit;
 
+      // Announcement records can be deleted independently of their recipient
+      // notifications. Remove those orphaned notices before counting or paging
+      // so old announcements cannot keep resurfacing in the dashboard.
+      await this.removeOrphanedAnnouncementNotifications(
+        userId,
+        options.workspaceId
+      );
+
       // Build query
       const query: any = { recipient: userId };
       if (options.unreadOnly) {
@@ -181,6 +189,51 @@ class NotificationService {
     }
   }
 
+  async deleteAnnouncementNotifications(announcementId: string): Promise<void> {
+    await Notification.deleteMany({
+      type: "ANNOUNCEMENT_NEW",
+      "data.announcementId": announcementId,
+    });
+  }
+
+  private async removeOrphanedAnnouncementNotifications(
+    userId: string,
+    workspaceId?: string
+  ): Promise<void> {
+    const query: any = {
+      recipient: userId,
+      type: "ANNOUNCEMENT_NEW",
+      "data.announcementId": { $exists: true, $nin: [null, ""] },
+    };
+    if (workspaceId) query["data.workspaceId"] = workspaceId;
+
+    const announcementIds: any[] = await Notification.distinct(
+      "data.announcementId",
+      query
+    );
+    if (announcementIds.length === 0) return;
+
+    const existingAnnouncements = await Announcement.find({
+      _id: { $in: announcementIds },
+    })
+      .select("_id")
+      .lean();
+    const existingIds = new Set(
+      existingAnnouncements.map((announcement: any) =>
+        String(announcement._id)
+      )
+    );
+    const orphanedIds = announcementIds.filter(
+      (announcementId) => !existingIds.has(String(announcementId))
+    );
+    if (orphanedIds.length === 0) return;
+
+    await Notification.deleteMany({
+      ...query,
+      "data.announcementId": { $in: orphanedIds },
+    });
+  }
+
   /**
    * Mark notification as read
    */
@@ -223,6 +276,32 @@ class NotificationService {
       }
 
       const acknowledgedAt = notification.acknowledgedAt || new Date();
+
+      const announcementId =
+        notification.type === "ANNOUNCEMENT_NEW"
+          ? notification.data?.announcementId
+          : undefined;
+      if (announcementId) {
+        await Notification.updateMany(
+          {
+            recipient: userId,
+            type: "ANNOUNCEMENT_NEW",
+            "data.announcementId": announcementId,
+          },
+          {
+            $set: {
+              acknowledgedAt,
+              read: true,
+              readAt: acknowledgedAt,
+            },
+          }
+        );
+        notification.acknowledgedAt = acknowledgedAt;
+        notification.read = true;
+        notification.readAt = acknowledgedAt;
+        return notification;
+      }
+
       notification.acknowledgedAt = acknowledgedAt;
       if (!notification.read) {
         notification.read = true;
